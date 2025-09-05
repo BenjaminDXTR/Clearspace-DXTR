@@ -1,0 +1,139 @@
+***
+
+# 📁 Documentation de l’arborescence du projet
+
+## 🔹 Racine du projet
+Ce projet est structuré en deux parties principales :
+- **backend/** → Code serveur Node.js + API
+- **frontend/** → Interface utilisateur React/TypeScript
+
+Des scripts `.sh` et `.bat` sont présents pour démarrer/arrêter les serveurs.
+
+***
+
+## 1. **backend/**  
+Contient le code côté serveur (API REST + GraphQL), ainsi que la configuration.
+
+### Fichiers principaux :
+- **.env / .env.dev / .env.prod** → Variables d’environnement (ports, clés, URL DB…).
+- **server.js** → Point d’entrée du serveur Node.js (lancement Express, middlewares, routes).
+
+### 📂 `/middleware`
+- **errorHandler.js** → Middleware Express pour capter et formater les erreurs.
+- **notFoundHandler.js** → Middleware pour gérer les routes non trouvées (404).
+
+### 📂 `/routes`
+- **anchor.js** → Endpoints REST pour la gestion des “ancrages” (sauvegarde de traces, etc.).
+- **graphql.js** → Définition du serveur GraphQL (schémas + résolveurs).
+- **graphql.js.bak** → Copie du fichier GraphQL (backup).
+- **history.js** → Endpoints REST pour récupérer l’historique des vols.
+- **index.js** → Point central d’enregistrement des routes dans Express.
+
+### 📂 `/services`
+- **anchorService.js** → Logique métier liée aux ancrages (valider, sauvegarder, exporter…).
+- **flightService.js** → Logique métier pour récupérer, filtrer et formater les données de vol.
+
+### 📂 `/utils`
+- **logger.js** → Utilitaire centralisé de logs (console + fichiers éventuellement).
+
+***
+
+## 2. **frontend/**  
+Contient l’application React (TypeScript), découpée en composants, hooks, services et utilitaires.
+
+### Fichiers racine :
+- **package.json / package-lock.json** → Dépendances et scripts (build/start…).
+- **index.html** → Gabarit HTML où l’app React est injectée.
+- **tsconfig.json** → Configuration du compilateur TypeScript.
+
+### **src/**
+Code source principal React.
+
+***
+
+### 📂 `/src/components`
+UI réutilisable + layout principal.
+
+#### 📂 `/src/components/common`
+- **FlightMap.tsx** → Composant carte Leaflet affichant la trace du vol + marqueurs, avec fonction `FlyToPosition`.
+- **FlyToPosition.tsx** → Variante isolée du centrage animé de Leaflet.
+- **FlightMap.css** → Styles spécifiques de la carte et éléments Leaflet.
+- **Pagination.tsx / Pagination.css** → Composant paginé générique.
+
+#### 📂 `/src/components/flights`
+- **DetailsPanel.tsx** → Panneau d’informations détaillées sur un vol (champs dynamiques).
+- **DetailsPanel.css** → Styles du panneau.
+- **DetectionsTable.tsx** → Tableau listant vols/live ou historiques.
+- **DetectionsTable.css** → Styles du tableau.
+
+#### 📂 `/src/components/layout`
+- **Header.tsx / Header.css** → Bandeau supérieur avec titre, logo, etc.
+- **MapLayout.tsx / MapLayout.css** → Composant contenant la carte (`FlightMap`) et le panneau de détails.
+- **TablesLayout.tsx / TablesLayout.css** → Composant affichant les tables de vols/live/historiques.
+- **Sidebar.tsx / Sidebar.css** → Composant menu latéral (options, filtres…).
+- **AnchorModalLayout.tsx / .css** → Fenêtre modale pour valider ou annuler l’ancrage d’un vol.
+
+***
+
+### 📂 `/src/hooks`
+Hooks personnalisés pour factoriser l’accès aux données :
+- **useDrones.ts** → Récupère la liste des drones connectés (live).
+- **useAnchored.ts** → Récupère les vols déjà ancrés.
+- **useLocalHistory.ts** → Gère l’historique local stocké dans le navigateur.
+- **useRemoteEvents.ts** → Récupère l’historique via API distante.
+- **useAnchorModal.ts** → Logique d’ouverture/fermeture de la modale d’ancrage.
+- **useLiveTraces.ts** → Suit les traces de position en direct des drones.
+
+***
+
+### 📂 `/src/services`
+Appels API et transformations :
+- **api.ts** → Contient les requêtes fetch/GraphQL/REST.
+- **anchorService.ts** → Méthodes métier pour formater et envoyer un “ancrage” à l’API.
+- **historyService.ts** → Récupère l’historique via l’API REST.
+- **apiInfos.txt / servicesInfos.txt** → Notes/données de référence.
+
+***
+
+### 📂 `/src/utils`
+Utilitaires globaux :
+- **constants.ts** → Valeurs constantes utilisées partout (URLs, zoom carte…).
+- **coords.ts** → Fonctions de manipulation des coordonnées GPS (`getFlightTrace`, `isLatLng`, …).
+- **icons.ts** → Définit les icônes Leaflet pour les drones/marqueurs.
+- **format.ts** → Fonctions de formatage de dates, chaînes…
+- **graphql.ts** → Utilitaire pour effectuer des requêtes GraphQL.
+- **displayConfig.ts / fieldConfig.ts** → Configurations d’affichage des champs.
+- **UtilsInfos.txt** → Notes internes.
+
+***
+
+### 📂 `/src/types`
+- **models.ts** → Définition des types/Interfaces TS (Flight, LatLng, Event…).
+
+***
+
+### 📂 `/src/assests`
+(Ressources visuelles du projet si présentes – logos, images…).
+
+***
+
+## 3. **Scripts racine**
+- **start-servers.sh / .bat** → Script pour démarrer le backend et le frontend ensemble.
+- **stop-servers.sh / .bat** → Script pour arrêter le backend et le frontend.
+
+***
+
+## 4. **Fonctionnement global**
+1. **Backend** se lance (Express + API REST + GraphQL).
+2. **Frontend** se connecte à l’API/GraphQL pour récupérer :
+   - Vols live (`useDrones` + `useLiveTraces`)
+   - Historique (`useRemoteEvents`)
+   - Vols ancrés (`useAnchored`)
+3. L’utilisateur sélectionne un vol dans **TablesLayout** :
+   - `App.tsx` met à jour `selected` et incrémente `flyToTrigger`.
+   - `MapLayout.tsx` calcule `points`, `startPosition`, `livePosition`.
+   - `FlightMap.tsx` recentre **uniquement quand `flyToTrigger` change**.
+4. L’utilisateur peut ancrer un vol via **AnchorModalLayout**.
+5. Les styles sont gérés dans les CSS correspondants.
+
+***
