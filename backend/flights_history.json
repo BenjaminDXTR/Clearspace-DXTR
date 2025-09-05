@@ -1,0 +1,295 @@
+[
+  {
+    "altitude": 136,
+    "attack_bands": [
+      2400,
+      5800
+    ],
+    "attack_type": "Smart-II",
+    "attacking": false,
+    "attacking_ttl": 0,
+    "blacklisted": false,
+    "can_attack": false,
+    "can_ctrl_landing": false,
+    "can_takeover": false,
+    "can_tdoa": false,
+    "can_toa": false,
+    "confirmed": true,
+    "created_time": "2025-08-14T11:47:44.71490464+02:00",
+    "ctrl_landing": false,
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 140.01253,
+    "directional_attack_state": 0,
+    "distance": 110,
+    "has_duplicate": false,
+    "has_screenshot": false,
+    "height": 0,
+    "id": "1581F67PB22AB00301J9",
+    "image": "dimages/dji_mavic3.png",
+    "in_ada": 0,
+    "initial_location": {
+      "lat": 49.53096952976692,
+      "lng": 0.09368432909704578
+    },
+    "jamming_conflicts": [],
+    "lastseen": null,
+    "lastseen_time": "2025-08-14T11:52:42.725218848+02:00",
+    "latitude": 49.53097525940941,
+    "link_id": "",
+    "localization": null,
+    "longitude": 0.0936098445869901,
+    "name": "DJI Mavic3Classic",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "screenshot": "",
+    "secret": "",
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 9000,
+        "detected_freq_khz": 2459500,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "2",
+        "signal_dbm": 21,
+        "snr_dB": 1.8957462
+      }
+    ],
+    "speed": 0,
+    "state": "danger",
+    "tdoa_tracking": false,
+    "toa_measuring": false,
+    "tracing": {
+      "lastlen": 2,
+      "origin": {
+        "lat": 49.531734,
+        "lng": 0.092629336
+      },
+      "points": []
+    },
+    "tracking_video": "",
+    "whitelisted": false
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "attack_type": "null",
+    "attacking": false,
+    "attacking_ttl": 0,
+    "blacklisted": false,
+    "can_attack": false,
+    "can_ctrl_landing": false,
+    "can_takeover": false,
+    "can_tdoa": false,
+    "can_toa": false,
+    "confirmed": true,
+    "created_time": "2025-08-14T17:43:58.622651776+02:00",
+    "ctrl_landing": false,
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 365,
+    "directional_attack_state": 0,
+    "distance": 0,
+    "has_duplicate": false,
+    "has_screenshot": false,
+    "height": 0,
+    "id": "187113012",
+    "image": "dimages/flysky_ant.png",
+    "in_ada": 0,
+    "initial_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "jamming_conflicts": [],
+    "lastseen": null,
+    "lastseen_time": "2025-08-14T17:43:59.623882688+02:00",
+    "latitude": 0,
+    "link_id": "",
+    "localization": null,
+    "longitude": 0,
+    "name": "FLYSKY ANT",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "screenshot": "",
+    "secret": "",
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 4400,
+        "detected_freq_khz": 2418120,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "1",
+        "signal_dbm": 35,
+        "snr_dB": -0.017627716
+      }
+    ],
+    "speed": 0,
+    "state": "danger",
+    "tdoa_tracking": false,
+    "toa_measuring": false,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "tracking_video": "",
+    "whitelisted": false
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      900,
+      2400,
+      5800
+    ],
+    "attack_type": "Smart-II",
+    "attacking": false,
+    "attacking_ttl": 0,
+    "blacklisted": false,
+    "can_attack": false,
+    "can_ctrl_landing": false,
+    "can_takeover": false,
+    "can_tdoa": false,
+    "can_toa": false,
+    "confirmed": true,
+    "created_time": "2025-09-05T13:31:58.403595712+02:00",
+    "ctrl_landing": false,
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 365,
+    "directional_attack_state": 0,
+    "distance": 0,
+    "has_duplicate": false,
+    "has_screenshot": false,
+    "height": 0,
+    "id": "e00102",
+    "image": "dimages/autel_evo.png",
+    "in_ada": 0,
+    "initial_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "jamming_conflicts": [],
+    "lastseen": null,
+    "lastseen_time": "2025-09-05T13:32:01.363365056+02:00",
+    "latitude": 0,
+    "link_id": "",
+    "localization": null,
+    "longitude": 0,
+    "name": "AUTEL/DAHUA EVO(skylink2)/X",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "screenshot": "",
+    "secret": "",
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 9600,
+        "detected_freq_khz": 2412530,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "1",
+        "signal_dbm": 50,
+        "snr_dB": 7.2313423
+      }
+    ],
+    "speed": 0,
+    "state": "danger",
+    "tdoa_tracking": false,
+    "toa_measuring": false,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "tracking_video": "",
+    "whitelisted": false
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      900,
+      2400,
+      5800
+    ],
+    "attack_type": "Smart-II",
+    "attacking": false,
+    "attacking_ttl": 0,
+    "blacklisted": false,
+    "can_attack": false,
+    "can_ctrl_landing": false,
+    "can_takeover": false,
+    "can_tdoa": false,
+    "can_toa": false,
+    "confirmed": true,
+    "created_time": "2025-09-05T13:32:38.361292736+02:00",
+    "ctrl_landing": false,
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 365,
+    "directional_attack_state": 0,
+    "distance": 0,
+    "has_duplicate": false,
+    "has_screenshot": false,
+    "height": 0,
+    "id": "e00102",
+    "image": "dimages/autel_evo.png",
+    "in_ada": 0,
+    "initial_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "jamming_conflicts": [],
+    "lastseen": null,
+    "lastseen_time": "2025-09-05T13:32:39.363463712+02:00",
+    "latitude": 0,
+    "link_id": "",
+    "localization": null,
+    "longitude": 0,
+    "name": "AUTEL/DAHUA EVO(skylink2)/X",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "screenshot": "",
+    "secret": "",
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 9600,
+        "detected_freq_khz": 2441500,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "1",
+        "signal_dbm": 70,
+        "snr_dB": 9.322113
+      }
+    ],
+    "speed": 0,
+    "state": "danger",
+    "tdoa_tracking": false,
+    "toa_measuring": false,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "tracking_video": "",
+    "whitelisted": false
+  }
+]

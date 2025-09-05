@@ -1,0 +1,84 @@
+/**
+ * Routes pour proxy GraphQL vers l'API Drone distante.
+ * - Récupère un token via tokenService
+ * - Transmet la requête GraphQL au backend distant
+ * - Enregistre dans l'historique toute donnée "drone" trouvée dans la réponse
+ */
+
+const express = require('express');
+const router = express.Router();
+
+// ✅ On n'importe plus node-fetch, Node 18+ a fetch nativement
+
+const tokenService = require('../services/tokenService');
+const flightsService = require('../services/flightService');
+
+// Variables d'environnement (avec valeurs par défaut)
+const API_PROTOCOL = process.env.API_PROTOCOL || 'http';
+const API_HOST = process.env.API_HOST || '192.168.1.100';
+const API_PORT = process.env.API_PORT || '3200';
+
+/**
+ * Logger standardisé pour ces routes
+ */
+function log(level, message) {
+  console.log(`[ROUTE:GRAPHQL][${level}][${new Date().toISOString()}] ${message}`);
+}
+
+/**
+ * POST /graphql
+ * Proxy vers l'API GraphQL distante
+ */
+router.post('/graphql', async (req, res, next) => {
+  log('INFO', 'POST /graphql reçu');
+
+  try {
+    // Validation rapide du corps de requête
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: 'Requête GraphQL vide ou invalide' });
+    }
+
+    // Récupérer le token d'authentification depuis le service
+    const token = await tokenService.getToken();
+
+    const graphqlUrl = `${API_PROTOCOL}://${API_HOST}:${API_PORT}/graphql`;
+    log('INFO', `Proxy vers API distante : ${graphqlUrl}`);
+
+    // Appel API distante avec le fetch natif
+    const response = await fetch(graphqlUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(req.body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      const error = new Error(
+        `Échec requête GraphQL distante : HTTP ${response.status} ${response.statusText} - ${errText}`
+      );
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    const data = await response.json();
+
+    // Enregistrement automatique dans l'historique si données "drone"
+    if (data?.data?.drone) {
+      const drones = Array.isArray(data.data.drone)
+        ? data.data.drone
+        : [data.data.drone];
+      await flightsService.addFlightsToHistory(drones);
+      log('INFO', `${drones.length} vol(s) ajouté(s) à l’historique`);
+    }
+
+    // Retourner la réponse telle qu'obtenue de l’API distante
+    res.json(data);
+  } catch (error) {
+    next(error); // Passage au middleware global
+  }
+});
+
+module.exports = router;
