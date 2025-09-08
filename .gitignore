@@ -1,0 +1,34 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Process ID
+pids
+*.pid
+*.pid.lock
+
+# Temp
+tmp/
+temp/
+
+# Build / dist
+dist/
+build/
+
+# Environnements
+.env
+.env.*
+!.env.example
+
+# Fichiers système/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
