@@ -1,0 +1,32 @@
+.map-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.map-layout__map {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-layout__title {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.map-layout__leaflet {
+  flex: 1;
+  border-radius: 8px;
+}
+
+.map-layout__details {
+  margin-top: 12px;
+}
+
+.map-layout__no-selection {
+  padding: 10px;
+  font-size: 0.9rem;
+  color: #777;
+  font-style: italic;
+}
