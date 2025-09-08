@@ -1,0 +1,202 @@
+.anchor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.anchor-modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 58vw;      /* légèrement agrandi: plus d'espace à droite */
+  max-height: 88vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 0 14px;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.32);
+  overflow: hidden;
+  padding-bottom: 0 !important;
+}
+
+/* Panels côte à côte, centrés */
+.anchor-modal-scrollable {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  gap: 15px;
+  align-items: flex-start; /* évite tout débordement vertical */
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Panel gauche (JSON + description) */
+.left-panel {
+  flex: 1 1 320px;
+  max-width: 400px;           /* largeur JSON max : limite la place */
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* JSON : largeur adaptée, haut scrolle si besoin */
+.anchor-modal-json {
+  background: #f6f6f6;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 9px;
+  font-family: monospace, monospace;
+  font-size: 13px;
+  width: 100%;
+  height: auto;
+  max-height: 320px;        /* scrolle vertical dans la zone modale si besoin */
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.left-panel .anchor-modal-section textarea {
+  width: 100%;
+  height: 62px;
+  min-height: 32px;
+  max-height: 110px;
+  resize: vertical;
+  padding: 7px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  margin: 0;
+}
+
+/* Panel droite (carte carrée) */
+.right-panel {
+  flex: 0 0 250px;              /* largeur fixée pour la carte : ni trop petite ni trop large */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;      /* centre verticalement la carte */
+  min-width: 160px;
+  max-width: 260px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Carte carrée centrée et adaptée : jamas rognée ni trop petite */
+.modal-map-capture {
+  width: 220px;
+  height: 220px;
+  min-width: 130px;
+  min-height: 130px;
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #fafafa;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  display: block;
+  box-sizing: border-box;
+}
+
+.anchor-modal-warning {
+  font-size: 12.5px;
+  color: #b71c1c;
+  font-weight: bold;
+  margin-top: 5px;
+}
+.anchor-modal-hint {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.anchor-modal-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #ebebeb;
+  background: white;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.anchor-modal-actions button {
+  border: none;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.anchor-modal-actions button:first-child {
+  background-color: #1976d2;
+  color: white;
+}
+.anchor-modal-actions button:first-child:hover:not(:disabled) {
+  background-color: #125daa;
+}
+.anchor-modal-actions button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.anchor-modal-actions button:last-child {
+  background-color: #e0e0e0;
+  color: #333;
+}
+.anchor-modal-actions button:last-child:hover {
+  background-color: #c6c6c6;
+}
+
+/* Zéro espace sous le footer */
+.anchor-modal-content, 
+.anchor-modal-content > :last-child,
+.anchor-modal-content > .anchor-modal-actions {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Responsive mobile/tablette : panels en colonne, carte adaptée */
+@media (max-width: 700px) {
+  .anchor-modal-content {
+    max-width: 99vw;
+    max-height: 97vh;
+    padding: 8px;
+  }
+  .anchor-modal-scrollable {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .left-panel, .right-panel {
+    max-width: 100%;
+    min-width: 0;
+    align-items: center;
+  }
+  .modal-map-capture {
+    width: 86vw;
+    max-width: 220px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+  .anchor-modal-json {
+    font-size: 12px;
+    padding: 6px;
+    max-height: 140px;
+  }
+  .left-panel .anchor-modal-section textarea {
+    height: 38px;
+    font-size: 12.5px;
+  }
+}

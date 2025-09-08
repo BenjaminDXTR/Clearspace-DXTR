@@ -1,0 +1,131 @@
+Ce fichier est la couche d’accès aux données du frontend, centralisant tous les appels HTTP et GraphQL vers le backend.
+Il contient les fonctions qui :
+
+    Interrogent l’API GraphQL pour récupérer les données live ou distantes.
+
+    Communiquent avec les endpoints REST (/history, /anchor, /anchored) pour manipuler des fichiers ou des historiques locaux.
+
+    Normalisent la gestion des erreurs avec handleApiError, pour toujours renvoyer un message clair exploitable côté UI.
+
+💡 Toute requête réseau passe par ici, ce qui permet une maintenance centralisée et l’ajout futur de gestion globale (logs, retries, tokens...).
+📜 Détail des fonctions
+handleApiError(context: string, error: unknown): never
+
+    But : uniformiser le formatage et le logging des erreurs réseau.
+
+    Principe : Logge l’erreur en console avec le nom du contexte et lève une exception Error avec un message standardisé.
+
+    À retenir :
+
+        On pourrait plus tard étendre pour capturer aussi les erreurs côté monitoring distant.
+
+        Toujours inclure le nom de la fonction appelante dans context pour debug aisé.
+
+fetchLiveDrones(): Promise<Flight[]>
+
+    But : Récupérer la liste des drones actifs en live via GraphQL.
+
+    Requête : Envoie un query complet qui récupère tous les champs nécessaires au frontend (trajectoire, état, position, etc.).
+
+    Retour : Un tableau typé Flight[] (vide si rien).
+
+    Cas d’erreur : Côté backend ou réseau → passe par handleApiError.
+
+    Notes :
+
+        La requête est longue mais exhaustive : mieux vaut l’externaliser dans un fichier graphqlQueries.ts pour lisibilité.
+
+fetchHistoricEvents(): Promise<Event[]>
+
+    But : Récupère les événements historiques distants, paginés et triés par date descendante.
+
+    Retour : Event[] (peut être vide si pas d’événement).
+
+    Notes :
+
+        Comme pour les drones, passer la requête dans un fichier dédié aux queries améliorerait la maintenabilité.
+
+fetchDroneTraces(from, to): Promise<any[]>
+
+    But : Récupérer les tracés de drones sur une période donnée (timestamps ou séquences).
+
+    Retour : Tableau d’objets { id, binding_id, created_time, points }.
+
+    Attention :
+
+        Les champs points contiennent souvent du JSON stringifié → à parser au moment de l’utilisation.
+
+fetchLocalHistory(): Promise<Flight[]>
+
+    But : Charger l’historique local des vols depuis le backend.
+
+    Type : REST GET sur HISTORY_URL (fichier JSON côté serveur).
+
+    Notes :
+
+        Échec réseau ou HTTP status != 200 → lève une erreur via handleApiError.
+
+postLocalHistoryFlight(flight: Flight): Promise<void>
+
+    But : Ajoute un vol à l’historique local (archivage).
+
+    Type : REST POST avec payload JSON.
+
+    Cas d’erreur : Renvoi non-OK → throw.
+
+fetchAnchoredFlights(): Promise<Flight[]>
+
+    But : Récupèle la liste des vols déjà ancrés en blockchain.
+
+    Type : REST GET sur /anchored (dérivé de ANCHOR_URL).
+
+    Cas d’erreur : Lève une erreur si status HTTP non-200.
+
+postAnchorData(anchorData: any, zipBlob: Blob): Promise<void>
+
+    But : Envoie un zip de données d’ancrage et les métadonnées associées au backend.
+
+    Type : FormData (multipart).
+
+    Important :
+
+        Le champ fichier doit s’appeler "proofZip" pour correspondre au backend (anchor.js).
+
+        Le champ "anchorData" contient un JSON stringifié.
+
+    Cas d’erreur : Non-OK → throw.
+
+✅ Bonnes pratiques pour maintenir ce fichier
+
+    Externaliser les requêtes GraphQL
+    Mettre les query longues dans src/utils/graphqlQueries.ts → les fonctions ici auraient juste :
+
+ts
+const data = await fetchGraphQL(DRONE_QUERY, GRAPHQL_URL);
+
+Factoriser les fetch REST
+Créer un helper apiFetch qui :
+
+    gère automatiquement JSON parsing
+
+    check res.ok
+
+    passe les erreurs à handleApiError
+
+Exemple :
+
+ts
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+Gérer les tokens/autorisations
+Si un jour tu ajoutes de l’authentification → toutes les fonctions ici pourront hériter du même mécanisme (headers, refresh token…).
+
+Centraliser les types de retour
+Toujours typer Promise<T> même si T est any[], pour documenter ce qui est attendu par les composants.
+
+Logs en dev uniquement
+Ne garder console.error / console.log que si process.env.NODE_ENV === "development".
