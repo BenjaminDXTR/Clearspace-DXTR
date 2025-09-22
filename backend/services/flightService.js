@@ -6,16 +6,16 @@
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
-require('dotenv').config();
 
-const { log } = require('../utils/logger'); // ✅ Logger centralisé
+const { log } = require('../utils/logger'); // Logger centralisé
+const { config } = require('../config');    // Import config centralisée
 
-// Chemin du fichier historique depuis l'env ou fallback
-const HISTORY_FILE = path.join(
-  __dirname,
-  '..',
-  process.env.FLIGHTS_HISTORY_FILE || 'flights_history.json'
-);
+// Gestion du fichier historique avec support chemin absolu ou relatif
+const rawFlightsHistoryFile = config.backend.flightsHistoryFile || 'flights_history.json';
+
+const HISTORY_FILE = path.isAbsolute(rawFlightsHistoryFile)
+  ? rawFlightsHistoryFile
+  : path.resolve(__dirname, '..', rawFlightsHistoryFile);
 
 /**
  * Lit et retourne la liste complète des vols dans l'historique.

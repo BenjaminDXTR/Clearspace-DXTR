@@ -14,6 +14,7 @@ const config = {
     apiPort: process.env.API_PORT || '3200',
     anchoredDir: process.env.ANCHORED_DIR || 'anchored',
     anchorFile: process.env.ANCHOR_FILE || 'anchored.json',
+    flightsHistoryFile: process.env.FLIGHTS_HISTORY_FILE || 'flights_history.json',
   },
 };
 
