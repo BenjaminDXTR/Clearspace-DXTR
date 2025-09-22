@@ -8,11 +8,13 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { log } = require('../utils/logger'); // Logger centralisé
-
-// Limite taille fichier : 50 Mo
-const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
+const { config } = require('../config'); // Import config centralisée
 
 const anchorService = require('../services/anchorService');
+
+// Limite taille fichier paramétrable dans config (mo)
+const maxFileSize = config.backend.maxUploadSizeMb || 50;
+const upload = multer({ limits: { fileSize: maxFileSize * 1024 * 1024 } });
 
 /**
  * GET /anchored - liste des vols ancrés

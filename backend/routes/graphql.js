@@ -2,10 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { log } = require('../utils/logger'); // Logger centralisé
 const flightsService = require('../services/flightService');
+const { config } = require('../config'); // Import config centralisée
+const fetch = require('node-fetch'); // Assurez-vous que node-fetch est installé
 
-const API_PROTOCOL = process.env.API_PROTOCOL || 'http';
-const API_HOST = process.env.API_HOST || '192.168.1.100';
-const API_PORT = process.env.API_PORT || '3200';
+// Lecture des paramètres depuis config
+const API_PROTOCOL = config.backend.apiProtocol || 'http';
+const API_HOST = config.backend.apiHost || '192.168.1.100';
+const API_PORT = config.backend.apiPort || '3200';
 
 router.post('/graphql', async (req, res, next) => {
   log('debug', '→ POST /graphql reçu');

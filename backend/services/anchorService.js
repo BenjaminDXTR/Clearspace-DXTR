@@ -7,13 +7,13 @@
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
-require('dotenv').config(); // Charger .env si pas déjà fait
 
-const { log } = require('../utils/logger'); // ✅ Logger centralisé
+const { log } = require('../utils/logger'); // Logger centralisé
+const { config } = require('../config');    // Import config centralisée
 
-// Variables de configuration depuis .env (avec valeurs par défaut)
-const ANCHORED_DIR = path.resolve(__dirname, '..', process.env.ANCHORED_DIR || 'anchored');
-const ANCHOR_FILE = path.join(__dirname, '..', process.env.ANCHOR_FILE || 'anchored.json');
+// Variables de configuration depuis config
+const ANCHORED_DIR = path.resolve(__dirname, '..', config.backend.anchoredDir || 'anchored');
+const ANCHOR_FILE = path.join(__dirname, '..', config.backend.anchorFile || 'anchored.json');
 
 /**
  * Lit la liste complète des vols ancrés depuis le fichier JSON.
