@@ -11,8 +11,12 @@ const path = require('path');
 const { log } = require('../utils/logger'); // Logger centralisé
 const { config } = require('../config');    // Import config centralisée
 
-// Variables de configuration depuis config
-const ANCHORED_DIR = path.resolve(__dirname, '..', config.backend.anchoredDir || 'anchored');
+// Gestion du dossier d'ancrage avec support chemin absolu ou relatif
+const rawAnchoredDir = config.backend.anchoredDir || 'anchored';
+const ANCHORED_DIR = path.isAbsolute(rawAnchoredDir)
+  ? rawAnchoredDir
+  : path.resolve(__dirname, '..', rawAnchoredDir);
+
 const ANCHOR_FILE = path.join(__dirname, '..', config.backend.anchorFile || 'anchored.json');
 
 /**
