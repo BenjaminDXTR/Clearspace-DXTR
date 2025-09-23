@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { config } from "./config";
+import { config } from "../config";
 
 /**
  * URLs des icônes issues de la config centralisée

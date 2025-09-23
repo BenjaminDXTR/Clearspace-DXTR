@@ -1,4 +1,4 @@
-import { config } from "./config";
+import { config } from "../config";
 
 /** URL GraphQL issue de config */
 export const GRAPHQL_URL: string = config.apiUrl + "/graphql";

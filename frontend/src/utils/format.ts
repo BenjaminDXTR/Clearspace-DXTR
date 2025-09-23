@@ -6,7 +6,7 @@ import {
   DEFAULT_DATE_OPTIONS,
 } from "./displayConfig";
 
-import { config } from "./config";
+import { config } from "../config";
 
 /** Flag debug global basé sur config */
 const DEBUG = config.debug || config.environment === "development";

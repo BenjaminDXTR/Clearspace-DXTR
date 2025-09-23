@@ -3,26 +3,26 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "html2canvas": "1.4.1",
+    "jszip": "3.10.1",
+    "leaflet": "1.9.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-scripts": "5.0.1",
-    "typescript": "4.9.5",
     "react-leaflet": "4.2.1",
-    "leaflet": "1.9.4",
-    "html2canvas": "1.4.1",
-    "jszip": "3.10.1"
+    "typescript": "4.9.5"
   },
   "devDependencies": {
+    "@types/jszip": "3.4.1",
+    "@types/leaflet": "1.9.8",
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
-    "@types/leaflet": "1.9.8",
-    "@types/jszip": "3.4.1"
+    "@vitejs/plugin-react": "^5.0.3",
+    "vite": "^7.1.7"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [

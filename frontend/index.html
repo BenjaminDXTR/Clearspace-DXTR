@@ -4,14 +4,12 @@
     <meta charset="utf-8" />
     <title>DroneWeb</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Favicon -->
     <link
       rel="icon"
       href="https://cdn-icons-png.flaticon.com/512/854/854878.png"
       type="image/png"
     />
     <style>
-      /* S’assurer que le conteneur occupe toute la hauteur de l’écran */
       html,
       body,
       #root {
@@ -24,9 +22,13 @@
   </head>
   <body>
     <noscript>
-      <strong>JavaScript est désactivé dans votre navigateur.</strong><br />
+      <strong>JavaScript est désactivé dans votre navigateur.</strong>
+      <br />
       Vous devez l’activer pour utiliser cette application.
     </noscript>
     <div id="root"></div>
+
+    <!-- Ajout indispensable -->
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

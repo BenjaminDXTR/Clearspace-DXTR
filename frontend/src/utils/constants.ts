@@ -1,4 +1,4 @@
-import { config } from './config';
+import { config } from '../config';
 
 /**
  * 🌐 URL racine de l'API DroneWeb

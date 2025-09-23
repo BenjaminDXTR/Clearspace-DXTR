@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_GEO_DISTANCE_METERS } from "./constants";
-import { config } from "./config";  // Import config centralisée
+import { config } from "../config";  // Import config centralisée
 
 /**
  * Type représentant un point géographique [latitude, longitude].
