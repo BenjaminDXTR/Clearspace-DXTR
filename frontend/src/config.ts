@@ -1,12 +1,36 @@
+/**
+ * Configuration frontend centralisée,
+ * récupère les variables via import.meta.env (Vite).
+ */
+
 export const config = {
-  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:3200",
+  // URL de base de l'API backend, ou fallback local
+  apiUrl: import.meta.env.VITE_API_URL ?? "http://localhost:3200",
+
+  // Flag debug frontend activé si variable "true"
   debug: import.meta.env.VITE_DEBUG === "true",
-  environment: import.meta.env.MODE || "development",
+
+  // Environnement d'exécution ("development", "production", ...)
+  environment: import.meta.env.MODE ?? "development",
+
+  // Nombre d’éléments max dans l’historique local
   maxHistoryLength: Number(import.meta.env.VITE_MAX_HISTORY_LENGTH) || 100,
+
+  // URLs des icônes (live et start)
   iconUrls: {
-    droneLive: import.meta.env.VITE_ICON_URL_DRONE_LIVE || "https://cdn-icons-png.flaticon.com/512/854/854878.png",
-    droneStart: import.meta.env.VITE_ICON_URL_DRONE_START || "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
+    droneLive: import.meta.env.VITE_ICON_URL_DRONE_LIVE ?? "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+    droneStart: import.meta.env.VITE_ICON_URL_DRONE_START ?? "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
   },
-  defaultIconSize: import.meta.env.VITE_ICON_SIZE_DEFAULT ? import.meta.env.VITE_ICON_SIZE_DEFAULT.split(",").map(x => Number(x)) as [number, number] : [36, 36],
-  historyIconSize: import.meta.env.VITE_ICON_SIZE_HISTORY ? import.meta.env.VITE_ICON_SIZE_HISTORY.split(",").map(x => Number(x)) as [number, number] : [28, 28],
+
+  // Taille par défaut des icônes, parsing format "W,H"
+  defaultIconSize: import.meta.env.VITE_ICON_SIZE_DEFAULT
+    ? (import.meta.env.VITE_ICON_SIZE_DEFAULT.split(",").map(x => Number(x)) as [number, number])
+    : [36, 36],
+
+  // Taille des icônes pour trajectoire historique
+  historyIconSize: import.meta.env.VITE_ICON_SIZE_HISTORY
+    ? (import.meta.env.VITE_ICON_SIZE_HISTORY.split(",").map(x => Number(x)) as [number, number])
+    : [28, 28],
+
+  // Ajoutez d’autres variables frontend selon besoin, par exemple les clés API frontales
 };
