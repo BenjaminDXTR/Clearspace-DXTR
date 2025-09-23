@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Flight, LatLng } from "../types/models";
 import { isLatLng } from "../utils/coords";
+import { config } from "../config";
 
 interface UseLiveTracesOptions {
   /** Durée avant archivage d'un vol inactif (ms) */
@@ -19,7 +20,7 @@ export default function useLiveTraces(
     inactiveTimeout = 10000,
     cleanupInterval = 2000,
     onArchiveFlight,
-    debug = process.env.NODE_ENV === "development",
+    debug = config.debug || config.environment === "development",
   }: UseLiveTracesOptions = {}
 ) {
   const [liveTraces, setLiveTraces] = useState<Record<string, LatLng[]>>({});

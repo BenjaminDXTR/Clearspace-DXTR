@@ -1,17 +1,12 @@
 import L from "leaflet";
+import { config } from "./config";
 
 /**
- * URLs des icônes (peuvent être locales dans ton dossier public ou CDN)
+ * URLs des icônes issues de la config centralisée
  */
-export const ICON_URLS = {
-  droneLive: "https://cdn-icons-png.flaticon.com/512/854/854878.png",
-  droneStart: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
-};
-
-/**
- * Taille par défaut des icônes
- */
-export const DEFAULT_ICON_SIZE: [number, number] = [36, 36];
+const ICON_URLS = config.iconUrls;
+const DEFAULT_ICON_SIZE = config.defaultIconSize;
+const HISTORY_ICON_SIZE = config.historyIconSize;
 
 /**
  * Crée une icône Leaflet avec paramètres communs
@@ -29,10 +24,10 @@ function createIcon(iconUrl: string, size: [number, number] = DEFAULT_ICON_SIZE,
 /**
  * Icône pour drone en live (position actuelle)
  */
-export const droneIcon = createIcon(ICON_URLS.droneLive, [36, 36], "leaflet-drone-icon");
+export const droneIcon = createIcon(ICON_URLS.droneLive, DEFAULT_ICON_SIZE, "leaflet-drone-icon");
 
 /**
  * Icône pour vol historique (position départ)
  * Plus petite pour bien distinguer visuellement
  */
-export const historyIcon = createIcon(ICON_URLS.droneStart, [28, 28], "leaflet-history-icon");
+export const historyIcon = createIcon(ICON_URLS.droneStart, HISTORY_ICON_SIZE, "leaflet-history-icon");

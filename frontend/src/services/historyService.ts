@@ -1,7 +1,8 @@
 import { MAX_HISTORY_LENGTH } from "../utils/constants";
+import { config } from "../config";
 
 const LOCAL_STORAGE_KEY = "droneweb_history";
-const DEBUG = process.env.NODE_ENV === "development";
+const DEBUG = config.debug || config.environment === "development";
 
 export interface Flight {
   id: string;

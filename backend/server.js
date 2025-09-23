@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { log } = require('./utils/logger'); // Logger centralisé
-const { config } = require('../config');   // Import du fichier config.js
+const { config } = require('./config');   // Import du fichier config.js
 
 // Middlewares personnalisés
 const notFoundHandler = require('./middleware/notFoundHandler');

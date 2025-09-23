@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Flight } from "../types/models";
 import { fetchLiveDrones } from "../services/api";
+import { config } from "../config";
 
 interface UseDronesOptions {
   /** Intervalle entre 2 requêtes (ms). Mettre <= 0 pour désactiver le polling */
@@ -11,7 +12,7 @@ interface UseDronesOptions {
 
 export default function useDrones({
   pollInterval = 2000,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: UseDronesOptions = {}) {
   const [drones, setDrones] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);

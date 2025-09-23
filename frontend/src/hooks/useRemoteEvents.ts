@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Event } from "../types/models";
-import { GRAPHQL_URL, PER_PAGE } from "../utils/constants";
+import { PER_PAGE } from "../utils/constants";
 import {
   EVENT_HISTORY_GRAPHQL,
   DRONETRACES_GRAPHQL,
   fetchGraphQL,
 } from "../utils/graphql";
+import { config } from "../config";
 
 interface UseRemoteEventsOptions {
   /** Activer les logs debug (par défaut : en dev) */
@@ -13,7 +14,7 @@ interface UseRemoteEventsOptions {
 }
 
 export default function useRemoteEvents({
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: UseRemoteEventsOptions = {}) {
   const [remoteEvents, setRemoteEvents] = useState<Event[]>([]);
   const [traces, setTraces] = useState<Event[]>([]);
@@ -35,7 +36,7 @@ export default function useRemoteEvents({
 
       try {
         dlog("[useRemoteEvents] Récupération des événements...");
-        const data = await fetchGraphQL(EVENT_HISTORY_GRAPHQL, GRAPHQL_URL, {
+        const data = await fetchGraphQL(EVENT_HISTORY_GRAPHQL, config.apiUrl + "/graphql", {
           signal: abortController.signal,
         } as any);
 
@@ -56,7 +57,7 @@ export default function useRemoteEvents({
             const tracesQuery = DRONETRACES_GRAPHQL(minSeq, maxSeq);
 
             dlog(`[useRemoteEvents] Récupération des traces pour seq ${minSeq} → ${maxSeq}`);
-            const tracesData = await fetchGraphQL(tracesQuery, GRAPHQL_URL, {
+            const tracesData = await fetchGraphQL(tracesQuery, config.apiUrl + "/graphql", {
               signal: abortController.signal,
             } as any);
 

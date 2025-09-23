@@ -6,6 +6,7 @@ import {
   sendAnchorToBackend,
 } from "../services/anchorService";
 import html2canvas from "html2canvas";
+import { config } from "../config";
 
 interface UseAnchorModalResult {
   anchorModal: AnchorModal | null;
@@ -26,26 +27,20 @@ interface UseAnchorModalOptions {
 
 export default function useAnchorModal({
   handleSelect,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: UseAnchorModalOptions = {}): UseAnchorModalResult {
   const [anchorModal, setAnchorModal] = useState<AnchorModal | null>(null);
   const [anchorDescription, setAnchorDescription] = useState("");
   const [isZipping, setIsZipping] = useState(false);
 
-  // Stocke la trace complète associée au vol en cours d’ancrage
   const traceRef = useRef<LatLng[]>([]);
 
-  // Stocke le JSON d’ancrage construit pour affichage en temps réel
   const [anchorDataPreview, setAnchorDataPreview] = useState<any | null>(null);
 
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);
   };
 
-  /**
-   * Ouvre la modale avec vol et trace.
-   * Construit aussi le JSON d’ancrage initial.
-   */
   const openModal = useCallback(
     (flight: Flight, trace: LatLng[] = []) => {
       dlog("[useAnchorModal] Ouverture modal pour vol :", flight.id);
@@ -53,7 +48,6 @@ export default function useAnchorModal({
       setAnchorModal({ flight });
       setAnchorDescription("");
 
-      // Construire anchorData avec description vide
       const traceConverted = trace.map(([lat, lng]) => ({
         latitude: lat,
         longitude: lng,
@@ -68,9 +62,6 @@ export default function useAnchorModal({
     [handleSelect]
   );
 
-  /**
-   * Met à jour l’aperçu JSON d’ancrage à chaque changement de description ou vol
-   */
   useEffect(() => {
     if (anchorModal?.flight) {
       const traceConverted = traceRef.current.map(([lat, lng]) => ({

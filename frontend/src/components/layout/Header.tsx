@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { config } from "../../config";
 import "./Header.css";
 
 interface HeaderProps {
@@ -13,7 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   title = "DroneWeb",
   icon = "🚁",
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }) => {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);

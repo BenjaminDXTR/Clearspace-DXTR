@@ -1,4 +1,5 @@
 import { DEFAULT_MAX_GEO_DISTANCE_METERS } from "./constants";
+import { config } from "./config";  // Import config centralisée
 
 /**
  * Type représentant un point géographique [latitude, longitude].
@@ -30,7 +31,7 @@ export interface Event {
 }
 
 /** Flag debug global */
-const DEBUG = process.env.NODE_ENV === "development";
+const DEBUG = config.debug || config.environment === "development";
 
 /** Log conditionnel */
 function dlog(...args: any[]): void {

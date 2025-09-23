@@ -3,6 +3,7 @@ import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
 import { isLatLng } from "../../utils/coords";
+import { config } from "../../config";
 import "./AnchorModalLayout.css";
 
 interface AnchorModalLayoutProps {
@@ -27,7 +28,7 @@ export default function AnchorModalLayout({
   onValidate,
   onCancel,
   anchorDataPreview,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: AnchorModalLayoutProps) {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);

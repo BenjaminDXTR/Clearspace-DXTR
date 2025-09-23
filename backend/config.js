@@ -1,4 +1,7 @@
-require('dotenv').config();
+// Configuration backend, lit les variables d'environnement via dotenv
+
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const config = {
   backend: {

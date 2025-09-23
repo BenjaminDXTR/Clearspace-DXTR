@@ -8,6 +8,7 @@ import type {
 } from "../../types/models";
 import { prettyValue } from "../../utils/format";
 import Pagination from "../common/Pagination";
+import { config } from "../../config";
 import "./TablesLayout.css";
 
 interface TablesLayoutProps {
@@ -44,7 +45,7 @@ export default function TablesLayout({
   apiPageData,
   HISTORY_API_FIELDS,
   handleSelect,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);

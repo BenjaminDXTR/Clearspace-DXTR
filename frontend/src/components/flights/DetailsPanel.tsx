@@ -3,6 +3,7 @@ import { formatDate } from "../../utils/format";
 import { getFlightTrace } from "../../utils/coords";
 import type { Flight } from "../../types/models";
 import type { LatLngTuple } from "leaflet";
+import { config } from "../../config";
 import "./DetailsPanel.css";
 
 // Champs importants affichés en priorité
@@ -27,7 +28,7 @@ export default function DetailsPanel({
   exportObj,
   selectedTraceRaw,
   selectedTracePoints = [],
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: DetailsPanelProps) {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);

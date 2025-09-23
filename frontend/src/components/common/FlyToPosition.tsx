@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
 import { isLatLng } from "../../utils/coords";
+import { config } from "../../config";
 
 interface FlyToPositionProps {
   /** Position GPS [latitude, longitude] */
@@ -23,7 +24,7 @@ export default function FlyToPosition({
   position,
   zoom = 1,
   duration = 20,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: FlyToPositionProps) {
   const map = useMap();
 

@@ -1,6 +1,10 @@
-import { GRAPHQL_URL } from "./constants";
+import { config } from "./config";
 
-const DEBUG = process.env.NODE_ENV === "development";
+/** URL GraphQL issue de config */
+export const GRAPHQL_URL: string = config.apiUrl + "/graphql";
+
+/** Flag debug global */
+const DEBUG = config.debug || config.environment === "development";
 
 /** Log conditionnel */
 function dlog(...args: any[]): void {
@@ -111,4 +115,3 @@ export async function fetchGraphQL<T = any>(
     throw error;
   }
 }
-

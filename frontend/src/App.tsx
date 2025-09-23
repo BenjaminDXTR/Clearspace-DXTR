@@ -24,6 +24,8 @@ import { getFlightTrace } from "./utils/coords";
 import { buildAnchorData } from "./services/anchorService";
 import type { Flight, HandleSelectFn, LatLng } from "./types/models";
 
+import { config } from './config';
+
 /** Utilitaire pour exporter un objet en JSON */
 function exportAsJson(obj: any, filename: string) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
@@ -35,7 +37,8 @@ function exportAsJson(obj: any, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function App({ debug = process.env.NODE_ENV === "development" }) {
+export default function App() {
+  const debug = config.debug || config.environment === 'development';
   const dlog = (...args: any[]) => debug && console.log(...args);
 
   /** --- Données Live / Local / API --- */
@@ -151,19 +154,17 @@ export default function App({ debug = process.env.NODE_ENV === "development" }) 
 
   /** --- Bouton Ancrage pour tableau --- */
   const renderAnchorCell = useCallback(
-    (flight: Flight) => {
-      return (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const rawTrace = getTraceForFlight(flight);
-            openModal(flight, rawTrace);
-          }}
-        >
-          Ancrer
-        </button>
-      );
-    },
+    (flight: Flight) => (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const rawTrace = getTraceForFlight(flight);
+          openModal(flight, rawTrace);
+        }}
+      >
+        Ancrer
+      </button>
+    ),
     [openModal, getTraceForFlight]
   );
 

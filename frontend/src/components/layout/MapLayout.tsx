@@ -3,6 +3,7 @@ import FlightMap from "../common/FlightMap";
 import DetailsPanel from "../flights/DetailsPanel";
 import { isLatLng, getFlightTrace } from "../../utils/coords";
 import type { Flight, LatLng } from "../../types/models";
+import { config } from "../../config";
 import "./MapLayout.css";
 
 interface MapLayoutProps {
@@ -37,7 +38,7 @@ export default function MapLayout({
   selected,
   detailFields,
   exportObj,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
   title = "Carte des détections",
   flyToTrigger,
 }: MapLayoutProps) {

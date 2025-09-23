@@ -1,11 +1,10 @@
+import { config } from './config';
+
 /**
  * 🌐 URL racine de l'API DroneWeb
- * Récupérée depuis `.env` pour multi‑environnements.
- * Exemple dans .env :
- *   REACT_APP_API_BASE_URL=http://localhost:3200
+ * Récupérée depuis config.ts pour multi‑environnements.
  */
-export const API_BASE_URL: string =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:3200";
+export const API_BASE_URL: string = config.apiUrl;
 
 /**
  * Endpoints API principaux
@@ -28,9 +27,7 @@ export const DEFAULT_MAX_GEO_DISTANCE_METERS = 30 as const; // pour recherche pr
 /**
  * Trace si l'import de constantes est effectué (activation via paramètre debug)
  */
-export function logConstantsAccess(
-  debug = process.env.NODE_ENV === "development"
-): void {
+export function logConstantsAccess(debug = config.debug): void {
   if (debug) {
     console.log(
       `[${new Date().toISOString()}] Constants imported from base URL: ${API_BASE_URL}`
@@ -53,7 +50,6 @@ export const LIVE_FIELDS = [
   "speed",
   "created_time"
 ];
-
 
 /** Colonnes à afficher pour l'historique API */
 export const HISTORY_API_FIELDS = [
@@ -89,7 +85,6 @@ export const LIVE_DETAILS = [
   "seen_sensor",
   "tracing"
 ];
-
 
 /** Champs détaillés pour un événement (provenance API/events) */
 export const EVENT_DETAILS = [

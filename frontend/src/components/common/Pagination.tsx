@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { config } from "../../config";
 import "./Pagination.css";
 
 interface PaginationProps {
@@ -16,7 +17,7 @@ export default function Pagination({
   page,
   maxPage,
   onPageChange,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: PaginationProps) {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);

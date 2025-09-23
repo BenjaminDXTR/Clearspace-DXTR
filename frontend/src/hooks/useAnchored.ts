@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Flight } from "../types/models";
-import { ANCHOR_URL } from "../utils/constants";
+import { config } from "../config";
 
 interface UseAnchoredOptions {
   /** Intervalle entre deux rafraîchissements (ms). 0 ou négatif pour désactiver */
@@ -11,7 +11,7 @@ interface UseAnchoredOptions {
 
 export default function useAnchored({
   pollInterval = 5000,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: UseAnchoredOptions = {}) {
   const [anchored, setAnchored] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function useAnchored({
       try {
         dlog("[useAnchored] Récupération des vols ancrés...");
         const res = await fetch(
-          ANCHOR_URL.replace("/anchor", "/anchored"),
+          config.apiUrl.replace(/\/$/, "") + "/anchored",
           { signal: abortController.signal }
         );
 

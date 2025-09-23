@@ -6,7 +6,10 @@ import {
   DEFAULT_DATE_OPTIONS,
 } from "./displayConfig";
 
-const DEBUG = process.env.NODE_ENV === "development";
+import { config } from "./config";
+
+/** Flag debug global basé sur config */
+const DEBUG = config.debug || config.environment === "development";
 
 /** Log conditionnel */
 function dlog(...args: any[]): void {

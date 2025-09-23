@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import html2canvas from "html2canvas";
-import { ANCHOR_URL } from "../utils/constants";
+import { config } from "../config";
 
 export interface Flight {
   altitude?: number;
@@ -49,7 +49,10 @@ export interface AnchorResponse {
   [key: string]: any;
 }
 
-const DEBUG = process.env.NODE_ENV === "development";
+/** Flag debug centralisé */
+const DEBUG = config.debug || config.environment === "development";
+/** URL d'API pour l'ancrage centralisée */
+const ANCHOR_URL = config.apiUrl + "/anchor";
 
 /** Log conditionnel */
 function dlog(...args: any[]): void {
@@ -87,7 +90,7 @@ export function buildAnchorData(
     positionVehicule,
     comment,
     anchored_at: new Date().toISOString(),
-    trace, // Inclus la trace dans le JSON d’ancrage complet
+    trace,
   };
   dlog("[buildAnchorData] Préparé pour vol ID:", flight.id);
   return anchorData;
@@ -104,8 +107,7 @@ export async function captureMapImage(
     mapDiv = document.querySelector(".leaflet-container");
   }
   if (!mapDiv) {
-    if (DEBUG)
-      console.warn("[captureMapImage] Carte introuvable (.leaflet-container)");
+    if (DEBUG) console.warn("[captureMapImage] Carte introuvable (.leaflet-container)");
     return null;
   }
   try {
@@ -171,7 +173,7 @@ export async function sendAnchorToBackend(
   }
 
   const safeId = String(anchorData.id ?? "unknown").replace(
-    /[^a-zA-Z0-9\_-]/g,
+    /[^a-zA-Z0-9_-]/g,
     "_"
   );
   const fileName = `preuve_${safeId}_${Date.now()}.zip`;

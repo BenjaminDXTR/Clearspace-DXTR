@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Flight } from "../types/models";
-import { HISTORY_URL, PER_PAGE } from "../utils/constants";
+import { PER_PAGE } from "../utils/constants";
+import { config } from "../config";
 
 interface UseLocalHistoryOptions {
   /** Intervalle entre deux rafraîchissements (ms). 0 ou négatif pour désactiver */
@@ -11,7 +12,7 @@ interface UseLocalHistoryOptions {
 
 export default function useLocalHistory({
   pollInterval = 10000,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
 }: UseLocalHistoryOptions = {}) {
   const [localHistory, setLocalHistory] = useState<Flight[]>([]);
   const [localPage, setLocalPage] = useState<number>(1);
@@ -32,7 +33,7 @@ export default function useLocalHistory({
 
       try {
         dlog("[useLocalHistory] Récupération de l'historique local...");
-        const res = await fetch(HISTORY_URL, { signal: abortController.signal });
+        const res = await fetch(config.apiUrl + "/history", { signal: abortController.signal });
         const data: Flight[] = await res.json();
         if (!isMounted) return;
 

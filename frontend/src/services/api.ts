@@ -1,8 +1,11 @@
 import { fetchGraphQL, DRONETRACES_GRAPHQL } from "../utils/graphql";
-import { GRAPHQL_URL, HISTORY_URL, ANCHOR_URL } from "../utils/constants";
+import { config } from "../config";
 import type { Flight, Event } from "../types/models";
 
-const DEBUG = process.env.NODE_ENV === "development";
+const GRAPHQL_URL = config.apiUrl + "/graphql";
+const HISTORY_URL = config.apiUrl + "/history";
+const ANCHOR_URL = config.apiUrl + "/anchor";
+const DEBUG = config.debug || config.environment === "development";
 
 /** Log conditionnel */
 function dlog(...args: any[]): void {
@@ -44,7 +47,6 @@ export async function fetchLiveDrones(options?: RequestInit): Promise<Flight[]> 
   }`;
   try {
     dlog("[fetchLiveDrones] Query:", query);
-    // fetchGraphQL ne prend pas directement RequestInit, on pourrait l'adapter si besoin
     const data = await fetchGraphQL<{ data: { drone: Flight[] } }>(query, GRAPHQL_URL, options);
     return data.data?.drone || [];
   } catch (err) {

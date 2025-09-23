@@ -1,6 +1,7 @@
 import { useEffect, MouseEvent, KeyboardEvent } from "react";
 import { prettyValue } from "../../utils/format";
 import Pagination from "../common/Pagination";
+import { config } from "../../config";
 import "./DetectionsTable.css";
 
 interface Detection {
@@ -55,8 +56,7 @@ export default function DetectionsTable({
   page = 1,
   maxPage = 1,
   onPageChange,
-  debug = process.env.NODE_ENV === "development",
-}: DetectionsTableProps) {
+  debug = config.debug || config.environment === "development",}: DetectionsTableProps) {
   const dlog = (...args: any[]) => {
     if (debug) console.log(...args);
   };

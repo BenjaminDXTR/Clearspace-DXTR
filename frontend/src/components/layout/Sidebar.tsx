@@ -1,4 +1,5 @@
 import { useEffect, ReactNode } from "react";
+import { config } from "../../config";
 import "./Sidebar.css";
 
 interface SidebarProps {
@@ -12,7 +13,7 @@ interface SidebarProps {
 
 export default function Sidebar({
   children,
-  debug = process.env.NODE_ENV === "development",
+  debug = config.debug || config.environment === "development",
   title,
 }: SidebarProps) {
   const dlog = (...args: any[]): void => {
