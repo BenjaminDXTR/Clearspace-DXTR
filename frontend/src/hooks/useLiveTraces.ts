@@ -7,7 +7,7 @@ interface UseLiveTracesOptions {
   inactiveTimeout?: number;
   cleanupInterval?: number;
   onArchiveFlight?: (droneId: string, trace: LatLng[]) => void;
-  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[]) => void; // Nouvelle callback pour sauvegarde live
+  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[]) => void;
   debug?: boolean;
 }
 
@@ -21,7 +21,7 @@ interface DroneTraceState {
 export default function useLiveTraces(
   drones: Flight[],
   {
-    inactiveTimeout = 10000,
+    inactiveTimeout = config.inactiveTimeout, // Valeur par défaut depuis config (lié à .env)
     cleanupInterval = 2000,
     onArchiveFlight,
     onUpdateLiveFlight,
@@ -60,18 +60,13 @@ export default function useLiveTraces(
           }
           updated[drone.id].etatLive = true;
           updated[drone.id].lastSeen = now;
-          updated[drone.id].flight = drone; // à jour avec nouvelle data
+          updated[drone.id].flight = drone;
+
+          if (onUpdateLiveFlight) {
+            onUpdateLiveFlight({ ...drone, _type: "live" }, updated[drone.id].trace);
+          }
         }
       });
-
-      // Appel de sauvegarde live par callback pour chaque vol mis à jour
-      if (onUpdateLiveFlight) {
-        Object.values(updated).forEach(({ flight, trace, etatLive }) => {
-          if (etatLive) {
-            onUpdateLiveFlight({ ...flight, _type: "live" }, trace);
-          }
-        });
-      }
       return updated;
     });
   }, [drones, onUpdateLiveFlight, debug]);
@@ -91,7 +86,7 @@ export default function useLiveTraces(
             data.lastSeen &&
             now - data.lastSeen > inactiveTimeout
           ) {
-            dlog(`Drone ${droneId} inactif plus de ${inactiveTimeout} ms → archivage`);
+            dlog(`Drone ${droneId} inactif depuis plus de ${inactiveTimeout}ms → archivage`);
             if (onArchiveFlight) {
               onArchiveFlight(droneId, data.trace);
             }

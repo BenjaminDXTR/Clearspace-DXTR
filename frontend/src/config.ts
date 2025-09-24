@@ -16,6 +16,8 @@ export const config = {
   // Nombre d’éléments max dans l’historique local
   maxHistoryLength: Number(import.meta.env.VITE_MAX_HISTORY_LENGTH) || 100,
 
+  inactiveTimeout: Number(import.meta.env.VITE_INACTIVE_TIMEOUT) || 10000,
+
   // URLs des icônes (live et start)
   iconUrls: {
     droneLive: import.meta.env.VITE_ICON_URL_DRONE_LIVE ?? "https://cdn-icons-png.flaticon.com/512/854/854878.png",
