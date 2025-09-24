@@ -43,10 +43,9 @@ function FlyToPosition({
 
   useEffect(() => {
     if (flyToTrigger !== undefined && position && Array.isArray(position)) {
-      // Centrage uniquement déclenché par flyToTrigger
       map.flyTo(position, zoom, { duration: 1.0 });
     }
-  }, [flyToTrigger]);
+  }, [flyToTrigger, position, zoom]);
 
   return null;
 }
@@ -70,11 +69,10 @@ interface FlightMapProps {
   flyToTrigger?: number;
 }
 
-/** Composant principal affichant la carte avec la trace et les marqueurs */
 export default function FlightMap({
   trace = [],
   markerIcon = null,
-  zoom = 13, // Zoom augmenté par défaut
+  zoom = 13,
   style,
   className = "",
   showMarkers = true,
@@ -87,7 +85,7 @@ export default function FlightMap({
 }: FlightMapProps) {
   const mapRef = useRef<LeafletMap | null>(null);
   const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+    if (debug) console.log("[FlightMap]", ...args);
   };
 
   // On filtre les points valides
@@ -107,6 +105,12 @@ export default function FlightMap({
     );
   }, [validTrace, computedCenter, zoom]);
 
+  useEffect(() => {
+    if (flyToTrigger !== undefined && (livePosition || startPosition)) {
+      dlog(`[FlightMap] FlyToPosition trigger: recentrage sur`, livePosition || startPosition);
+    }
+  }, [flyToTrigger, livePosition, startPosition]);
+
   return (
     <MapContainer
       ref={mapRef}
@@ -125,7 +129,6 @@ export default function FlightMap({
         attribution="© OpenStreetMap contributors"
       />
 
-      {/* Trace polyline et marqueurs intermédiaires */}
       {validTrace.length > 1 && (
         <>
           <Polyline positions={validTrace} pathOptions={polylineOptions} />
@@ -144,26 +147,22 @@ export default function FlightMap({
         </>
       )}
 
-      {/* Marqueur position départ historique */}
       {startPosition && (
         <Marker position={startPosition} icon={historyIcon}>
           <Popup>Position de départ</Popup>
         </Marker>
       )}
 
-      {/* Marqueur position live */}
       {livePosition && (
         <Marker position={livePosition} icon={droneIcon}>
           <Popup>Position actuelle</Popup>
         </Marker>
       )}
 
-      {/* Marqueur final par défaut si pas de position live */}
       {markerIcon && hasTrace && !livePosition && (
         <Marker position={validTrace[validTrace.length - 1]} icon={markerIcon} />
       )}
 
-      {/* Centrage dynamique déclenché uniquement par flyToTrigger */}
       <FlyToPosition
         position={livePosition || startPosition}
         zoom={zoom}

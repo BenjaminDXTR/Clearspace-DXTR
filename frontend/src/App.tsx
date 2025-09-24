@@ -39,12 +39,13 @@ function exportAsJson(obj: any, filename: string) {
 
 export default function App() {
   const debug = config.debug || config.environment === 'development';
-  const dlog = (...args: any[]) => debug && console.log(...args);
+  const dlog = (...args: any[]) => debug && console.log("[App]", ...args);
 
   /** --- Données Live / Local / API --- */
   const { drones, error: dronesError } = useDrones({ debug });
   const { anchored } = useAnchored({ debug });
   const {
+    localHistory,
     setLocalHistory,
     localPage,
     setLocalPage,
@@ -59,18 +60,27 @@ export default function App() {
     apiPageData
   } = useRemoteEvents({ debug });
 
+  // Locks IDs des vols archivés locaux pour exclusion de la liste live
+  const localIds = useMemo(() => new Set(localHistory.map(f => f.id)), [localHistory]);
+
+  // Forcer _type: "live" et filtrer drones avec coordonnées valides et non archivés
+  const dronesWithType = drones
+    .filter(d => d.latitude !== 0 && d.longitude !== 0)
+    .filter(d => !localIds.has(d.id)) // Exclure vols archivés
+    .map((d): Flight => ({
+      ...d,
+      _type: "live" as "live",
+    }));
+
   /** --- Sélection et déclencheur de recentrage --- */
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
 
   const handleSelect: HandleSelectFn = useCallback((flight) => {
     if (!flight?.id) return;
-    dlog("[App] Vol sélectionné :", flight);
     setSelected({ ...flight, _type: flight._type ?? "live" });
-
-    // Incrémenter pour forcer le recentrage même si c'est le même vol
     setFlyToTrigger(prev => prev + 1);
-  }, [dlog]);
+  }, []);
 
   /** --- Modal Ancrage --- */
   const {
@@ -85,16 +95,48 @@ export default function App() {
   } = useAnchorModal({ handleSelect, debug });
 
   /** --- Traces Live et archivage auto --- */
-  const { liveTraces } = useLiveTraces(drones, {
-    debug,
-    onArchiveFlight: (droneId, trace) => {
-      const flight = drones.find((d) => d.id === droneId);
-      if (flight) {
-        dlog("[App] Archivage auto du vol :", droneId);
-        setLocalHistory((prev) => [...prev, { ...flight, trace }]);
-      }
+const { liveTraces } = useLiveTraces(dronesWithType, {
+  debug,
+  onArchiveFlight: async (droneId, trace) => {
+    const flight = drones.find(d => d.id === droneId);
+    if (!flight) return;
+
+    // Définition explicite de archivedFlight avant usage
+    const archivedFlight: Flight = {
+      ...flight,
+      trace,
+      _type: "local"
+    };
+
+    try {
+      const response = await fetch('/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(archivedFlight)
+      });
+      if (!response.ok) throw new Error('Erreur sauvegarde');
+
+      // Mise à jour locale en remplaçant l'entrée existante si elle existe
+      setLocalHistory(prev => {
+        const idx = prev.findIndex(f => f.id === archivedFlight.id && f.created_time === archivedFlight.created_time);
+        if (idx !== -1) {
+          const newArr = [...prev];
+          newArr[idx] = {
+            ...archivedFlight,
+            _type: archivedFlight._type as "live" | "local" | "event" | undefined,
+          };
+          return newArr;
+        }
+        return [...prev, {
+          ...archivedFlight,
+          _type: archivedFlight._type as "live" | "local" | "event" | undefined,
+        }];
+      });
+    } catch (e) {
+      console.error("Erreur lors de l'enregistrement du vol archivé", e);
     }
-  });
+  }
+});
 
   /** --- Champs à afficher dans panneau détails --- */
   const detailFields = useMemo(() => {
@@ -108,8 +150,10 @@ export default function App() {
 
     let trace: LatLng[] = [];
 
-    if (selected._type === "live" || selected._type === "local") {
-      trace = liveTraces[selected.id] ?? (selected as any).trace ?? [];
+    if (selected._type === "live") {
+      trace = liveTraces[selected.id]?.trace ?? [];
+    } else if (selected._type === "local") {
+      trace = (selected as any).trace ?? [];
     } else if (selected._type === "event") {
       const t = traces.find((tr) => tr.id === selected.id);
       if (t?.points) {
@@ -123,16 +167,14 @@ export default function App() {
       trace = getFlightTrace(selected);
     }
 
-    dlog("TRACE sélectionnée pour carte:", trace);
-
     return [trace, selected._type === "event" ? trace : undefined];
-  }, [selected, traces, liveTraces, dlog]);
+  }, [selected, traces, liveTraces]);
 
   /** --- Récupération trace selon type de vol --- */
   const getTraceForFlight = useCallback(
     (flight: Flight): LatLng[] => {
       if (flight._type === "live") {
-        return liveTraces[flight.id] ?? [];
+        return liveTraces[flight.id]?.trace ?? [];
       }
       if (flight._type === "local") {
         return (flight as any).trace ?? [];
@@ -194,12 +236,12 @@ export default function App() {
           selected={selected}
           detailFields={detailFields}
           exportObj={exportSelectedAsAnchorJson}
-          flyToTrigger={flyToTrigger} // Transmission du trigger pour recentrage
+          flyToTrigger={flyToTrigger}
         />
 
         <TablesLayout
           error={dronesError}
-          drones={drones}
+          drones={dronesWithType}
           LIVE_FIELDS={LIVE_FIELDS}
           localPage={localPage}
           localMaxPage={localMaxPage}
@@ -229,7 +271,6 @@ export default function App() {
           onValidate={handleAnchorValidate}
           onCancel={handleAnchorCancel}
         >
-          {/* Élément pour capture écran */}
           <div className="modal-map-capture" />
         </AnchorModalLayout>
       )}

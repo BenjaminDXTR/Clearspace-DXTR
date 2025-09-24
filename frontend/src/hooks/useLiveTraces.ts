@@ -4,14 +4,18 @@ import { isLatLng } from "../utils/coords";
 import { config } from "../config";
 
 interface UseLiveTracesOptions {
-  /** Durée avant archivage d'un vol inactif (ms) */
   inactiveTimeout?: number;
-  /** Fréquence de nettoyage des vols inactifs (ms) */
   cleanupInterval?: number;
-  /** Callback quand un vol est archivé */
   onArchiveFlight?: (droneId: string, trace: LatLng[]) => void;
-  /** Activer les logs debug */
+  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[]) => void; // Nouvelle callback pour sauvegarde live
   debug?: boolean;
+}
+
+interface DroneTraceState {
+  flight: Flight;
+  trace: LatLng[];
+  etatLive: boolean;
+  lastSeen: number;
 }
 
 export default function useLiveTraces(
@@ -20,93 +24,89 @@ export default function useLiveTraces(
     inactiveTimeout = 10000,
     cleanupInterval = 2000,
     onArchiveFlight,
+    onUpdateLiveFlight,
     debug = config.debug || config.environment === "development",
   }: UseLiveTracesOptions = {}
 ) {
-  const [liveTraces, setLiveTraces] = useState<Record<string, LatLng[]>>({});
-  const [liveLastSeen, setLiveLastSeen] = useState<Record<string, number>>({});
+  const [liveTraces, setLiveTraces] = useState<Record<string, DroneTraceState>>({});
 
   const liveTracesRef = useRef(liveTraces);
-  const liveLastSeenRef = useRef(liveLastSeen);
-
-  useEffect(() => {
-    liveTracesRef.current = liveTraces;
-  }, [liveTraces]);
-
-  useEffect(() => {
-    liveLastSeenRef.current = liveLastSeen;
-  }, [liveLastSeen]);
+  liveTracesRef.current = liveTraces;
 
   const dlog = (...args: any[]) => {
     if (debug) console.log("[useLiveTraces]", ...args);
   };
 
-  // Mise à jour des traces et dernières positions vues
+  // Mise à jour live des traces sur réception drones
   useEffect(() => {
     if (drones.length && debug) {
       dlog(`Mise à jour avec ${drones.length} drone(s)`);
     }
+    const now = Date.now();
 
     setLiveTraces((prev) => {
       const updated = { ...prev };
       drones.forEach((drone) => {
         if (drone.id && isLatLng([drone.latitude, drone.longitude])) {
           const pt: LatLng = [Number(drone.latitude), Number(drone.longitude)];
-          if (!updated[drone.id]) updated[drone.id] = [];
-          const trace = updated[drone.id];
-          const last = trace[trace.length - 1];
-          // Évite les doublons
-          if (!last || last[0] !== pt[0] || last[1] !== pt[1]) {
-            updated[drone.id] = [...trace, pt];
-            dlog(`Drone ${drone.id} → nouveau point ajouté`);
+          if (!updated[drone.id]) {
+            updated[drone.id] = { flight: drone, trace: [], etatLive: true, lastSeen: now };
           }
+          const trace = updated[drone.id].trace;
+          const last = trace[trace.length - 1];
+          if (!last || last[0] !== pt[0] || last[1] !== pt[1]) {
+            updated[drone.id].trace = [...trace, pt];
+            dlog(`Drone ${drone.id}: ajout point (${pt[0]},${pt[1]})`);
+          }
+          updated[drone.id].etatLive = true;
+          updated[drone.id].lastSeen = now;
+          updated[drone.id].flight = drone; // à jour avec nouvelle data
         }
       });
+
+      // Appel de sauvegarde live par callback pour chaque vol mis à jour
+      if (onUpdateLiveFlight) {
+        Object.values(updated).forEach(({ flight, trace, etatLive }) => {
+          if (etatLive) {
+            onUpdateLiveFlight({ ...flight, _type: "live" }, trace);
+          }
+        });
+      }
       return updated;
     });
+  }, [drones, onUpdateLiveFlight, debug]);
 
-    setLiveLastSeen((prev) => {
-      const updated = { ...prev };
-      drones.forEach((drone) => {
-        if (drone.id && isLatLng([drone.latitude, drone.longitude])) {
-          updated[drone.id] = Date.now();
-        }
-      });
-      return updated;
-    });
-  }, [drones, debug]);
-
-  // Nettoyage automatique des vols inactifs
+  // Nettoyage et archivage des vols inactifs
   useEffect(() => {
     const intervalId = setInterval(() => {
       const now = Date.now();
 
-      setLiveTraces((prevTraces) => {
-        const updatedTraces = { ...prevTraces };
+      setLiveTraces((prev) => {
+        const updated = { ...prev };
         let changed = false;
 
-        Object.entries(prevTraces).forEach(([droneId, trace]) => {
-          const lastSeen = liveLastSeenRef.current[droneId];
+        Object.entries(prev).forEach(([droneId, data]) => {
           if (
-            trace.length > 1 &&
-            lastSeen &&
-            now - lastSeen > inactiveTimeout
+            data.etatLive &&
+            data.lastSeen &&
+            now - data.lastSeen > inactiveTimeout
           ) {
-            dlog(`Drone ${droneId} inactif → archivage`);
+            dlog(`Drone ${droneId} inactif plus de ${inactiveTimeout} ms → archivage`);
             if (onArchiveFlight) {
-              onArchiveFlight(droneId, trace);
+              onArchiveFlight(droneId, data.trace);
             }
-            delete updatedTraces[droneId];
+            data.etatLive = false;
             changed = true;
+            dlog(`Drone ${droneId} marqué inactif après archivage`);
           }
         });
 
-        return changed ? updatedTraces : prevTraces;
+        return changed ? updated : prev;
       });
     }, cleanupInterval);
 
     return () => clearInterval(intervalId);
   }, [inactiveTimeout, cleanupInterval, onArchiveFlight, debug]);
 
-  return { liveTraces, liveLastSeen };
+  return { liveTraces };
 }

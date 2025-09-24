@@ -48,7 +48,7 @@ export default function TablesLayout({
   debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
   const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+    if (debug) console.log("[TablesLayout]", ...args);
   };
 
   const makeKey = (
@@ -59,11 +59,18 @@ export default function TablesLayout({
 
   const onSelect = useCallback(
     (flight: Flight) => {
-      dlog("[TablesLayout] Sélection du vol :", flight);
+      dlog("[TablesLayout] Vol sélectionné :", flight.id);
       handleSelect(flight);
     },
     [handleSelect, debug]
   );
+
+  // Séparer clairement les vols par type
+  const liveDrones = drones.filter((d) => d._type === "live");
+  const archivedDrones = localPageData.filter((d) => d._type === "local");
+
+  dlog("Rendu 'Détection en direct':", liveDrones.length, "vol(s)");
+  dlog("Rendu 'Vols archivés (local)':", archivedDrones.length, "vol(s)");
 
   const renderTable = (
     title: string,
@@ -96,14 +103,10 @@ export default function TablesLayout({
                 onClick={() => onSelect(item as Flight)}
               >
                 {fields.map((field) => (
-                  <td key={field}>
-                    {prettyValue(field, (item as any)[field])}
-                  </td>
+                  <td key={field}>{prettyValue(field, (item as any)[field])}</td>
                 ))}
                 {showAnchor && renderAnchorCell && (
-                  <td className="anchor-cell">
-                    {renderAnchorCell(item as Flight)}
-                  </td>
+                  <td className="anchor-cell">{renderAnchorCell(item as Flight)}</td>
                 )}
               </tr>
             ))}
@@ -117,11 +120,11 @@ export default function TablesLayout({
     <div className="tables-layout">
       {error && <div className="error">{error}</div>}
 
-      {/* Live table avec bouton Ancrer */}
-      {renderTable("Détection en direct", LIVE_FIELDS, drones, true)}
+      {/* Tableau des drones live */}
+      {renderTable("Détection en direct", LIVE_FIELDS, liveDrones, true)}
 
-      {/* Local history */}
-      {renderTable("Vols archivés (local)", LIVE_FIELDS, localPageData, true)}
+      {/* Tableau des vols archivés (local) */}
+      {renderTable("Vols archivés (local)", LIVE_FIELDS, archivedDrones, true)}
       <Pagination
         page={localPage}
         maxPage={localMaxPage}
@@ -129,12 +132,12 @@ export default function TablesLayout({
         debug={debug}
       />
 
-      {/* API history */}
+      {/* Tableau des événements historiques API */}
       {renderTable(
         "Événements historiques (API)",
         HISTORY_API_FIELDS,
         apiPageData,
-        false // Pas d’ancrage direct ici sauf si on le souhaite plus tard
+        false
       )}
       <Pagination
         page={apiPage}

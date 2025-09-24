@@ -22,14 +22,15 @@
 │   └── utils
 │       └── logger.js
 ├── .env
-├── env-exemple
+├── env.exemple
+├── env.prod
 ├── frontend
 │   ├── .gitignore
+│   ├── index.html
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── public
-│   │   ├── favicon.ico
-│   │   └── index.html
+│   │   └── favicon.ico
 │   ├── src
 │   │   ├── App.css
 │   │   ├── App.tsx
@@ -59,6 +60,7 @@
 │   │   │       └── TablesLayout.tsx
 │   │   ├── config.ts
 │   │   ├── custom.d.ts
+│   │   ├── env.d.ts
 │   │   ├── hooks
 │   │   │   ├── useAnchored.ts
 │   │   │   ├── useAnchorModal.ts
@@ -85,7 +87,8 @@
 │   │       ├── graphql.ts
 │   │       ├── icons.ts
 │   │       └── UtilsInfos.txt
-│   └── tsconfig.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
 ├── .gitignore
 ├── infosgeneral.txt
 ├── package-lock.json
@@ -96,4 +99,4 @@
 ├── stop-servers.sh
 └── tree.txt
 
-16 directories, 80 files
+16 directories, 83 files

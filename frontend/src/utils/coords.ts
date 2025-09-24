@@ -81,13 +81,17 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
   // Tableau direct
   if (Array.isArray(flight.trace) && flight.trace.every(isLatLng)) {
     dlog("[getFlightTrace] Trace fournie directement");
-    return flight.trace as LatLng[];
+    if (flight.trace.length >= 2) {
+      return flight.trace as LatLng[];
+    }
+    // Si trace trop courte, essayez fallback origin ou duplicata
   }
 
   // String JSON
   if (typeof flight.trace === "string") {
     const parsed = parseTracePoints(flight.trace);
-    if (parsed.length) return parsed;
+    if (parsed.length >= 2) return parsed;
+    // Sinon fallback
   }
 
   // Tracing.points (validation + non vide)
@@ -95,28 +99,38 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
   if (
     Array.isArray(tracingPoints) &&
     tracingPoints.every(isLatLng) &&
-    tracingPoints.length > 0
+    tracingPoints.length >= 2
   ) {
     dlog("[getFlightTrace] Fallback sur tracing.points");
     return tracingPoints as LatLng[];
   }
 
-  // Fallback sur initial_location
+  // Si trace trop courte, fallback sur initial_location ou origin origin
+  let fallbackPoint: LatLng | null = null;
   if (
     flight.initial_location &&
-    isLatLng([flight.initial_location.lat, flight.initial_location.lng])
+    isLatLng([flight.initial_location.lat, flight.initial_location.lng]) &&
+    flight.initial_location.lat !== 0 &&
+    flight.initial_location.lng !== 0
   ) {
+    fallbackPoint = [flight.initial_location.lat, flight.initial_location.lng];
     dlog("[getFlightTrace] Fallback sur initial_location");
-    return [[flight.initial_location.lat, flight.initial_location.lng]];
+  } else if (
+    flight.tracing?.origin &&
+    isLatLng([flight.tracing.origin.lat, flight.tracing.origin.lng]) &&
+    flight.tracing.origin.lat !== 0 &&
+    flight.tracing.origin.lng !== 0
+  ) {
+    fallbackPoint = [flight.tracing.origin.lat, flight.tracing.origin.lng];
+    dlog("[getFlightTrace] Fallback sur tracing.origin");
   }
 
-  // Fallback sur tracing.origin
-  if (
-    flight.tracing?.origin &&
-    isLatLng([flight.tracing.origin.lat, flight.tracing.origin.lng])
-  ) {
-    dlog("[getFlightTrace] Fallback sur tracing.origin");
-    return [[flight.tracing.origin.lat, flight.tracing.origin.lng]];
+  if (fallbackPoint) {
+    // Pour que Leaflet dessine la ligne, créez un second point très proche
+    const offsetPoint: LatLng = [fallbackPoint[0] + 0.00001, fallbackPoint[1] + 0.00001];
+    const trace = [fallbackPoint, offsetPoint];
+    dlog("[getFlightTrace] Doublage du point fallback pour polyline", trace);
+    return trace;
   }
 
   if (DEBUG) console.warn("[getFlightTrace] Aucune trace valide trouvée");

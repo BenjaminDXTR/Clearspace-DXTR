@@ -1,6 +1,6 @@
 [
   {
-    "altitude": 136,
+    "altitude": 0,
     "attack_bands": [
       2400,
       5800
@@ -15,118 +15,126 @@
     "can_tdoa": false,
     "can_toa": false,
     "confirmed": true,
-    "created_time": "2025-08-14T11:47:44.71490464+02:00",
+    "created_time": "2025-09-24T15:54:54.069605824+02:00",
     "ctrl_landing": false,
     "deleted_time": "0001-01-01T00:00:00Z",
     "description": "",
-    "direction": 140.01253,
+    "direction": 365,
     "directional_attack_state": 0,
-    "distance": 110,
+    "distance": 0,
     "has_duplicate": false,
     "has_screenshot": false,
     "height": 0,
-    "id": "1581F67PB22AB00301J9",
-    "image": "dimages/dji_mavic3.png",
+    "id": "60601f0af1af",
+    "image": "dimages/dji_air3.png",
     "in_ada": 0,
     "initial_location": {
-      "lat": 49.53096952976692,
-      "lng": 0.09368432909704578
+      "lat": 210,
+      "lng": 210
     },
     "jamming_conflicts": [],
     "lastseen": null,
-    "lastseen_time": "2025-08-14T11:52:42.725218848+02:00",
-    "latitude": 49.53097525940941,
+    "lastseen_time": "2025-09-24T15:59:11.072462592+02:00",
+    "latitude": 0,
     "link_id": "",
     "localization": null,
-    "longitude": 0.0936098445869901,
-    "name": "DJI Mavic3Classic",
+    "longitude": 0,
+    "name": "DJI Mavic(O4)",
     "rc_location": {
       "lat": 210,
       "lng": 210
     },
     "screenshot": "",
     "secret": "",
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 10000,
+        "detected_freq_khz": 5790000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "1",
+        "signal_dbm": 57,
+        "snr_dB": 10.741222
+      }
+    ],
+    "speed": 0,
+    "state": "danger",
+    "tdoa_tracking": false,
+    "toa_measuring": false,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "tracking_video": "",
+    "whitelisted": false,
+    "_type": "live",
+    "trace": [
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400,
+      5800
+    ],
+    "attack_type": "Smart-II",
+    "attacking": false,
+    "attacking_ttl": 0,
+    "blacklisted": false,
+    "can_attack": false,
+    "can_ctrl_landing": false,
+    "can_takeover": false,
+    "can_tdoa": false,
+    "can_toa": false,
+    "confirmed": true,
+    "created_time": "2025-09-24T15:58:48.071682432+02:00",
+    "ctrl_landing": false,
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 365,
+    "directional_attack_state": 0,
+    "distance": 0,
+    "has_duplicate": false,
+    "has_screenshot": false,
+    "height": 0,
+    "id": "60601f081879",
+    "image": "dimages/dji_air3.png",
+    "in_ada": 0,
+    "initial_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "jamming_conflicts": [],
+    "lastseen": null,
+    "lastseen_time": "2025-09-24T15:59:09.070607584+02:00",
+    "latitude": 0,
+    "link_id": "",
+    "localization": null,
+    "longitude": 0,
+    "name": "DJI Mavic(O4)",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "screenshot": "",
+    "secret": "GHnMpmIWZoiOVGyHfUk6NvUUgEdHt24wAtmDxRx0SQwIY5MPnrHY2jz8phxwnnIK2iXflt6FJGnQ0ICc9C+6ctQvm8zwp8VoxImZAfYh3Xltqh8z4yT+VL8svGUFgY9ZFqnUH3bQr0wxWJnUCT+pJuGBOA/SIMwrlJbg7SAAJtR8DS5t+At/hhqmWMdaeVVPg0Wh+GysGzQfz5U1NKBgaZm2UPVRHfQ7xqk=",
     "seen_sensor": [
       {
         "bandwidth_khz": 9000,
-        "detected_freq_khz": 2459500,
-        "noise_dbm": 0,
-        "port": "rf",
-        "sensor_id": "2",
-        "signal_dbm": 21,
-        "snr_dB": 1.8957462
-      }
-    ],
-    "speed": 0,
-    "state": "danger",
-    "tdoa_tracking": false,
-    "toa_measuring": false,
-    "tracing": {
-      "lastlen": 2,
-      "origin": {
-        "lat": 49.531734,
-        "lng": 0.092629336
-      },
-      "points": []
-    },
-    "tracking_video": "",
-    "whitelisted": false
-  },
-  {
-    "altitude": 0,
-    "attack_bands": [
-      2400
-    ],
-    "attack_type": "null",
-    "attacking": false,
-    "attacking_ttl": 0,
-    "blacklisted": false,
-    "can_attack": false,
-    "can_ctrl_landing": false,
-    "can_takeover": false,
-    "can_tdoa": false,
-    "can_toa": false,
-    "confirmed": true,
-    "created_time": "2025-08-14T17:43:58.622651776+02:00",
-    "ctrl_landing": false,
-    "deleted_time": "0001-01-01T00:00:00Z",
-    "description": "",
-    "direction": 365,
-    "directional_attack_state": 0,
-    "distance": 0,
-    "has_duplicate": false,
-    "has_screenshot": false,
-    "height": 0,
-    "id": "187113012",
-    "image": "dimages/flysky_ant.png",
-    "in_ada": 0,
-    "initial_location": {
-      "lat": 210,
-      "lng": 210
-    },
-    "jamming_conflicts": [],
-    "lastseen": null,
-    "lastseen_time": "2025-08-14T17:43:59.623882688+02:00",
-    "latitude": 0,
-    "link_id": "",
-    "localization": null,
-    "longitude": 0,
-    "name": "FLYSKY ANT",
-    "rc_location": {
-      "lat": 210,
-      "lng": 210
-    },
-    "screenshot": "",
-    "secret": "",
-    "seen_sensor": [
-      {
-        "bandwidth_khz": 4400,
-        "detected_freq_khz": 2418120,
+        "detected_freq_khz": 2429500,
         "noise_dbm": 0,
         "port": "rf",
         "sensor_id": "1",
-        "signal_dbm": 35,
-        "snr_dB": -0.017627716
+        "signal_dbm": 73,
+        "snr_dB": 5.6969757
       }
     ],
     "speed": 0,
@@ -142,12 +150,18 @@
       "points": []
     },
     "tracking_video": "",
-    "whitelisted": false
+    "whitelisted": false,
+    "_type": "live",
+    "trace": [
+      [
+        0,
+        0
+      ]
+    ]
   },
   {
-    "altitude": 0,
+    "altitude": 129,
     "attack_bands": [
-      900,
       2400,
       5800
     ],
@@ -161,31 +175,31 @@
     "can_tdoa": false,
     "can_toa": false,
     "confirmed": true,
-    "created_time": "2025-09-05T13:31:58.403595712+02:00",
+    "created_time": "2025-09-24T16:02:40.070719392+02:00",
     "ctrl_landing": false,
     "deleted_time": "0001-01-01T00:00:00Z",
     "description": "",
-    "direction": 365,
+    "direction": 89.75813,
     "directional_attack_state": 0,
-    "distance": 0,
+    "distance": 8949507,
     "has_duplicate": false,
     "has_screenshot": false,
     "height": 0,
-    "id": "e00102",
-    "image": "dimages/autel_evo.png",
+    "id": "F9DEC257D0292CD7",
+    "image": "dimages/dji_mavic2.png",
     "in_ada": 0,
     "initial_location": {
-      "lat": 210,
-      "lng": 210
+      "lat": 49.53104403102552,
+      "lng": 0.093592370478504
     },
     "jamming_conflicts": [],
     "lastseen": null,
-    "lastseen_time": "2025-09-05T13:32:01.363365056+02:00",
-    "latitude": 0,
+    "lastseen_time": "2025-09-24T16:03:10.072839648+02:00",
+    "latitude": 49.53104403102552,
     "link_id": "",
     "localization": null,
-    "longitude": 0,
-    "name": "AUTEL/DAHUA EVO(skylink2)/X",
+    "longitude": 0.093592370478504,
+    "name": "DJI Unknown(112)",
     "rc_location": {
       "lat": 210,
       "lng": 210
@@ -194,13 +208,13 @@
     "secret": "",
     "seen_sensor": [
       {
-        "bandwidth_khz": 9600,
-        "detected_freq_khz": 2412530,
+        "bandwidth_khz": 10000,
+        "detected_freq_khz": 5795000,
         "noise_dbm": 0,
         "port": "rf",
         "sensor_id": "1",
-        "signal_dbm": 50,
-        "snr_dB": 7.2313423
+        "signal_dbm": 51,
+        "snr_dB": 13.163147
       }
     ],
     "speed": 0,
@@ -216,12 +230,18 @@
       "points": []
     },
     "tracking_video": "",
-    "whitelisted": false
+    "whitelisted": false,
+    "_type": "live",
+    "trace": [
+      [
+        49.53104403102552,
+        0.093592370478504
+      ]
+    ]
   },
   {
     "altitude": 0,
     "attack_bands": [
-      900,
       2400,
       5800
     ],
@@ -235,7 +255,7 @@
     "can_tdoa": false,
     "can_toa": false,
     "confirmed": true,
-    "created_time": "2025-09-05T13:32:38.361292736+02:00",
+    "created_time": "2025-09-24T16:01:36.071655264+02:00",
     "ctrl_landing": false,
     "deleted_time": "0001-01-01T00:00:00Z",
     "description": "",
@@ -245,8 +265,8 @@
     "has_duplicate": false,
     "has_screenshot": false,
     "height": 0,
-    "id": "e00102",
-    "image": "dimages/autel_evo.png",
+    "id": "60601f0a5e1f",
+    "image": "dimages/dji_air3.png",
     "in_ada": 0,
     "initial_location": {
       "lat": 210,
@@ -254,12 +274,12 @@
     },
     "jamming_conflicts": [],
     "lastseen": null,
-    "lastseen_time": "2025-09-05T13:32:39.363463712+02:00",
+    "lastseen_time": "2025-09-24T16:03:05.112099808+02:00",
     "latitude": 0,
     "link_id": "",
     "localization": null,
     "longitude": 0,
-    "name": "AUTEL/DAHUA EVO(skylink2)/X",
+    "name": "DJI Mavic(O4)",
     "rc_location": {
       "lat": 210,
       "lng": 210
@@ -268,13 +288,13 @@
     "secret": "",
     "seen_sensor": [
       {
-        "bandwidth_khz": 9600,
-        "detected_freq_khz": 2441500,
+        "bandwidth_khz": 10000,
+        "detected_freq_khz": 5801010,
         "noise_dbm": 0,
         "port": "rf",
         "sensor_id": "1",
-        "signal_dbm": 70,
-        "snr_dB": 9.322113
+        "signal_dbm": 48,
+        "snr_dB": 2.418642
       }
     ],
     "speed": 0,
@@ -290,6 +310,13 @@
       "points": []
     },
     "tracking_video": "",
-    "whitelisted": false
+    "whitelisted": false,
+    "_type": "live",
+    "trace": [
+      [
+        0,
+        0
+      ]
+    ]
   }
 ]

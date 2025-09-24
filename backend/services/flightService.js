@@ -1,26 +1,16 @@
-/**
- * Service de gestion de l’historique des vols.
- * Centralise lecture, écriture, ajout et export depuis le fichier JSON d'historique.
- */
-
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
 
-const { log } = require('../utils/logger'); // Logger centralisé
-const { config } = require('../config');    // Import config centralisée
+const { log } = require('../utils/logger');
+const { config } = require('../config');
 
-// Gestion du fichier historique avec support chemin absolu ou relatif
 const rawFlightsHistoryFile = config.backend.flightsHistoryFile || 'flights_history.json';
 
 const HISTORY_FILE = path.isAbsolute(rawFlightsHistoryFile)
   ? rawFlightsHistoryFile
   : path.resolve(__dirname, '..', rawFlightsHistoryFile);
 
-/**
- * Lit et retourne la liste complète des vols dans l'historique.
- * Tolère un fichier vide ou corrompu en renvoyant []
- */
 async function readAllFlightsFromHistory() {
   try {
     if (!fs.existsSync(HISTORY_FILE)) {
@@ -42,9 +32,6 @@ async function readAllFlightsFromHistory() {
   }
 }
 
-/**
- * Écrit la liste complète des vols dans l'historique (remplacement total).
- */
 async function writeFlightsHistory(flights) {
   try {
     await fsPromises.writeFile(HISTORY_FILE, JSON.stringify(flights, null, 2));
@@ -56,70 +43,58 @@ async function writeFlightsHistory(flights) {
 }
 
 /**
- * Ajoute plusieurs vols dans l’historique en évitant les doublons.
+ * Ajoute ou met à jour un vol dans l'historique avec son _type dynamique (live/local).
+ * Le vol doit contenir trace valide ou position actuelle.
  */
-async function addFlightsToHistory(flightsToAdd) {
+async function saveOrUpdateFlight(newFlight) {
   try {
-    const history = await readAllFlightsFromHistory();
-    let newEntries = 0;
-
-    for (const flight of flightsToAdd) {
-      const exists = history.some(f => f.id === flight.id && f.created_time === flight.created_time);
-      if (!exists) {
-        history.push(flight);
-        newEntries++;
+    if (!newFlight.trace || !Array.isArray(newFlight.trace) || newFlight.trace.length === 0) {
+      if (
+        typeof newFlight.latitude === "number" &&
+        typeof newFlight.longitude === "number" &&
+        !isNaN(newFlight.latitude) &&
+        !isNaN(newFlight.longitude)
+      ) {
+        newFlight.trace = [[newFlight.latitude, newFlight.longitude]];
+        log('warn', `Vol ${newFlight.id} trace remplacée par position`);
+      } else {
+        throw new Error("Trace invalide");
       }
     }
 
-    if (newEntries > 0) {
-      await writeFlightsHistory(history);
-      log('info', `${newEntries} nouveau(x) vol(s) ajouté(s)`);
-    } else {
-      log('debug', 'Aucun nouveau vol ajouté');
+    if (!newFlight._type || !["live", "local"].includes(newFlight._type)) {
+      throw new Error("Champ _type invalide");
     }
-  } catch (error) {
-    log('error', `Erreur ajout vols : ${error.message}`);
-    throw error;
+
+    const flights = await readAllFlightsFromHistory();
+
+    const index = flights.findIndex(f =>
+      f.id === newFlight.id && f.created_time === newFlight.created_time
+    );
+
+    if (index !== -1) {
+      flights[index] = newFlight;
+      log(`Vol ${newFlight.id} mis à jour, type: ${newFlight._type}`);
+    } else {
+      flights.push(newFlight);
+      log(`Vol ${newFlight.id} ajouté, type: ${newFlight._type}`);
+    }
+
+    await writeFlightsToFile(flights);
+  } catch (e) {
+    log("Erreur saveOrUpdateFlight:", e);
+    throw e;
   }
 }
 
-/**
- * Ajoute un seul vol à l’historique.
- * @returns {Promise<boolean>} true si ajouté, false si déjà existant
- */
-async function addSingleFlight(flight) {
-  try {
-    const history = await readAllFlightsFromHistory();
-    const exists = history.some(f => f.id === flight.id && f.created_time === flight.created_time);
-
-    if (!exists) {
-      history.push(flight);
-      await writeFlightsHistory(history);
-      log('info', `Vol ajouté (id=${flight.id})`);
-      return true;
-    } else {
-      log('warn', `Vol déjà présent (id=${flight.id})`);
-      return false;
-    }
-  } catch (error) {
-    log('error', `Erreur ajout vol unique : ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Exporte un vol selon id et created_time.
- */
 async function exportFlight(id, created_time) {
   try {
     const history = await readAllFlightsFromHistory();
     const flight = history.find(f => f.id === id && f.created_time === created_time);
-
     if (!flight) {
       log('warn', `Export raté : vol introuvable (id=${id}, created_time=${created_time})`);
       return null;
     }
-
     log('info', `Export vol (id=${id}, created_time=${created_time})`);
     return flight;
   } catch (error) {
@@ -133,46 +108,43 @@ async function exportFlight(id, created_time) {
 //////////////////////
 
 async function handleGetHistory(req, res) {
-  log('debug', `→ GET /history depuis ${req.ip}`);
   try {
     const flights = await readAllFlightsFromHistory();
     return res.json(flights);
   } catch (error) {
+    log('error', `Erreur GET /history : ${error.message}`);
     return res.status(500).json({ error: error.message });
   }
 }
 
 async function handleAddSingle(req, res) {
-  log('debug', `→ POST /history depuis ${req.ip}`);
   const flight = req.body;
 
   if (!flight.id || !flight.created_time || !flight.trace) {
-    log('warn', 'Requête invalide : champs requis manquants');
+    log('warn', 'Requête POST /history invalide : champs requis manquants');
     return res.status(400).json({ error: 'id, created_time et trace sont requis' });
   }
 
   try {
-    const created = await addSingleFlight(flight);
-    return res.json({ ok: true, created });
+    await saveOrUpdateFlight(flight);
+    return res.json({ ok: true });
   } catch (error) {
+    log('error', `Erreur POST /history : ${error.message}`);
     return res.status(500).json({ error: error.message });
   }
 }
 
 async function handleExport(req, res) {
   const { id, created_time } = req.params;
-  log('debug', `→ GET /export/${id}/${created_time} depuis ${req.ip}`);
   try {
     const flight = await exportFlight(id, created_time);
     if (!flight) {
       return res.status(404).json({ error: 'Vol non trouvé' });
     }
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=drone_${id}_${created_time}.json`
-    );
+    res.setHeader('Content-Disposition', `attachment; filename=drone_${id}_${created_time}.json`);
     return res.json(flight);
   } catch (error) {
+    log('error', `Erreur GET /export : ${error.message}`);
     return res.status(500).json({ error: error.message });
   }
 }
@@ -180,8 +152,7 @@ async function handleExport(req, res) {
 module.exports = {
   readAllFlightsFromHistory,
   writeFlightsHistory,
-  addFlightsToHistory,
-  addSingleFlight,
+  saveOrUpdateFlight,
   exportFlight,
   handleGetHistory,
   handleAddSingle,

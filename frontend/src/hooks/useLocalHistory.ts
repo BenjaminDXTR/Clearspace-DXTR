@@ -4,9 +4,7 @@ import { PER_PAGE } from "../utils/constants";
 import { config } from "../config";
 
 interface UseLocalHistoryOptions {
-  /** Intervalle entre deux rafraîchissements (ms). 0 ou négatif pour désactiver */
   pollInterval?: number;
-  /** Activer les logs debug (par défaut : en dev) */
   debug?: boolean;
 }
 
@@ -20,7 +18,7 @@ export default function useLocalHistory({
   const [error, setError] = useState<string | null>(null);
 
   const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+    if (debug) console.log("[useLocalHistory]", ...args);
   };
 
   useEffect(() => {
@@ -35,26 +33,27 @@ export default function useLocalHistory({
         dlog("[useLocalHistory] Récupération de l'historique local...");
         const res = await fetch(config.apiUrl + "/history", { signal: abortController.signal });
         const data: Flight[] = await res.json();
+
         if (!isMounted) return;
 
-        setLocalHistory(data.reverse());
+        const filteredData = data.filter(d => d._type === "local");
+        setLocalHistory(filteredData);
+
         setError(null);
-        dlog(`[useLocalHistory] ${data.length} vols récupérés`);
+        dlog(`[useLocalHistory] ${filteredData.length} vols archivés récupérés`);
       } catch (err: unknown) {
         if (!isMounted) return;
         const message =
           err instanceof Error ? err.message : "Erreur inconnue lors de la récupération de l'historique local";
         setError(message);
-        if (debug) console.error("[useLocalHistory] Erreur:", err);
+        console.error("[useLocalHistory] Erreur:", message);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    // Premier fetch
     fetchLocalHistory();
 
-    // Polling si activé
     let intervalId: ReturnType<typeof setInterval> | null = null;
     if (pollInterval > 0) {
       intervalId = setInterval(fetchLocalHistory, pollInterval);
@@ -67,7 +66,6 @@ export default function useLocalHistory({
     };
   }, [pollInterval, debug]);
 
-  // Pagination
   const localMaxPage = useMemo(
     () => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)),
     [localHistory]

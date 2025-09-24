@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { log } = require('../utils/logger'); // Logger centralisé
+const { log } = require('../utils/logger');
 const flightsService = require('../services/flightService');
-const { config } = require('../config'); // Import config centralisée
-const fetch = require('node-fetch'); // Assurez-vous que node-fetch est installé
+const { config } = require('../config');
+const fetch = require('node-fetch');
 
-// Lecture des paramètres depuis config
 const API_PROTOCOL = config.backend.apiProtocol || 'http';
 const API_HOST = config.backend.apiHost || '192.168.1.100';
 const API_PORT = config.backend.apiPort || '3200';
@@ -48,15 +47,39 @@ router.post('/graphql', async (req, res, next) => {
     if (data?.data?.drone) {
       const drones = Array.isArray(data.data.drone) ? data.data.drone : [data.data.drone];
       const nbVols = drones.length;
-      await flightsService.addFlightsToHistory(drones);
+
+      for (const drone of drones) {
+        // Ajout obligatoire du champ _type si absent, ici par defaut "live"
+        if (!drone._type) {
+          drone._type = "live";
+        }
+        
+        if (!drone.trace || !Array.isArray(drone.trace) || drone.trace.length === 0) {
+          if (
+            typeof drone.latitude === "number" &&
+            typeof drone.longitude === "number" &&
+            !isNaN(drone.latitude) &&
+            !isNaN(drone.longitude)
+          ) {
+            drone.trace = [[drone.latitude, drone.longitude]];
+            log('warn', `Vol ID=${drone.id} - trace manquante remplacée par position actuelle`);
+          } else {
+            // Selon le besoin, on pourrait sauter ce drone ou continuer sans trace
+            drone.trace = [];
+            log('warn', `Vol ID=${drone.id} - trace invalide remplacée par tableau vide`);
+          }
+        }
+
+        await flightsService.saveOrUpdateFlight(drone);
+      }
+
       if (nbVols > 0) {
-        log('info', `${nbVols} vol(s) ajouté(s) à l’historique`);
+        log('info', `${nbVols} vol(s) ajouté(s) ou mis à jour dans l’historique`);
       } else {
         log('debug', 'Aucun nouveau vol');
       }
-    } else {
-      log('debug', 'Pas de donnée drone dans la réponse');
     }
+
 
     res.json(data);
   } catch (error) {

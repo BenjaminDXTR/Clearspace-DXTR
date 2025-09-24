@@ -19,7 +19,7 @@ export default function useDrones({
   const [error, setError] = useState<string | null>(null);
 
   const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+    if (debug) console.log("[useDrones]", ...args);
   };
 
   useEffect(() => {
@@ -33,6 +33,18 @@ export default function useDrones({
         dlog("[useDrones] Récupération des drones en cours...");
         const list = await fetchLiveDrones({ signal: abortController.signal });
         if (!isMounted) return;
+
+        list.forEach((drone) => {
+          if (typeof drone.latitude === "number" && typeof drone.longitude === "number") {
+            dlog(`[useDrones] Drone ID=${drone.id} position: (${drone.latitude}, ${drone.longitude})`);
+          } else {
+            dlog(`[useDrones] Drone ID=${drone.id} position invalide ou absente`);
+          }
+        });
+
+        // On ne modifie pas ici le champ _type :
+        // On laissera ce champ à "live" lors du mapping en amont dans App.tsx
+
         setDrones(list);
         setError(null);
         dlog(`[useDrones] ${list.length} drone(s) récupéré(s)`);
