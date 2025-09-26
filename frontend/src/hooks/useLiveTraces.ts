@@ -81,10 +81,12 @@ export default function useLiveTraces(
         let changed = false;
 
         Object.entries(prev).forEach(([droneId, data]) => {
+          const elapsed = now - data.lastSeen;
+          dlog(`Drone ${droneId} - Inactivité durée: ${elapsed} ms, Timeout: ${inactiveTimeout} ms`);
           if (
             data.etatLive &&
             data.lastSeen &&
-            now - data.lastSeen > inactiveTimeout
+            elapsed > inactiveTimeout
           ) {
             dlog(`Drone ${droneId} inactif depuis plus de ${inactiveTimeout}ms → archivage`);
             if (onArchiveFlight) {

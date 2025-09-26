@@ -47,9 +47,12 @@ export default function TablesLayout({
   handleSelect,
   debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
-  const dlog = (...args: any[]) => {
-    if (debug) console.log("[TablesLayout]", ...args);
-  };
+  const onSelect = useCallback(
+    (flight: Flight) => {
+      handleSelect(flight);
+    },
+    [handleSelect]
+  );
 
   const makeKey = (
     item: { id?: string | number; created_time?: string },
@@ -57,20 +60,9 @@ export default function TablesLayout({
   ): string =>
     `${item.id || "noid"}_${item.created_time || "notime"}_${index}`;
 
-  const onSelect = useCallback(
-    (flight: Flight) => {
-      dlog("[TablesLayout] Vol sélectionné :", flight.id);
-      handleSelect(flight);
-    },
-    [handleSelect, debug]
-  );
-
   // Séparer clairement les vols par type
   const liveDrones = drones.filter((d) => d._type === "live");
   const archivedDrones = localPageData.filter((d) => d._type === "local");
-
-  dlog("Rendu 'Détection en direct':", liveDrones.length, "vol(s)");
-  dlog("Rendu 'Vols archivés (local)':", archivedDrones.length, "vol(s)");
 
   const renderTable = (
     title: string,

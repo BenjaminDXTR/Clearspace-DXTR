@@ -41,7 +41,7 @@ export function formatDate(dateValue?: string | number | null): string {
     dateValue === "0001-01-01T00:00:00Z" ||
     dateValue === "1970-01-01T00:00:00Z"
   ) {
-    dlog("[formatDate] Date vide ou valeur par défaut détectée:", dateValue);
+    // Suppression du log dans ce cas fréquent et normal
     return "";
   }
   try {
@@ -59,7 +59,7 @@ export function formatDate(dateValue?: string | number | null): string {
       DEFAULT_DATE_LOCALE,
       DEFAULT_DATE_OPTIONS
     );
-    dlog(`[formatDate] ${dateValue} -> ${formatted}`);
+    // Suppression du log systématique, gardez-le uniquement si nécessaire
     return formatted;
   } catch (error) {
     console.error("[formatDate] Erreur formatage date:", error);

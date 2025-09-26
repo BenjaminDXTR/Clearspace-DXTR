@@ -52,20 +52,17 @@ function FlyToPosition({
 
 interface FlightMapProps {
   trace?: LatLngExpression[];
-  markerIcon?: Icon | null; // Icône optionnelle pour marqueur final
+  markerIcon?: Icon | null;
   zoom?: number;
   style?: CSSProperties;
   className?: string;
-  showMarkers?: boolean;  // Afficher les marqueurs intermédiaires
+  showMarkers?: boolean;
   center?: [number, number] | null;
   polylineOptions?: L.PathOptions;
   debug?: boolean;
 
-  /** Position actuelle live (dernier point de la trace) */
   livePosition?: LatLngExpression | null;
-  /** Position départ historique (premier point de la trace) */
   startPosition?: LatLngExpression | null;
-  /** Trigger pour forcer le recentrage même si la position ne change pas */
   flyToTrigger?: number;
 }
 
@@ -84,9 +81,6 @@ export default function FlightMap({
   flyToTrigger,
 }: FlightMapProps) {
   const mapRef = useRef<LeafletMap | null>(null);
-  const dlog = (...args: any[]) => {
-    if (debug) console.log("[FlightMap]", ...args);
-  };
 
   // On filtre les points valides
   const validTrace = trace.filter(isLatLng);
@@ -98,18 +92,6 @@ export default function FlightMap({
     (hasTrace
       ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
       : [48.8584, 2.2945]);
-
-  useEffect(() => {
-    dlog(
-      `[FlightMap] ${validTrace.length} points | centre=${computedCenter} | zoom=${zoom}`
-    );
-  }, [validTrace, computedCenter, zoom]);
-
-  useEffect(() => {
-    if (flyToTrigger !== undefined && (livePosition || startPosition)) {
-      dlog(`[FlightMap] FlyToPosition trigger: recentrage sur`, livePosition || startPosition);
-    }
-  }, [flyToTrigger, livePosition, startPosition]);
 
   return (
     <MapContainer

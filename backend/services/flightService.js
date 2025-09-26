@@ -48,6 +48,8 @@ async function writeFlightsHistory(flights) {
  */
 async function saveOrUpdateFlight(newFlight) {
   try {
+    log(`saveOrUpdateFlight reçu : id=${newFlight.id}, _type=${newFlight._type}, created_time=${newFlight.created_time}`);
+
     if (!newFlight.trace || !Array.isArray(newFlight.trace) || newFlight.trace.length === 0) {
       if (
         typeof newFlight.latitude === "number" &&
@@ -80,7 +82,7 @@ async function saveOrUpdateFlight(newFlight) {
       log(`Vol ${newFlight.id} ajouté, type: ${newFlight._type}`);
     }
 
-    await writeFlightsToFile(flights);
+    await writeFlightsHistory(flights);
   } catch (e) {
     log("Erreur saveOrUpdateFlight:", e);
     throw e;
@@ -110,6 +112,7 @@ async function exportFlight(id, created_time) {
 async function handleGetHistory(req, res) {
   try {
     const flights = await readAllFlightsFromHistory();
+    log('info', `GET /history retourne : ${flights.map(f => `${f.id}:${f._type}`).join(", ")}`);
     return res.json(flights);
   } catch (error) {
     log('error', `Erreur GET /history : ${error.message}`);
@@ -119,6 +122,8 @@ async function handleGetHistory(req, res) {
 
 async function handleAddSingle(req, res) {
   const flight = req.body;
+
+  log('[handleAddSingle] Requête POST /history reçue :', flight);
 
   if (!flight.id || !flight.created_time || !flight.trace) {
     log('warn', 'Requête POST /history invalide : champs requis manquants');

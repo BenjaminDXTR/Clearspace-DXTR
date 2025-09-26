@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { Flight } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
 import { config } from "../config";
@@ -17,8 +17,42 @@ export default function useLocalHistory({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const manualUpdatesRef = useRef<Map<string, Flight>>(new Map());
+
   const dlog = (...args: any[]) => {
     if (debug) console.log("[useLocalHistory]", ...args);
+  };
+
+  // Fonction pour fusionner deux listes de vols de manière intelligente
+  const mergeFlights = (local: Flight[], fresh: Flight[]) => {
+    const freshMap = new Map(fresh.map(f => [f.id + (f.created_time ?? ""), f]));
+    const merged = local.map(flight => {
+      const key = flight.id + (flight.created_time ?? "");
+      if (freshMap.has(key)) {
+        return freshMap.get(key)!; // Priorité à données récentes du serveur
+      }
+      return flight; // Garder les entrées locales non présentes dans le fetch
+    });
+    // Ajouter les nouveaux vols du serveur absents localement
+    fresh.forEach(flight => {
+      const key = flight.id + (flight.created_time ?? "");
+      if (!merged.some(f => (f.id + (f.created_time ?? "")) === key)) {
+        merged.push(flight);
+      }
+    });
+    return merged;
+  };
+
+  // Mise à jour manuelle depuis l'extérieur, enregistrer en Ref
+  const setLocalHistoryWithMerge = (updater: (old: Flight[]) => Flight[]) => {
+    setLocalHistory(old => {
+      const updated = updater(old);
+      updated.forEach(flight => {
+        const key = flight.id + (flight.created_time ?? "");
+        manualUpdatesRef.current.set(key, flight);
+      });
+      return updated;
+    });
   };
 
   useEffect(() => {
@@ -32,15 +66,18 @@ export default function useLocalHistory({
       try {
         dlog("[useLocalHistory] Récupération de l'historique local...");
         const res = await fetch(config.apiUrl + "/history", { signal: abortController.signal });
-        const data: Flight[] = await res.json();
+        const dataRaw: Flight[] = await res.json();
 
         if (!isMounted) return;
 
-        const filteredData = data.filter(d => d._type === "local");
-        setLocalHistory(filteredData);
+        const filteredData = dataRaw.filter(d => d._type === "local");
+        dlog(`[useLocalHistory] ${filteredData.length} vols archivés récupérés`);
+
+        // Fusion des données avec les modifications manuelles
+        const mergedData = mergeFlights(Array.from(manualUpdatesRef.current.values()), filteredData);
+        if (isMounted) setLocalHistory(mergedData);
 
         setError(null);
-        dlog(`[useLocalHistory] ${filteredData.length} vols archivés récupérés`);
       } catch (err: unknown) {
         if (!isMounted) return;
         const message =
@@ -78,7 +115,7 @@ export default function useLocalHistory({
 
   return {
     localHistory,
-    setLocalHistory,
+    setLocalHistory: setLocalHistoryWithMerge, // expose la version améliorée
     localPage,
     setLocalPage,
     localMaxPage,

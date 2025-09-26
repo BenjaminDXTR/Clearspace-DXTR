@@ -1,5 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
-
+import { useState, useCallback, useMemo, useRef } from "react";
 import './App.css';
 
 import Header from "./components/layout/Header";
@@ -60,19 +59,16 @@ export default function App() {
     apiPageData
   } = useRemoteEvents({ debug });
 
-  // Locks IDs des vols archivés locaux pour exclusion de la liste live
+  // Memorisation stable pour éviter rerenders intempestifs
   const localIds = useMemo(() => new Set(localHistory.map(f => f.id)), [localHistory]);
-
-  // Forcer _type: "live" et filtrer drones avec coordonnées valides et non archivés
-  const dronesWithType = drones
+  const dronesWithType = useMemo(() => drones
     .filter(d => d.latitude !== 0 && d.longitude !== 0)
-    .filter(d => !localIds.has(d.id)) // Exclure vols archivés
+    .filter(d => !localIds.has(d.id))
     .map((d): Flight => ({
       ...d,
       _type: "live" as "live",
-    }));
+    })), [drones, localIds]);
 
-  /** --- Sélection et déclencheur de recentrage --- */
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
 
@@ -82,7 +78,6 @@ export default function App() {
     setFlyToTrigger(prev => prev + 1);
   }, []);
 
-  /** --- Modal Ancrage --- */
   const {
     anchorModal,
     anchorDescription,
@@ -94,60 +89,80 @@ export default function App() {
     anchorDataPreview
   } = useAnchorModal({ handleSelect, debug });
 
-  /** --- Traces Live et archivage auto --- */
-const { liveTraces } = useLiveTraces(dronesWithType, {
-  debug,
-  onArchiveFlight: async (droneId, trace) => {
-    const flight = drones.find(d => d.id === droneId);
-    if (!flight) return;
+  // Ref pour accéder à la valeur actuelle de liveTraces dans le callback
+  const liveTracesRef = useRef<Record<string, { flight: Flight; trace: LatLng[] }>>({});
 
-    // Définition explicite de archivedFlight avant usage
+  // Déclaration du callback sans dépendance directe à liveTraces
+  const onArchiveFlight = useCallback(async (droneId: string, trace: LatLng[]) => {
+    const droneInLiveTraces = liveTracesRef.current[droneId];
+    if (!droneInLiveTraces) {
+      dlog(`[ARCHIVE] Drone ${droneId} non trouvé dans liveTraces.`);
+      return;
+    }
+    const flight = droneInLiveTraces.flight;
+
     const archivedFlight: Flight = {
       ...flight,
       trace,
       _type: "local"
     };
 
+    dlog("[ARCHIVE] Vol détecté inactif, tentative d'archivage :", {
+      id: archivedFlight.id,
+      type: archivedFlight._type,
+      created_time: archivedFlight.created_time,
+      trace: archivedFlight.trace,
+    });
+
     try {
+      dlog("[ARCHIVE] Envoi POST /history", archivedFlight);
       const response = await fetch('/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(archivedFlight)
       });
-      if (!response.ok) throw new Error('Erreur sauvegarde');
+      dlog("[ARCHIVE] Réponse POST /history:", response.status, response.statusText);
 
-      // Mise à jour locale en remplaçant l'entrée existante si elle existe
+      if (!response.ok) throw new Error(`Erreur sauvegarde: HTTP ${response.status} ${response.statusText}`);
+
+      dlog(`[ARCHIVE] MAJ localHistory (id=${archivedFlight.id}, type=${archivedFlight._type})`);
+
       setLocalHistory(prev => {
         const idx = prev.findIndex(f => f.id === archivedFlight.id && f.created_time === archivedFlight.created_time);
-        if (idx !== -1) {
-          const newArr = [...prev];
-          newArr[idx] = {
-            ...archivedFlight,
-            _type: archivedFlight._type as "live" | "local" | "event" | undefined,
-          };
-          return newArr;
-        }
-        return [...prev, {
+        const typedFlight: Flight = {
           ...archivedFlight,
           _type: archivedFlight._type as "live" | "local" | "event" | undefined,
-        }];
+        };
+        if (idx !== -1) {
+          dlog(`[ARCHIVE] Mise à jour du vol archivé (idx=${idx})`);
+          const newArr = [...prev];
+          newArr[idx] = typedFlight;
+          return newArr;
+        }
+        dlog(`[ARCHIVE] Nouveau vol archivé inséré`);
+        return [...prev, typedFlight];
       });
     } catch (e) {
-      console.error("Erreur lors de l'enregistrement du vol archivé", e);
+      console.error("[ARCHIVE] Erreur lors de l'enregistrement du vol archivé", e, archivedFlight);
     }
-  }
-});
+  }, [dlog, setLocalHistory]);
 
-  /** --- Champs à afficher dans panneau détails --- */
+  // On appelle useLiveTraces avec le callback défini
+  const { liveTraces } = useLiveTraces(dronesWithType, {
+    debug,
+    onArchiveFlight,
+  });
+
+  // Mise à jour de la ref pour garder la valeur actuelle
+  liveTracesRef.current = liveTraces;
+
   const detailFields = useMemo(() => {
     if (!selected) return [];
     return selected._type === "event" ? EVENT_DETAILS : LIVE_DETAILS;
   }, [selected]);
 
-  /** --- Trace sélectionnée pour la carte --- */
   const [selectedTracePoints, selectedTraceRaw] = useMemo(() => {
     if (!selected) return [undefined, undefined];
-
     let trace: LatLng[] = [];
 
     if (selected._type === "live") {
@@ -170,7 +185,6 @@ const { liveTraces } = useLiveTraces(dronesWithType, {
     return [trace, selected._type === "event" ? trace : undefined];
   }, [selected, traces, liveTraces]);
 
-  /** --- Récupération trace selon type de vol --- */
   const getTraceForFlight = useCallback(
     (flight: Flight): LatLng[] => {
       if (flight._type === "live") {
@@ -194,7 +208,6 @@ const { liveTraces } = useLiveTraces(dronesWithType, {
     [liveTraces, traces]
   );
 
-  /** --- Bouton Ancrage pour tableau --- */
   const renderAnchorCell = useCallback(
     (flight: Flight) => (
       <button
@@ -210,7 +223,6 @@ const { liveTraces } = useLiveTraces(dronesWithType, {
     [openModal, getTraceForFlight]
   );
 
-  /** --- Export JSON depuis panneau --- */
   const exportSelectedAsAnchorJson = useCallback(() => {
     if (!selected) return;
     const rawTrace = getTraceForFlight(selected);
@@ -238,7 +250,6 @@ const { liveTraces } = useLiveTraces(dronesWithType, {
           exportObj={exportSelectedAsAnchorJson}
           flyToTrigger={flyToTrigger}
         />
-
         <TablesLayout
           error={dronesError}
           drones={dronesWithType}
