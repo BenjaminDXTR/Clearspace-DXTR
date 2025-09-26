@@ -17,7 +17,7 @@ interface UseAnchorModalResult {
   onValidate: () => Promise<void>;
   onCancel: () => void;
   openModal: (flight: Flight, trace?: LatLng[]) => void;
-  anchorDataPreview: any | null;
+  anchorDataPreview: ReturnType<typeof buildAnchorData> | null;
 }
 
 interface UseAnchorModalOptions {
@@ -32,55 +32,52 @@ export default function useAnchorModal({
   const [anchorModal, setAnchorModal] = useState<AnchorModal | null>(null);
   const [anchorDescription, setAnchorDescription] = useState("");
   const [isZipping, setIsZipping] = useState(false);
+  const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
 
   const traceRef = useRef<LatLng[]>([]);
 
-  const [anchorDataPreview, setAnchorDataPreview] = useState<any | null>(null);
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) console.log("[useAnchorModal]", ...args);
+  }, [debug]);
 
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
-  };
+  // Helper to convert trace points with altitude
+  const convertTrace = useCallback((trace: LatLng[], altitude: number) => {
+    return trace.map(([lat, lng]) => ({
+      latitude: lat,
+      longitude: lng,
+      altitude,
+    }));
+  }, []);
 
-  const openModal = useCallback(
-    (flight: Flight, trace: LatLng[] = []) => {
-      dlog("[useAnchorModal] Ouverture modal pour vol :", flight.id);
-      traceRef.current = trace;
-      setAnchorModal({ flight });
-      setAnchorDescription("");
+  const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
+    dlog("Ouverture modal pour vol :", flight.id);
+    traceRef.current = trace;
+    setAnchorModal({ flight });
+    setAnchorDescription("");
 
-      const traceConverted = trace.map(([lat, lng]) => ({
-        latitude: lat,
-        longitude: lng,
-        altitude: flight.altitude ?? 0,
-      }));
-      setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
+    const traceConverted = convertTrace(trace, flight.altitude ?? 0);
+    setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
 
-      if (handleSelect) {
-        handleSelect({ ...flight, _type: "local" });
-      }
-    },
-    [handleSelect]
-  );
+    if (handleSelect) {
+      handleSelect({ ...flight, _type: "local" });
+    }
+  }, [convertTrace, dlog, handleSelect]);
 
   useEffect(() => {
-    if (anchorModal?.flight) {
-      const traceConverted = traceRef.current.map(([lat, lng]) => ({
-        latitude: lat,
-        longitude: lng,
-        altitude: anchorModal.flight.altitude ?? 0,
-      }));
-      const newAnchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
-      setAnchorDataPreview(newAnchorData);
-    }
-  }, [anchorDescription, anchorModal]);
+    if (!anchorModal?.flight) return;
+
+    const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
+    const newAnchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
+    setAnchorDataPreview(newAnchorData);
+  }, [anchorDescription, anchorModal, convertTrace]);
 
   const onCancel = useCallback(() => {
-    dlog("[useAnchorModal] Fermeture du modal");
+    dlog("Fermeture du modal");
     setAnchorModal(null);
     setAnchorDescription("");
     traceRef.current = [];
     setAnchorDataPreview(null);
-  }, []);
+  }, [dlog]);
 
   const captureMap = useCallback(async (): Promise<Blob> => {
     const mapDiv = document.querySelector(
@@ -113,32 +110,29 @@ export default function useAnchorModal({
     setIsZipping(true);
 
     try {
-      dlog("[useAnchorModal] Validation en cours pour vol :", anchorModal.flight.id);
-      await new Promise((r) => setTimeout(r, 600));
+      dlog("Validation pour vol :", anchorModal.flight.id);
+      // Petit délai pour UX
+      await new Promise(r => setTimeout(r, 600));
 
-      dlog("[useAnchorModal] Capture de la carte...");
+      dlog("Capture de la carte...");
       const mapImageBlob = await captureMap();
 
-      dlog("[useAnchorModal] Construction des données JSON d'ancrage...");
-      const traceConverted = traceRef.current.map(([lat, lng]) => ({
-        latitude: lat,
-        longitude: lng,
-        altitude: anchorModal.flight.altitude ?? 0,
-      }));
+      dlog("Construction données JSON d'ancrage...");
+      const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
       const anchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
 
-      dlog("[useAnchorModal] Création du ZIP (image + positions)...");
+      dlog("Création ZIP (image + positions)...");
       const zipBlob = await generateAnchorZip(mapImageBlob, traceConverted);
 
-      dlog("[useAnchorModal] Envoi des données au backend...");
+      dlog("Envoi des données au backend...");
       await sendAnchorToBackend(anchorData, zipBlob);
 
       if (handleSelect) {
-        dlog("[useAnchorModal] Mise à jour sélection vol ancré");
+        dlog("Mise à jour sélection vol ancré");
         handleSelect({ ...anchorModal.flight, _type: "local" });
       }
 
-      dlog("[useAnchorModal] Ancrage terminé avec succès");
+      dlog("Ancrage terminé avec succès");
       setAnchorModal(null);
       setAnchorDescription("");
       traceRef.current = [];
@@ -150,7 +144,7 @@ export default function useAnchorModal({
     } finally {
       setIsZipping(false);
     }
-  }, [anchorModal, anchorDescription, captureMap, handleSelect, debug]);
+  }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, debug]);
 
   return {
     anchorModal,

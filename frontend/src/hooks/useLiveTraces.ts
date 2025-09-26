@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Flight, LatLng } from "../types/models";
 import { isLatLng } from "../utils/coords";
 import { config } from "../config";
@@ -6,7 +6,6 @@ import { config } from "../config";
 interface UseLiveTracesOptions {
   inactiveTimeout?: number;
   cleanupInterval?: number;
-  onArchiveFlight?: (droneId: string, trace: LatLng[]) => void;
   onUpdateLiveFlight?: (flight: Flight, trace: LatLng[]) => void;
   debug?: boolean;
 }
@@ -21,9 +20,8 @@ interface DroneTraceState {
 export default function useLiveTraces(
   drones: Flight[],
   {
-    inactiveTimeout = config.inactiveTimeout, // Valeur par défaut depuis config (lié à .env)
+    inactiveTimeout = config.inactiveTimeout,
     cleanupInterval = 2000,
-    onArchiveFlight,
     onUpdateLiveFlight,
     debug = config.debug || config.environment === "development",
   }: UseLiveTracesOptions = {}
@@ -33,11 +31,11 @@ export default function useLiveTraces(
   const liveTracesRef = useRef(liveTraces);
   liveTracesRef.current = liveTraces;
 
-  const dlog = (...args: any[]) => {
+  const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useLiveTraces]", ...args);
-  };
+  }, [debug]);
 
-  // Mise à jour live des traces sur réception drones
+  // Met à jour les traces en fonction des drones reçus
   useEffect(() => {
     if (drones.length && debug) {
       dlog(`Mise à jour avec ${drones.length} drone(s)`);
@@ -69,9 +67,9 @@ export default function useLiveTraces(
       });
       return updated;
     });
-  }, [drones, onUpdateLiveFlight, debug]);
+  }, [drones, onUpdateLiveFlight, dlog]);
 
-  // Nettoyage et archivage des vols inactifs
+  // Nettoyage des traces / repose uniquement sur mise à jour et inactiveTimeout (pas d’archivage)
   useEffect(() => {
     const intervalId = setInterval(() => {
       const now = Date.now();
@@ -83,18 +81,11 @@ export default function useLiveTraces(
         Object.entries(prev).forEach(([droneId, data]) => {
           const elapsed = now - data.lastSeen;
           dlog(`Drone ${droneId} - Inactivité durée: ${elapsed} ms, Timeout: ${inactiveTimeout} ms`);
-          if (
-            data.etatLive &&
-            data.lastSeen &&
-            elapsed > inactiveTimeout
-          ) {
-            dlog(`Drone ${droneId} inactif depuis plus de ${inactiveTimeout}ms → archivage`);
-            if (onArchiveFlight) {
-              onArchiveFlight(droneId, data.trace);
-            }
+          if (data.etatLive && data.lastSeen && elapsed > inactiveTimeout) {
+            dlog(`Drone ${droneId} inactif depuis plus de ${inactiveTimeout}ms → marquage inactif`);
             data.etatLive = false;
             changed = true;
-            dlog(`Drone ${droneId} marqué inactif après archivage`);
+            dlog(`Drone ${droneId} marqué inactif`);
           }
         });
 
@@ -103,7 +94,7 @@ export default function useLiveTraces(
     }, cleanupInterval);
 
     return () => clearInterval(intervalId);
-  }, [inactiveTimeout, cleanupInterval, onArchiveFlight, debug]);
+  }, [inactiveTimeout, cleanupInterval, dlog]);
 
   return { liveTraces };
 }

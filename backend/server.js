@@ -1,50 +1,39 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const http = require('http');
 
-const { log } = require('./utils/logger'); // Logger centralisé
-const { config } = require('./config');   // Import du fichier config.js
+const { log } = require('./utils/logger');
+const { config } = require('./config');
+const { setupWebSocket } = require('./websocket');
 
-// Middlewares personnalisés
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
 
-// Création de l'application Express
+// Import des sous-routers depuis le dossier routes
+const apiRoutes = require('./routes');
+
 const app = express();
+const server = http.createServer(app);
 
-/* =====================
-   CONFIGURATION GLOBALE
-===================== */
-
-// Désactivation TLS uniquement si demandé dans config (dev uniquement)
 if (config.backend.ignoreTlsErrors) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   log('warn', '⚠️ TLS désactivé (IGNORE_TLS_ERRORS=true)');
 }
 
-// Configuration CORS
 app.use(cors({ origin: config.backend.corsOrigin }));
-
-// Middleware JSON pour parser les requêtes entrantes
 app.use(express.json({ limit: config.backend.maxJsonSize }));
 
-/* =====================
-   ROUTES PRINCIPALES
-===================== */
-const apiRoutes = require('./routes');
+// Routes principales (sans GraphQL)
 app.use(apiRoutes);
 
-/* =====================
-   GESTION DES 404 & ERREURS
-===================== */
-app.use(notFoundHandler); // Route non trouvée => 404
-app.use(errorHandler);    // Gestion des erreurs
+// Middleware d’erreurs et 404
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-/* =====================
-   LANCEMENT DU SERVEUR
-===================== */
-const port = config.backend.port;
+// Initialisation WebSocket
+const wss = setupWebSocket(server);
 
-app.listen(port, () => {
+const port = config.backend.port || 3200;
+server.listen(port, () => {
   log('info', `✅ Backend DroneWeb démarré sur http://localhost:${port}`);
 });

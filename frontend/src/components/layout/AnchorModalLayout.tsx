@@ -1,4 +1,4 @@
-import { useEffect, ChangeEvent } from "react";
+import { useEffect, ChangeEvent, useCallback } from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
@@ -14,8 +14,8 @@ interface AnchorModalLayoutProps {
   isZipping: boolean;
   onValidate: () => void | Promise<void>;
   onCancel: () => void;
-  anchorDataPreview: any | null;
-  children?: React.ReactNode; 
+  anchorDataPreview: unknown | null;
+  children?: React.ReactNode;
   debug?: boolean;
 }
 
@@ -30,18 +30,19 @@ export default function AnchorModalLayout({
   anchorDataPreview,
   debug = config.debug || config.environment === "development",
 }: AnchorModalLayoutProps) {
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
-  };
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) console.log("[AnchorModalLayout]", ...args);
+  }, [debug]);
 
   useEffect(() => {
     if (anchorModal?.flight?.id !== undefined) {
       dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
     }
+    // Optional cleanup log on unmount
     return () => {
       dlog("[AnchorModal] Fermée");
     };
-  }, [anchorModal?.flight]);
+  }, [anchorModal?.flight, dlog]);
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -51,7 +52,7 @@ export default function AnchorModalLayout({
 
   const handleValidate = () => {
     dlog("[AnchorModal] Validation déclenchée");
-    onValidate();
+    return onValidate();
   };
 
   if (!anchorModal?.flight) {
@@ -93,10 +94,11 @@ export default function AnchorModalLayout({
                 placeholder="Ajouter une description..."
                 required
                 aria-required="true"
-                spellCheck={true}
+                spellCheck
               />
             </div>
           </div>
+
           {/* Colonne droite : carte */}
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>

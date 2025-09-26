@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import FlightMap from "../common/FlightMap";
 import DetailsPanel from "../flights/DetailsPanel";
 import { isLatLng, getFlightTrace } from "../../utils/coords";
@@ -8,7 +8,7 @@ import "./MapLayout.css";
 
 interface MapLayoutProps {
   selectedTracePoints?: LatLng[] | null;
-  selectedTraceRaw?: any;
+  selectedTraceRaw?: unknown;
   selected?: Flight | null;
   detailFields?: string[];
   exportObj: (obj: Flight) => void;
@@ -27,9 +27,9 @@ export default function MapLayout({
   title = "Carte des détections",
   flyToTrigger,
 }: MapLayoutProps) {
-  const dlog = (...args: any[]) => {
+  const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[MapLayout]", ...args);
-  };
+  }, [debug]);
 
   useEffect(() => {
     if (selected) {
@@ -41,22 +41,22 @@ export default function MapLayout({
     } else {
       dlog("[MapLayout] sans sélection");
     }
-  }, [selected, selectedTracePoints]);
+  }, [selected, selectedTracePoints, dlog]);
 
-  const points: LatLng[] = useMemo(() => {
+  const points = useMemo<LatLng[]>(() => {
     if (Array.isArray(selectedTracePoints) && selectedTracePoints.length >= 2) {
       return selectedTracePoints.filter(isLatLng);
     }
     if (selected) {
-      return getFlightTrace(selected).filter(isLatLng);
+      const trace = getFlightTrace(selected);
+      return trace.filter(isLatLng);
     }
     return [];
   }, [selectedTracePoints, selected]);
 
   const hasValidPoints = points.length > 0;
-
-  const startPosition: LatLng | null = hasValidPoints ? points[0] : null;
-  const livePosition: LatLng | null = hasValidPoints ? points[points.length - 1] : null;
+  const startPosition = hasValidPoints ? points[0] : null;
+  const livePosition = hasValidPoints ? points[points.length - 1] : null;
 
   return (
     <div className="map-layout">

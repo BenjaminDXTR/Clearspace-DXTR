@@ -1,4 +1,4 @@
-import { useRef, useEffect, CSSProperties } from "react";
+import { useRef, useEffect, useCallback, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -10,25 +10,25 @@ import {
 } from "react-leaflet";
 import L, { Icon, Map as LeafletMap, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
+
 import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
 import "./FlightMap.css";
 
-/** Hook : forcer le recalcul du rendu Leaflet */
+
+/** Hook : force Leaflet à recalculer sa taille */
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-    return () => clearTimeout(timeoutId);
+    const timer = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(timer);
   }, [map]);
   return null;
 }
 
+
 /**
- * Composant utilitaire pour centrer et animer la carte Leaflet vers une position donnée.
- * Le recentrage est déclenché uniquement à chaque changement de `flyToTrigger`.
+ * Centre et anime la carte vers une position à chaque changement de flyToTrigger.
  */
 function FlyToPosition({
   position,
@@ -45,10 +45,11 @@ function FlyToPosition({
     if (flyToTrigger !== undefined && position && Array.isArray(position)) {
       map.flyTo(position, zoom, { duration: 1.0 });
     }
-  }, [flyToTrigger, position, zoom]);
+  }, [flyToTrigger, position, zoom, map]);
 
   return null;
 }
+
 
 interface FlightMapProps {
   trace?: LatLngExpression[];
@@ -82,13 +83,13 @@ export default function FlightMap({
 }: FlightMapProps) {
   const mapRef = useRef<LeafletMap | null>(null);
 
-  // On filtre les points valides
+  // Filtrage des points valides
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  // Centre initial : propriété center > point milieu de la trace > position de Paris par défaut
+  // Centre initial de la carte : centre passé en props > milieu trace > position Paris par défaut
   const computedCenter: [number, number] =
-    center ||
+    center ??
     (hasTrace
       ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
       : [48.8584, 2.2945]);
@@ -117,7 +118,7 @@ export default function FlightMap({
           {showMarkers &&
             validTrace.map((pt, i) => (
               <CircleMarker
-                key={i}
+                key={`circle-${i}`}
                 center={pt}
                 radius={4}
                 fillColor="#1976d2"
@@ -146,7 +147,7 @@ export default function FlightMap({
       )}
 
       <FlyToPosition
-        position={livePosition || startPosition}
+        position={livePosition ?? startPosition}
         zoom={zoom}
         flyToTrigger={flyToTrigger}
       />

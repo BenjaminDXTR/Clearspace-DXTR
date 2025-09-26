@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Flight } from "../types/models";
 import { config } from "../config";
 
@@ -17,9 +17,14 @@ export default function useAnchored({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
-  };
+  const dlog = useCallback(
+    (...args: unknown[]) => {
+      if (debug) {
+        console.log("[useAnchored]", ...args);
+      }
+    },
+    [debug]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -30,18 +35,20 @@ export default function useAnchored({
       setLoading(true);
 
       try {
-        dlog("[useAnchored] Récupération des vols ancrés...");
+        dlog("Récupération des vols ancrés...");
         const res = await fetch(
           config.apiUrl.replace(/\/$/, "") + "/anchored",
           { signal: abortController.signal }
         );
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
         const data: Flight[] = await res.json();
         if (!isMounted) return;
 
         setAnchored(data);
         setError(null);
-        dlog(`[useAnchored] ${data.length} ancrage(s) récupéré(s)`);
+        dlog(`${data.length} ancrage(s) récupéré(s)`);
       } catch (err: unknown) {
         if (!isMounted) return;
         const message =
@@ -55,21 +62,19 @@ export default function useAnchored({
       }
     };
 
-    // Premier fetch
     fetchAnchored();
 
-    // Polling si activé
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     if (pollInterval > 0) {
       intervalId = setInterval(fetchAnchored, pollInterval);
     }
 
     return () => {
       isMounted = false;
+      abortController?.abort();
       if (intervalId) clearInterval(intervalId);
-      if (abortController) abortController.abort();
     };
-  }, [pollInterval, debug]);
+  }, [pollInterval, dlog]);
 
   return { anchored, loading, error };
 }

@@ -1,11 +1,6 @@
-/**
- * Routes pour la gestion de l'historique des vols.
- * S'appuie sur flightService pour la logique métier.
- */
-
 const express = require('express');
 const router = express.Router();
-const { log } = require('../utils/logger'); // Logger centralisé
+const { log } = require('../utils/logger');
 const flightsService = require('../services/flightService');
 
 /**
@@ -15,7 +10,8 @@ const flightsService = require('../services/flightService');
 router.get('/history', async (req, res, next) => {
   log('debug', `→ GET /history depuis ${req.ip}`);
   try {
-    await flightsService.handleGetHistory(req, res);
+    const flights = await flightsService.readAllFlightsFromHistory();
+    return res.json(flights);
   } catch (error) {
     log('error', `Erreur GET /history : ${error.message}`);
     next(error);
@@ -29,14 +25,19 @@ router.get('/history', async (req, res, next) => {
 router.post('/history', async (req, res, next) => {
   log('debug', `→ POST /history depuis ${req.ip}`);
 
-  // Validation basique
   if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: 'Corps de requête vide' });
   }
 
+  const flight = req.body;
+  if (!flight.id || !flight.created_time || !flight.trace) {
+    return res.status(400).json({ error: 'id, created_time et trace sont requis' });
+  }
+
   try {
-    await flightsService.handleAddSingle(req, res);
-    log('info', 'Vol ajouté à l’historique');
+    await flightsService.saveOrUpdate(flight);
+    log('info', `Vol ajouté à l’historique : id=${flight.id}`);
+    return res.json({ ok: true });
   } catch (error) {
     log('error', `Erreur POST /history : ${error.message}`);
     next(error);
@@ -56,8 +57,12 @@ router.get('/export/:id/:created_time', async (req, res, next) => {
   }
 
   try {
-    await flightsService.handleExport(req, res);
-    log('info', `Export vol id=${id}`);
+    const flight = await flightsService.exportFlight(id, created_time);
+    if (!flight) {
+      return res.status(404).json({ error: 'Vol non trouvé' });
+    }
+    res.setHeader('Content-Disposition', `attachment; filename=drone_${id}_${created_time}.json`);
+    return res.json(flight);
   } catch (error) {
     log('error', `Erreur export vol id=${id} : ${error.message}`);
     next(error);

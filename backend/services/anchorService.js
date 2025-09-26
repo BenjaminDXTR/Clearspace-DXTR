@@ -1,17 +1,10 @@
-/**
- * Service de gestion des ancrages blockchain.
- * - Lecture/écriture du fichier global anchored.json
- * - Sauvegarde des preuves et données dans des dossiers datés
- */
-
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
 
-const { log } = require('../utils/logger'); // Logger centralisé
-const { config } = require('../config');    // Import config centralisée
+const { log } = require('../utils/logger');
+const { config } = require('../config');
 
-// Gestion du dossier d'ancrage avec support chemin absolu ou relatif
 const rawAnchoredDir = config.backend.anchoredDir || 'anchored';
 const ANCHORED_DIR = path.isAbsolute(rawAnchoredDir)
   ? rawAnchoredDir
@@ -67,21 +60,18 @@ async function saveAnchorWithProof(anchorData, proofZip) {
     const destinationDir = path.join(ANCHORED_DIR, dateDir);
     await fsPromises.mkdir(destinationDir, { recursive: true });
 
-    // Sauvegarder ancrage.json
     await fsPromises.writeFile(
       path.join(destinationDir, 'ancrage.json'),
       JSON.stringify(anchorData, null, 2)
     );
     log('debug', `ancrage.json sauvegardé dans ${destinationDir}`);
 
-    // Sauvegarder preuve.zip
     await fsPromises.writeFile(
       path.join(destinationDir, 'preuve.zip'),
       proofZip
     );
     log('debug', `preuve.zip sauvegardé dans ${destinationDir}`);
 
-    // Mettre à jour la liste globale
     const anchoredList = await getAnchoredList();
     const exists = anchoredList.some(
       entry => entry.id === anchorData.id && entry.created_time === anchorData.created_time

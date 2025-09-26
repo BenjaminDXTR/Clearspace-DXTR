@@ -1,7 +1,8 @@
-import { useEffect, MouseEvent, KeyboardEvent } from "react";
+import { useEffect, MouseEvent, KeyboardEvent, useCallback } from "react";
 import { prettyValue } from "../../utils/format";
 import Pagination from "../common/Pagination";
 import { config } from "../../config";
+import { useDrones } from "../../contexts/DronesContext"; // import du contexte
 import "./DetectionsTable.css";
 
 interface Detection {
@@ -21,32 +22,20 @@ type AnchorFlightFn = (detection: Detection) => void;
 type RenderAnchorCellFn = (detection: Detection) => React.ReactNode;
 
 interface DetectionsTableProps {
-  /** Données de la table (page courante uniquement) */
-  data: Detection[];
-  /** Champs à afficher (ordre des colonnes) */
   fields: Field[];
-  /** Callback quand l’utilisateur sélectionne une ligne */
   onSelect: OnSelectFn;
-  /** Fonction qui indique si une détection est déjà ancrée */
   isAnchored: IsAnchoredFn;
-  /** Action pour ancrer un vol */
   anchorFlight: AnchorFlightFn;
-  /** Type de vol sélectionné (optionnel) */
   selectedType?: string;
-  /** Rendu de la cellule "Ancrage" custom */
   renderAnchorCell?: RenderAnchorCellFn;
-  /** Pagination - page actuelle (1 par défaut) */
   page?: number;
-  /** Pagination - nombre total de pages (1 par défaut) */
   maxPage?: number;
-  /** Pagination - fonction de changement de page */
   onPageChange?: (page: number) => void;
-  /** Active les logs debug (par défaut : en dev) */
   debug?: boolean;
 }
 
+
 export default function DetectionsTable({
-  data,
   fields,
   onSelect,
   isAnchored,
@@ -56,44 +45,51 @@ export default function DetectionsTable({
   page = 1,
   maxPage = 1,
   onPageChange,
-  debug = config.debug || config.environment === "development",}: DetectionsTableProps) {
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+  debug = config.debug || config.environment === "development",
+}: DetectionsTableProps) {
+  const dlog = (...args: unknown[]) => {
+    if (debug) console.log("[DetectionsTable]", ...args);
   };
+
+  // Prend les drones du contexte partagé au lieu de props.data
+  const { drones: data } = useDrones();
 
   useEffect(() => {
     dlog(
       `[DetectionsTable] Rendu : ${data.length} ligne(s), champs : ${fields.join(", ")}`
     );
-  }, [data, fields]);
+  }, [data, fields, dlog]);
 
-  const handleRowClick = (d: Detection) => {
-    dlog(
-      `[DetectionsTable] Sélection : id=${d.id ?? "?"}, type=${selectedType ?? "N/A"}`
-    );
-    onSelect(d, selectedType);
-  };
+  const handleRowClick = useCallback(
+    (d: Detection) => {
+      dlog(
+        `[DetectionsTable] Sélection : id=${d.id ?? "?"}, type=${selectedType ?? "N/A"}`
+      );
+      onSelect(d, selectedType);
+    },
+    [onSelect, selectedType, dlog]
+  );
 
-  const handleAnchorClick = (
-    e: MouseEvent<HTMLButtonElement>,
-    d: Detection
-  ) => {
-    e.stopPropagation();
-    dlog(
-      `[DetectionsTable] Clic "Ancrer" : id=${d.id ?? "?"}, type=${selectedType ?? "N/A"}`
-    );
-    anchorFlight(d); // ici anchorFlight peut être une fonction qui appelle openModal avec trace
-  };
+  const handleAnchorClick = useCallback(
+    (e: MouseEvent<HTMLButtonElement>, d: Detection) => {
+      e.stopPropagation();
+      dlog(
+        `[DetectionsTable] Clic "Ancrer" : id=${d.id ?? "?"}, type=${selectedType ?? "N/A"}`
+      );
+      anchorFlight(d);
+    },
+    [anchorFlight, selectedType, dlog]
+  );
 
-  const handleRowKeyDown = (
-    e: KeyboardEvent<HTMLTableRowElement>,
-    d: Detection
-  ) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleRowClick(d);
-    }
-  };
+  const handleRowKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTableRowElement>, d: Detection) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleRowClick(d);
+      }
+    },
+    [handleRowClick]
+  );
 
   return (
     <div className="detections-table-wrapper">
@@ -148,9 +144,9 @@ export default function DetectionsTable({
         </tbody>
       </table>
 
-      {maxPage > 1 && onPageChange && (
+      {maxPage && maxPage > 1 && onPageChange && (
         <Pagination
-          page={page}
+          page={page!}
           maxPage={maxPage}
           onPageChange={onPageChange}
           debug={debug}

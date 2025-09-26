@@ -6,7 +6,6 @@ import type { LatLngTuple } from "leaflet";
 import { config } from "../../config";
 import "./DetailsPanel.css";
 
-// Champs importants affichés en priorité
 const IMPORTANT_FIELDS: string[] = [
   "id", "name", "created_time", "lastseen_time",
   "drone_type", "altitude", "latitude", "longitude",
@@ -17,7 +16,7 @@ interface DetailsPanelProps {
   selected?: Flight | null;
   detailFields?: string[];
   exportObj: (obj: Flight) => void;
-  selectedTraceRaw?: any;
+  selectedTraceRaw?: unknown;
   selectedTracePoints?: LatLngTuple[];
   debug?: boolean;
 }
@@ -30,22 +29,21 @@ export default function DetailsPanel({
   selectedTracePoints = [],
   debug = config.debug || config.environment === "development",
 }: DetailsPanelProps) {
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
+  const dlog = (...args: unknown[]) => {
+    if (debug) console.log("[DetailsPanel]", ...args);
   };
 
-  // Normalisation ID
   const normalizedSelected: Flight | null = selected
     ? { ...selected, id: selected.id ? String(selected.id) : "" }
     : null;
 
   useEffect(() => {
     if (normalizedSelected) {
-      dlog(`[DetailsPanel] vol id=${normalizedSelected.id || "N/A"} - ${detailFields.length} champs`);
+      dlog(`Vol sélectionné id=${normalizedSelected.id} avec ${detailFields.length} champs`);
     } else {
-      dlog("[DetailsPanel] aucun vol sélectionné");
+      dlog("Aucun vol sélectionné");
     }
-  }, [normalizedSelected, detailFields]);
+  }, [normalizedSelected, detailFields, dlog]);
 
   if (!normalizedSelected) {
     return (
@@ -56,22 +54,6 @@ export default function DetailsPanel({
     );
   }
 
-  // Points
-  const localPoints: LatLngTuple[] = getFlightTrace(normalizedSelected);
-  const apiPoints: LatLngTuple[] = Array.isArray(selectedTracePoints) ? selectedTracePoints : [];
-
-  const showLocalPoints = normalizedSelected._type === "local" && localPoints.length > 0;
-  const showApiPoints = normalizedSelected._type === "event" && apiPoints.length > 0;
-
-  // Champs triés
-  const sortedFields = useMemo(
-    () => [
-      ...IMPORTANT_FIELDS.filter(f => detailFields.includes(f)),
-      ...detailFields.filter(f => !IMPORTANT_FIELDS.includes(f)),
-    ],
-    [detailFields]
-  );
-
   const safeStringify = (val: unknown) => {
     try {
       return JSON.stringify(val, null, 2);
@@ -79,6 +61,20 @@ export default function DetailsPanel({
       return "[Erreur de conversion JSON]";
     }
   };
+
+  const localTracePoints = getFlightTrace(normalizedSelected);
+  const apiTracePoints = Array.isArray(selectedTracePoints) ? selectedTracePoints : [];
+
+  const showLocalPoints = normalizedSelected._type === "local" && localTracePoints.length > 0;
+  const showApiPoints = normalizedSelected._type === "event" && apiTracePoints.length > 0;
+
+  const sortedFields = useMemo(() =>
+    [
+      ...IMPORTANT_FIELDS.filter(f => detailFields.includes(f)),
+      ...detailFields.filter(f => !IMPORTANT_FIELDS.includes(f)),
+    ],
+    [detailFields]
+  );
 
   const renderPointsList = (points: LatLngTuple[], label: string) => (
     <section className="points-section">
@@ -95,13 +91,11 @@ export default function DetailsPanel({
     <div className="details-panel">
       <h3>Détails</h3>
 
-      {/* Tableau des propriétés */}
       <table className="details-table">
         <tbody>
-          {sortedFields.map((field) => {
+          {sortedFields.map(field => {
             const value = (normalizedSelected as any)[field];
             if (value === undefined || value === null) return null;
-
             return (
               <tr key={field}>
                 <td className="details-label">{field}</td>
@@ -110,7 +104,7 @@ export default function DetailsPanel({
                     ? <pre className="table-cell-pre">{safeStringify(value)}</pre>
                     : field.toLowerCase().includes("time")
                       ? formatDate(value)
-                      : value.toString()
+                      : String(value)
                   }
                 </td>
               </tr>
@@ -119,30 +113,25 @@ export default function DetailsPanel({
         </tbody>
       </table>
 
-      {/* Bouton export */}
       <div className="details-actions">
         <button
+          aria-label="Exporter les détails"
           onClick={() => {
-            dlog(`[DetailsPanel] Export JSON vol id=${normalizedSelected.id}`);
+            dlog(`Export JSON vol id=${normalizedSelected.id}`);
             exportObj(normalizedSelected);
           }}
-          aria-label="Exporter les détails du vol en JSON"
         >
           Exporter JSON
         </button>
       </div>
 
-      {/* Points locaux/API */}
-      {showLocalPoints && renderPointsList(localPoints, "Points du vol (local) :")}
-      {showApiPoints && renderPointsList(apiPoints, "Points du vol (API) :")}
+      {showLocalPoints && renderPointsList(localTracePoints, "Points du vol (local) :")}
+      {showApiPoints && renderPointsList(apiTracePoints, "Points du vol (API) :")}
 
-      {/* Trace brut */}
-      {selectedTraceRaw && (
+      {selectedTraceRaw != null && (
         <section className="raw-trace-section">
           <h4>Tracé brut (JSON) :</h4>
-          <pre className="table-cell-pre raw-trace-pre">
-            {safeStringify(selectedTraceRaw)}
-          </pre>
+          <pre className="raw-trace-pre">{safeStringify(selectedTraceRaw)}</pre>
         </section>
       )}
     </div>

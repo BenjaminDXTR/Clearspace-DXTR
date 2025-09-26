@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import './App.css';
 
 import Header from "./components/layout/Header";
@@ -6,7 +6,6 @@ import MapLayout from "./components/layout/MapLayout";
 import TablesLayout from "./components/layout/TablesLayout";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 
-import useDrones from "./hooks/useDrones";
 import useAnchored from "./hooks/useAnchored";
 import useLocalHistory from "./hooks/useLocalHistory";
 import useRemoteEvents from "./hooks/useRemoteEvents";
@@ -19,14 +18,16 @@ import {
   LIVE_DETAILS,
   EVENT_DETAILS
 } from "./utils/constants";
+
 import { getFlightTrace } from "./utils/coords";
 import { buildAnchorData } from "./services/anchorService";
 import type { Flight, HandleSelectFn, LatLng } from "./types/models";
 
 import { config } from './config';
+import { DronesProvider, useDrones } from './contexts/DronesContext';
 
-/** Utilitaire pour exporter un objet en JSON */
-function exportAsJson(obj: any, filename: string) {
+// Export utilitaire JSON
+function exportAsJson(obj: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -36,38 +37,54 @@ function exportAsJson(obj: any, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function App() {
-  const debug = config.debug || config.environment === 'development';
-  const dlog = (...args: any[]) => debug && console.log("[App]", ...args);
+function AppContent() {
+  const debug = config.environment === 'development' || config.debug;
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) {
+      console.log("[App]", ...args);
+    }
+  }, [debug]);
 
-  /** --- Données Live / Local / API --- */
-  const { drones, error: dronesError } = useDrones({ debug });
+  // Récupère drones du contexte partagé via WebSocket
+  const { drones: wsDrones } = useDrones();
+
+  useEffect(() => {
+    dlog(`[AppContent] wsDrones updated, count: ${wsDrones.length}`);
+    if (wsDrones.length > 0) {
+      console.log("[AppContent] Exemple drone reçu:", wsDrones[0]);
+    }
+  }, [wsDrones, dlog]);
+
   const { anchored } = useAnchored({ debug });
   const {
-    localHistory,
-    setLocalHistory,
-    localPage,
-    setLocalPage,
-    localMaxPage,
-    localPageData
+    localHistory, setLocalHistory,
+    localPage, setLocalPage,
+    localMaxPage, localPageData,
   } = useLocalHistory({ debug });
+
   const {
     traces,
-    apiPage,
-    setApiPage,
-    apiMaxPage,
-    apiPageData
+    apiPage, setApiPage,
+    apiMaxPage, apiPageData,
   } = useRemoteEvents({ debug });
 
-  // Memorisation stable pour éviter rerenders intempestifs
   const localIds = useMemo(() => new Set(localHistory.map(f => f.id)), [localHistory]);
-  const dronesWithType = useMemo(() => drones
-    .filter(d => d.latitude !== 0 && d.longitude !== 0)
-    .filter(d => !localIds.has(d.id))
-    .map((d): Flight => ({
-      ...d,
-      _type: "live" as "live",
-    })), [drones, localIds]);
+
+  const dronesWithType = useMemo(() => {
+    const filtered = wsDrones
+      .filter(d => d.latitude !== 0 && d.longitude !== 0)
+      //.filter(d => !localIds.has(d.id)) // temporairement commenté pour debug
+      .map(d => ({ ...d, _type: "live" as const }));
+    console.log(`[AppContent] dronesWithType calculés: ${filtered.length}`);
+    return filtered;
+  }, [wsDrones, localIds]);
+
+  const liveTracesRef = useRef<Record<string, { flight: Flight; trace: LatLng[] }>>({});
+
+  // Suppression complète de la fonction onArchiveFlight qui faisait des POST vers /history
+
+  const { liveTraces } = useLiveTraces(dronesWithType, { debug });
+  liveTracesRef.current = liveTraces;
 
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
@@ -76,85 +93,11 @@ export default function App() {
     if (!flight?.id) return;
     setSelected({ ...flight, _type: flight._type ?? "live" });
     setFlyToTrigger(prev => prev + 1);
-  }, []);
+    dlog(`[AppContent] Vol sélectionné id=${flight.id}`);
+  }, [dlog]);
 
-  const {
-    anchorModal,
-    anchorDescription,
-    isZipping,
-    setAnchorDescription,
-    onValidate: handleAnchorValidate,
-    onCancel: handleAnchorCancel,
-    openModal,
-    anchorDataPreview
-  } = useAnchorModal({ handleSelect, debug });
-
-  // Ref pour accéder à la valeur actuelle de liveTraces dans le callback
-  const liveTracesRef = useRef<Record<string, { flight: Flight; trace: LatLng[] }>>({});
-
-  // Déclaration du callback sans dépendance directe à liveTraces
-  const onArchiveFlight = useCallback(async (droneId: string, trace: LatLng[]) => {
-    const droneInLiveTraces = liveTracesRef.current[droneId];
-    if (!droneInLiveTraces) {
-      dlog(`[ARCHIVE] Drone ${droneId} non trouvé dans liveTraces.`);
-      return;
-    }
-    const flight = droneInLiveTraces.flight;
-
-    const archivedFlight: Flight = {
-      ...flight,
-      trace,
-      _type: "local"
-    };
-
-    dlog("[ARCHIVE] Vol détecté inactif, tentative d'archivage :", {
-      id: archivedFlight.id,
-      type: archivedFlight._type,
-      created_time: archivedFlight.created_time,
-      trace: archivedFlight.trace,
-    });
-
-    try {
-      dlog("[ARCHIVE] Envoi POST /history", archivedFlight);
-      const response = await fetch('/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(archivedFlight)
-      });
-      dlog("[ARCHIVE] Réponse POST /history:", response.status, response.statusText);
-
-      if (!response.ok) throw new Error(`Erreur sauvegarde: HTTP ${response.status} ${response.statusText}`);
-
-      dlog(`[ARCHIVE] MAJ localHistory (id=${archivedFlight.id}, type=${archivedFlight._type})`);
-
-      setLocalHistory(prev => {
-        const idx = prev.findIndex(f => f.id === archivedFlight.id && f.created_time === archivedFlight.created_time);
-        const typedFlight: Flight = {
-          ...archivedFlight,
-          _type: archivedFlight._type as "live" | "local" | "event" | undefined,
-        };
-        if (idx !== -1) {
-          dlog(`[ARCHIVE] Mise à jour du vol archivé (idx=${idx})`);
-          const newArr = [...prev];
-          newArr[idx] = typedFlight;
-          return newArr;
-        }
-        dlog(`[ARCHIVE] Nouveau vol archivé inséré`);
-        return [...prev, typedFlight];
-      });
-    } catch (e) {
-      console.error("[ARCHIVE] Erreur lors de l'enregistrement du vol archivé", e, archivedFlight);
-    }
-  }, [dlog, setLocalHistory]);
-
-  // On appelle useLiveTraces avec le callback défini
-  const { liveTraces } = useLiveTraces(dronesWithType, {
-    debug,
-    onArchiveFlight,
-  });
-
-  // Mise à jour de la ref pour garder la valeur actuelle
-  liveTracesRef.current = liveTraces;
+  const { anchorModal, anchorDescription, isZipping, setAnchorDescription,
+    onValidate: handleAnchorValidate, onCancel: handleAnchorCancel, openModal, anchorDataPreview } = useAnchorModal({ handleSelect, debug });
 
   const detailFields = useMemo(() => {
     if (!selected) return [];
@@ -170,7 +113,7 @@ export default function App() {
     } else if (selected._type === "local") {
       trace = (selected as any).trace ?? [];
     } else if (selected._type === "event") {
-      const t = traces.find((tr) => tr.id === selected.id);
+      const t = traces.find(tr => tr.id === selected.id);
       if (t?.points) {
         try {
           trace = JSON.parse(t.points);
@@ -181,47 +124,36 @@ export default function App() {
     } else {
       trace = getFlightTrace(selected);
     }
-
+    dlog(`[AppContent] Trace calculée pour vol id=${selected.id}, points=${trace.length}`);
     return [trace, selected._type === "event" ? trace : undefined];
-  }, [selected, traces, liveTraces]);
+  }, [selected, traces, liveTraces, dlog]);
 
-  const getTraceForFlight = useCallback(
-    (flight: Flight): LatLng[] => {
-      if (flight._type === "live") {
-        return liveTraces[flight.id]?.trace ?? [];
-      }
-      if (flight._type === "local") {
-        return (flight as any).trace ?? [];
-      }
-      if (flight._type === "event") {
-        const t = traces.find((tr) => tr.id === flight.id);
-        if (t?.points) {
-          try {
-            return JSON.parse(t.points);
-          } catch {
-            return [];
-          }
+  const getTraceForFlight = useCallback((flight: Flight): LatLng[] => {
+    if (flight._type === "live") return liveTraces[flight.id]?.trace ?? [];
+    if (flight._type === "local") return (flight as any).trace ?? [];
+    if (flight._type === "event") {
+      const t = traces.find(tr => tr.id === flight.id);
+      if (t?.points) {
+        try {
+          return JSON.parse(t.points);
+        } catch {
+          return [];
         }
       }
-      return [];
-    },
-    [liveTraces, traces]
-  );
+    }
+    return [];
+  }, [liveTraces, traces]);
 
-  const renderAnchorCell = useCallback(
-    (flight: Flight) => (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const rawTrace = getTraceForFlight(flight);
-          openModal(flight, rawTrace);
-        }}
-      >
-        Ancrer
-      </button>
-    ),
-    [openModal, getTraceForFlight]
-  );
+  const renderAnchorCell = useCallback((flight: Flight) => (
+    <button onClick={e => {
+      e.stopPropagation();
+      const rawTrace = getTraceForFlight(flight);
+      openModal(flight, rawTrace);
+      dlog(`[AppContent] Clic Ancrer vol id=${flight.id}`);
+    }}>
+      Ancrer
+    </button>
+  ), [openModal, getTraceForFlight, dlog]);
 
   const exportSelectedAsAnchorJson = useCallback(() => {
     if (!selected) return;
@@ -232,11 +164,9 @@ export default function App() {
       altitude: selected.altitude ?? 0,
     }));
     const anchorData = buildAnchorData(selected, "Export depuis panneau", trace);
-    exportAsJson(
-      anchorData,
-      `drone_${selected.id}_${selected.created_time ?? "unknown"}.json`
-    );
-  }, [selected, getTraceForFlight]);
+    exportAsJson(anchorData, `drone_${selected.id}_${selected.created_time ?? "unknown"}.json`);
+    dlog(`[AppContent] Export JSON vol id=${selected.id}`);
+  }, [selected, getTraceForFlight, dlog]);
 
   return (
     <div>
@@ -251,16 +181,14 @@ export default function App() {
           flyToTrigger={flyToTrigger}
         />
         <TablesLayout
-          error={dronesError}
+          error={null}
           drones={dronesWithType}
           LIVE_FIELDS={LIVE_FIELDS}
           localPage={localPage}
           localMaxPage={localMaxPage}
           setLocalPage={setLocalPage}
           localPageData={localPageData}
-          isAnchored={(id, created_time) =>
-            anchored.some((a) => a.id === id && a.created_time === created_time)
-          }
+          isAnchored={(id, created_time) => anchored.some(a => a.id === id && a.created_time === created_time)}
           renderAnchorCell={renderAnchorCell}
           apiPage={apiPage}
           apiMaxPage={apiMaxPage}
@@ -286,5 +214,13 @@ export default function App() {
         </AnchorModalLayout>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <DronesProvider>
+      <AppContent />
+    </DronesProvider>
   );
 }

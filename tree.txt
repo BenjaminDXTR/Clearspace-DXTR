@@ -19,8 +19,9 @@
 │   ├── services
 │   │   ├── anchorService.js
 │   │   └── flightService.js
-│   └── utils
-│       └── logger.js
+│   ├── utils
+│   │   └── logger.js
+│   └── websocket.js
 ├── .env
 ├── env.exemple
 ├── env.prod
@@ -59,6 +60,8 @@
 │   │   │       ├── TablesLayout.css
 │   │   │       └── TablesLayout.tsx
 │   │   ├── config.ts
+│   │   ├── contexts
+│   │   │   └── DronexContext.tsx
 │   │   ├── custom.d.ts
 │   │   ├── env.d.ts
 │   │   ├── hooks
@@ -99,4 +102,4 @@
 ├── stop-servers.sh
 └── tree.txt
 
-16 directories, 83 files
+17 directories, 85 files

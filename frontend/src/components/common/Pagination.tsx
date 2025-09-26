@@ -19,28 +19,36 @@ export default function Pagination({
   onPageChange,
   debug = config.debug || config.environment === "development",
 }: PaginationProps) {
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
-  };
+  // Memoized logging function for conditional debug logging
+  const dlog = useCallback(
+    (...args: unknown[]) => {
+      if (debug) {
+        console.log("[Pagination]", ...args);
+      }
+    },
+    [debug]
+  );
 
-  // Protection pour que totalPages ne descende jamais sous 1
+  // Ensure total pages cannot be less than 1
   const totalPages = Math.max(1, maxPage);
 
+  // Handler to go to previous page if available
   const onPrevious = useCallback(() => {
     if (page > 1) {
       const newPage = page - 1;
-      dlog(`[Pagination] Passage à la page précédente : ${newPage}`);
+      dlog(`Navigating to previous page: ${newPage}`);
       onPageChange(newPage);
     }
-  }, [page, onPageChange]);
+  }, [page, onPageChange, dlog]);
 
+  // Handler to go to next page if available
   const onNext = useCallback(() => {
     if (page < totalPages) {
       const newPage = page + 1;
-      dlog(`[Pagination] Passage à la page suivante : ${newPage}`);
+      dlog(`Navigating to next page: ${newPage}`);
       onPageChange(newPage);
     }
-  }, [page, totalPages, onPageChange]);
+  }, [page, totalPages, onPageChange, dlog]);
 
   return (
     <nav

@@ -1,3 +1,4 @@
+// src/env.d.ts
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   readonly VITE_DEBUG?: string;
@@ -6,10 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_ICON_URL_DRONE_START?: string;
   readonly VITE_ICON_SIZE_DEFAULT?: string;
   readonly VITE_ICON_SIZE_HISTORY?: string;
-
-  // Ajout de votre variable de timeout d'inactivité (en millisecondes)
+  readonly VITE_WEBSOCKET_PORT?: string;
   readonly VITE_INACTIVE_TIMEOUT?: string;
-
   readonly MODE?: string;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
 import { isLatLng } from "../../utils/coords";
@@ -16,30 +16,30 @@ interface FlyToPositionProps {
 }
 
 /**
- * Composant utilitaire qui déplace/centre la carte Leaflet vers une position donnée.
- * - À utiliser à l'intérieur d'un <MapContainer/>
- * - N'affiche rien (return null)
+ * Composant utilitaire qui centre et anime la carte Leaflet vers la position.
+ * Doit être utilisé uniquement dans un <MapContainer>.
+ * Ne retourne rien (render null).
  */
 export default function FlyToPosition({
   position,
-  zoom = 1,
-  duration = 20,
+  zoom = 13,
+  duration = 1.5,
   debug = config.debug || config.environment === "development",
 }: FlyToPositionProps) {
   const map = useMap();
 
-  const dlog = (...args: any[]) => {
-    if (debug) console.log(...args);
-  };
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) console.log("[FlyToPosition]", ...args);
+  }, [debug]);
 
   useEffect(() => {
     if (isLatLng(position)) {
-      dlog(`[FlyToPosition] Déplacement animé vers (${position[0]}, ${position[1]})`);
-      map.flyTo(position, zoom, { duration });
+      dlog(`Animation vers position: (${position![0]}, ${position![1]})`);
+      map.flyTo(position!, zoom, { duration });
     } else {
-      if (debug) console.warn(`[FlyToPosition] Position invalide ou vide :`, position);
+      dlog(`Position invalide ou nulle :`, position);
     }
-  }, [position, zoom, duration, map]);
+  }, [position, zoom, duration, map, dlog]);
 
   return null;
 }
