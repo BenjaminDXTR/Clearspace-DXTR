@@ -3,7 +3,6 @@ import type { Event } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
 
 interface UseRemoteEventsOptions {
-  /** Activer les logs debug (par défaut : en dev) */
   debug?: boolean;
 }
 
@@ -24,7 +23,13 @@ export default function useRemoteEvents({
     setLoading(true);
     setError(null);
 
-    const wsUrl = (window.location.protocol === "https:" ? "wss:" : "ws:") + "//" + window.location.host;
+    // Correction : forcer port websocket backend (3200)
+    // const wsUrl = (window.location.protocol === "https:" ? "wss:" : "ws:") + "//" + window.location.host;
+    const wsPort = import.meta.env.VITE_WEBSOCKET_PORT || "3200";
+    const wsUrl = (window.location.protocol === "https:" ? "wss:" : "ws:") + "//" + window.location.hostname + ":" + wsPort;
+
+    dlog("[useRemoteEvents] Connexion WS à URL :", wsUrl);
+
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -37,11 +42,8 @@ export default function useRemoteEvents({
         const data = JSON.parse(event.data);
         dlog("[useRemoteEvents] Message WS reçu :", data);
 
-        // Supposons que le serveur envoie un tableau de vols/drone
         if (Array.isArray(data)) {
-          // Séparer éventuellement événements et traces si format différent
           setRemoteEvents(data);
-          // Ici, aucune trace séparée, à adapter selon structure exacte des données WS
           setTraces([]);
         }
       } catch (e) {
@@ -63,7 +65,6 @@ export default function useRemoteEvents({
     };
   }, [debug]);
 
-  // Pagination calculée côté front
   const apiMaxPage = useMemo(() => Math.max(1, Math.ceil(remoteEvents.length / PER_PAGE)), [remoteEvents]);
 
   const apiPageData = useMemo(() => remoteEvents.slice((apiPage - 1) * PER_PAGE, apiPage * PER_PAGE), [remoteEvents, apiPage]);

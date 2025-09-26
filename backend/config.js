@@ -51,6 +51,8 @@ const config = {
     blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || '',
 
     graphqlDroneQuery: graphqlDroneQuery,
+
+    useTestSim: process.env.USE_TEST_SIM === 'true',
   },
 
   frontend: {

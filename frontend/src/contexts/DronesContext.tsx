@@ -1,7 +1,6 @@
-// src/contexts/DronesContext.tsx
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import type { Flight } from '../types/models';
+// Import direct config, on va forcer websocketUrl
 import { config } from '../config';
 
 interface DronesContextValue {
@@ -29,9 +28,12 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<number | null>(null);
 
+  // Forçage temporaire de l’url WebSocket sur port 3200
+  const websocketUrl = "ws://localhost:3200";
+
   const connectWebSocket = useCallback(() => {
-    console.log('[DronesProvider] Tentative connexion WS à', config.websocketUrl);
-    wsRef.current = new WebSocket(config.websocketUrl);
+    console.log('[DronesProvider] Tentative connexion WS à', websocketUrl);
+    wsRef.current = new WebSocket(websocketUrl);
 
     wsRef.current.onopen = () => {
       console.log('[DronesProvider] WS connecté');
@@ -58,7 +60,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
     };
 
     wsRef.current.onclose = (event) => {
-      console.warn(`[DronesProvider] WS fermé, reconnexion dans 3s, raison: ${event.reason}`);
+      console.warn(`[DronesProvider] WS fermé, reconnexion dans 3s, raison: ${event.reason ?? 'inconnue'}`);
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
       reconnectTimeout.current = window.setTimeout(() => connectWebSocket(), 3000);
     };
