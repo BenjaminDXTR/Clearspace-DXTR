@@ -9,7 +9,7 @@ interface UseLocalHistoryOptions {
 }
 
 export default function useLocalHistory({
-  pollInterval = 0, // par défaut désactivé, plus de polling auto
+  pollInterval = 0,
   debug = config.debug || config.environment === "development",
 }: UseLocalHistoryOptions = {}) {
   const [localHistory, setLocalHistory] = useState<Flight[]>([]);
@@ -56,7 +56,9 @@ export default function useLocalHistory({
 
   // Fonction pour mettre localHistory manuellement (chargement fichier historique)
   const setLocalHistoryManual = (flights: Flight[]) => {
-    setLocalHistoryWithMerge(() => flights);
+    // Filtrer seulement les vols local archivés
+    const filteredLocals = flights.filter(f => f._type === "local");
+    setLocalHistoryWithMerge(() => filteredLocals);
     setLocalPage(1);
   };
 

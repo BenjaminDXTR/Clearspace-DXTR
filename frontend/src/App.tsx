@@ -63,12 +63,16 @@ function AppContent() {
     dlog(`[AppContent] Historique fichiers disponibles: ${historyFiles.length}`);
   }, [historyFiles, dlog]);
 
-  // Synchroniser localHistory avec les vols historiques chargés
+  // Synchroniser localHistory avec les vols historiques chargés en forçant _type à partir de type backend
   useEffect(() => {
-    setLocalHistory(historicalFlights);
+    const flightsWithType = historicalFlights.map(f => ({
+      ...f,
+      _type: (f.type === "local" ? "local" : "live") as "live" | "local"
+    }));
+    setLocalHistory(flightsWithType.filter(f => f._type === "local"));
   }, [historicalFlights, setLocalHistory]);
 
-  // Charger automatiquement le dernier fichier historique à chaque arrivée / modification
+  // Charger automatiquement et suivre le dernier fichier historique
   useEffect(() => {
     if (historyFiles.length === 0) {
       setCurrentHistoryFile(null);
@@ -77,18 +81,15 @@ function AppContent() {
       return;
     }
     const latestFile = historyFiles[historyFiles.length - 1];
-
     if (currentHistoryFile === null) {
       dlog(`[AppContent] Chargement automatique dernier fichier historique : ${latestFile}`);
       setCurrentHistoryFile(latestFile);
       handleLoadHistoricalFile(latestFile);
     } else if (!historyFiles.includes(currentHistoryFile)) {
-      // Si fichier actuel disparait
       dlog(`[AppContent] Fichier historique courant disparu, chargement: ${latestFile}`);
       setCurrentHistoryFile(latestFile);
       handleLoadHistoricalFile(latestFile);
     } else {
-      // Sinon recharger le fichier courant (afin de rafraîchir contenu)
       dlog(`[AppContent] Rafraîchissement du fichier historique courant: ${currentHistoryFile}`);
       handleLoadHistoricalFile(currentHistoryFile);
     }
@@ -98,10 +99,10 @@ function AppContent() {
     dlog(`[AppContent] Chargement historique fichier: ${filename}`);
     const flights = await fetchHistoryFile(filename);
     dlog(`[AppContent] Vols historiques chargés: ${flights.length}`);
-    const flightsWithType = flights.map(f => ({ ...f, _type: "local" as const }));
-    setHistoricalFlights(flightsWithType);
+    setHistoricalFlights(flights);
   }, [fetchHistoryFile, dlog]);
 
+  // Combine vols live (websocket) et archivés (local)
   const combinedFlights = useMemo(() => {
     const processedLiveDrones = wsDrones.map(d =>
       d._type === "live" ? d : { ...d, _type: "live" as const }
@@ -116,9 +117,9 @@ function AppContent() {
   const dronesWithType = useMemo(() => {
     const filtered = combinedFlights
       .filter(d => {
-        if (d._type === "live") return true; // Garder tous les live
-        if (d._type === "local") return true; // Garder les locaux (archives)
-        return false; // Exclure autres (ex: type live erroné dans historique)
+        if (d._type === "live") return true;
+        if (d._type === "local") return true;
+        return false;
       })
       .filter(d => d.latitude !== 0 && d.longitude !== 0)
       .map(d => ({ ...d, _type: d._type ?? "live" as const }));

@@ -4,7 +4,7 @@ const { log } = require('./utils/logger');
 const { config } = require('./config');
 
 const historyBaseDir = path.resolve(__dirname, config.backend.historyBaseDir || 'history');
-const INACTIVE_TIMEOUT = 5000; // Timeout testé réduit à 5 secondes
+const INACTIVE_TIMEOUT = 5000; // Timeout réduit à 5 secondes pour tests rapides
 
 const historyCache = new Map();
 const lastSeenMap = new Map();
@@ -88,6 +88,7 @@ async function flushAllCache() {
 
 /**
  * Sauvegarde ou met à jour un vol dans l'historique,
+ * en y incluant la trace complète si elle est présente,
  * retourne le nom du fichier historique modifié.
  */
 async function saveFlightToHistory(flight) {
@@ -109,7 +110,15 @@ async function saveFlightToHistory(flight) {
 
   const historyData = await loadHistoryToCache(historyFilePath);
 
-  addOrUpdateFlightInFile(flight, historyData);
+  // Construire un objet vol à sauvegarder incluant la trace (fallback si manquant)
+  const flightToSave = {
+    ...flight,
+    trace: Array.isArray(flight.trace) ? flight.trace : (flight.tracing?.points ?? []),
+  };
+
+  addOrUpdateFlightInFile(flightToSave, historyData);
+
+  historyCache.set(historyFilePath, historyData);
 
   await flushCacheToDisk(historyFilePath);
   log(`[saveFlightToHistory] Vol sauvegardé dans historique ${historyFilePath} (ID=${flight.id})`);

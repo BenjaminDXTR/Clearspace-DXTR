@@ -35,9 +35,6 @@ function broadcast(data) {
   });
 }
 
-/**
- * Notifie tous les clients WS d'une mise à jour d'historique
- */
 function notifyHistoryUpdate(filename) {
   const msg = JSON.stringify({ type: 'historyUpdate', filename });
   log(`[notifyHistoryUpdate] Propagation mise à jour historique: ${filename} à ${clients.size} client(s)`);
@@ -56,6 +53,7 @@ function notifyHistoryUpdate(filename) {
   log(`[notifyHistoryUpdate] Nombre total de notifications envoyées : ${sentCount}`);
 }
 
+
 async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
   let attempt = 0;
   while (attempt < maxRetries) {
@@ -71,6 +69,7 @@ async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
     }
   }
 }
+
 
 async function pollDetectionMachine() {
   if (config.backend.useTestSim) {
@@ -98,7 +97,10 @@ async function pollDetectionMachine() {
         } else {
           log(`[pollDetectionMachine] Pas de points pour vol ${drone.id}`);
         }
+
+        // Bien mettre à jour la trace dans l'objet drone avant sauvegarde
         drone.trace = flightTraces.get(drone.id);
+
         if (!drone.type) drone.type = "live";
 
         const historyFile = await saveFlightToHistory(drone);
@@ -119,6 +121,7 @@ async function pollDetectionMachine() {
   }
 }
 
+
 async function startPollingLoop() {
   log('[startPollingLoop] Démarrage boucle polling');
   while (pollingActive) {
@@ -132,6 +135,7 @@ function stopPolling() {
   log('[stopPolling] Arrêt de la boucle polling demandé');
   pollingActive = false;
 }
+
 
 function setupWebSocket(server) {
   if (wss) {
