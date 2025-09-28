@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import FlightMap from "../common/FlightMap";
 import DetailsPanel from "../flights/DetailsPanel";
 import { isLatLng, getFlightTrace } from "../../utils/coords";
@@ -31,32 +31,45 @@ export default function MapLayout({
     if (debug) console.log("[MapLayout]", ...args);
   }, [debug]);
 
+  const [zoom, setZoom] = useState(10);
+
   useEffect(() => {
     if (selected) {
-      dlog(
-        `[MapLayout] vol id=${selected.id ?? "N/A"} avec ${
-          selectedTracePoints?.length ?? 0
-        } point(s)`
-      );
+      dlog(`[MapLayout] Vol sélectionné id=${selected.id ?? "N/A"} avec ${selectedTracePoints?.length ?? 0} point(s)`);
+      if (selectedTraceRaw) {
+        dlog("[MapLayout] Trace brute (selectedTraceRaw) présente");
+      }
     } else {
-      dlog("[MapLayout] sans sélection");
+      dlog("[MapLayout] Aucun vol sélectionné");
     }
-  }, [selected, selectedTracePoints, dlog]);
+  }, [selected, selectedTracePoints, selectedTraceRaw, dlog]);
 
   const points = useMemo<LatLng[]>(() => {
     if (Array.isArray(selectedTracePoints) && selectedTracePoints.length >= 2) {
-      return selectedTracePoints.filter(isLatLng);
+      const filtered = selectedTracePoints.filter(isLatLng);
+      dlog(`[MapLayout] Utilisation de selectedTracePoints filtrés, count: ${filtered.length}`);
+      return filtered;
     }
     if (selected) {
       const trace = getFlightTrace(selected);
-      return trace.filter(isLatLng);
+      const filtered = trace.filter(isLatLng);
+      dlog(`[MapLayout] Utilisation de getFlightTrace sur vol sélectionné, count: ${filtered.length}`);
+      return filtered;
     }
+    dlog("[MapLayout] Pas de trace valide trouvée");
     return [];
-  }, [selectedTracePoints, selected]);
+  }, [selectedTracePoints, selected, dlog]);
 
   const hasValidPoints = points.length > 0;
   const startPosition = hasValidPoints ? points[0] : null;
   const livePosition = hasValidPoints ? points[points.length - 1] : null;
+
+  useEffect(() => {
+    if (selected && hasValidPoints) {
+      setZoom(18);
+      dlog(`Zoom augmenté à 18 pour vol id=${selected.id}`);
+    }
+  }, [selected, hasValidPoints, dlog]);
 
   return (
     <div className="map-layout">
@@ -67,7 +80,7 @@ export default function MapLayout({
           markerIcon={null}
           livePosition={livePosition}
           startPosition={startPosition}
-          zoom={10}
+          zoom={zoom}
           showMarkers={false}
           className="map-layout__leaflet"
           aria-label={`Carte ${hasValidPoints ? "avec" : "sans"} trace sélectionnée`}
@@ -77,7 +90,6 @@ export default function MapLayout({
           <div className="map-layout__no-trace">Trace insuffisante pour affichage</div>
         )}
       </div>
-
       <div className="map-layout__details">
         {selected ? (
           <DetailsPanel

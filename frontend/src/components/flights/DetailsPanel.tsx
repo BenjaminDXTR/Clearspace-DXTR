@@ -40,10 +40,14 @@ export default function DetailsPanel({
   useEffect(() => {
     if (normalizedSelected) {
       dlog(`Vol sélectionné id=${normalizedSelected.id} avec ${detailFields.length} champs`);
+      dlog(`Trace sélectionnée points count = ${selectedTracePoints.length}`);
+      if (selectedTraceRaw != null) {
+        dlog("Trace brute (selectedTraceRaw) présente");
+      }
     } else {
       dlog("Aucun vol sélectionné");
     }
-  }, [normalizedSelected, detailFields, dlog]);
+  }, [normalizedSelected, detailFields, selectedTracePoints, selectedTraceRaw, dlog]);
 
   if (!normalizedSelected) {
     return (
@@ -62,6 +66,7 @@ export default function DetailsPanel({
     }
   };
 
+  // Récupère trace locale ou calculée
   const localTracePoints = getFlightTrace(normalizedSelected);
   const apiTracePoints = Array.isArray(selectedTracePoints) ? selectedTracePoints : [];
 

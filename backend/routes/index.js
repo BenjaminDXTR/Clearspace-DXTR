@@ -3,10 +3,12 @@ const router = express.Router();
 
 const historyRoutes = require('./history');
 const anchorRoutes = require('./anchor');
-// const graphqlRoutes = require('./graphql'); // Commentez ou supprimez cette ligne si graphql n’est plus utilisé
+// const graphqlRoutes = require('./graphql'); // Si non utilisé
 
-router.use(historyRoutes);
-router.use(anchorRoutes);
-// router.use('/graphql', graphqlRoutes); // Commentez ou supprimez cette ligne aussi
+
+router.use('/history', historyRoutes); // <-- Correction ici : historyRoutes au lieu de historyRouter
+router.use('/', anchorRoutes);
+// router.use('/graphql', graphqlRoutes); // Si graphql utilisé
+
 
 module.exports = router;

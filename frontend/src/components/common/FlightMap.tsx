@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, CSSProperties } from "react";
+import { useRef, useEffect, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -15,7 +15,6 @@ import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
 import "./FlightMap.css";
 
-
 /** Hook : force Leaflet à recalculer sa taille */
 function InvalidateMapSize() {
   const map = useMap();
@@ -26,9 +25,8 @@ function InvalidateMapSize() {
   return null;
 }
 
-
 /**
- * Centre et anime la carte vers une position à chaque changement de flyToTrigger.
+ * Centre et anime la carte vers une position UNIQUEMENT À CHAQUE CHANGEMENT DE flyToTrigger.
  */
 function FlyToPosition({
   position,
@@ -45,11 +43,10 @@ function FlyToPosition({
     if (flyToTrigger !== undefined && position && Array.isArray(position)) {
       map.flyTo(position, zoom, { duration: 1.0 });
     }
-  }, [flyToTrigger, position, zoom, map]);
+  }, [flyToTrigger]);  // <-- NE dépend QUE de flyToTrigger
 
   return null;
 }
-
 
 interface FlightMapProps {
   trace?: LatLngExpression[];

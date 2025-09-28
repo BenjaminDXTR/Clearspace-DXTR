@@ -1,5 +1,7 @@
 .
 ├── backend
+│   ├── history
+│   │   ├── history-2025-09-28_to_2025-10-04.json
 │   ├── config.js
 │   ├── flights_history.json
 │   ├── .gitignore
@@ -11,8 +13,6 @@
 │   ├── package-lock.json
 │   ├── routes
 │   │   ├── anchor.js
-│   │   ├── graphql.js
-│   │   ├── graphql.js.bak
 │   │   ├── history.js
 │   │   └── index.js
 │   ├── server.js

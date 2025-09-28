@@ -8,15 +8,12 @@ import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 
 import useAnchored from "./hooks/useAnchored";
 import useLocalHistory from "./hooks/useLocalHistory";
-import useRemoteEvents from "./hooks/useRemoteEvents";
 import useAnchorModal from "./hooks/useAnchorModal";
 import useLiveTraces from "./hooks/useLiveTraces";
 
 import {
   LIVE_FIELDS,
-  HISTORY_API_FIELDS,
   LIVE_DETAILS,
-  EVENT_DETAILS
 } from "./utils/constants";
 
 import { getFlightTrace } from "./utils/coords";
@@ -26,7 +23,6 @@ import type { Flight, HandleSelectFn, LatLng } from "./types/models";
 import { config } from './config';
 import { DronesProvider, useDrones } from './contexts/DronesContext';
 
-// Export utilitaire JSON
 function exportAsJson(obj: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -45,45 +41,102 @@ function AppContent() {
     }
   }, [debug]);
 
-  // Récupère drones du contexte partagé via WebSocket
-  const { drones: wsDrones } = useDrones();
+  const { drones: wsDrones, historyFiles, fetchHistoryFile } = useDrones();
+
+  const [historicalFlights, setHistoricalFlights] = useState<Flight[]>([]);
+  const [currentHistoryFile, setCurrentHistoryFile] = useState<string | null>(null);
+
+  const {
+    localHistory,
+    setLocalHistory,
+    localPage,
+    setLocalPage,
+    localMaxPage,
+    localPageData,
+  } = useLocalHistory({ debug });
 
   useEffect(() => {
     dlog(`[AppContent] wsDrones updated, count: ${wsDrones.length}`);
-    if (wsDrones.length > 0) {
-      console.log("[AppContent] Exemple drone reçu:", wsDrones[0]);
-    }
   }, [wsDrones, dlog]);
 
-  const { anchored } = useAnchored({ debug });
-  const {
-    localHistory, setLocalHistory,
-    localPage, setLocalPage,
-    localMaxPage, localPageData,
-  } = useLocalHistory({ debug });
+  useEffect(() => {
+    dlog(`[AppContent] Historique fichiers disponibles: ${historyFiles.length}`);
+  }, [historyFiles, dlog]);
 
-  const {
-    traces,
-    apiPage, setApiPage,
-    apiMaxPage, apiPageData,
-  } = useRemoteEvents({ debug });
+  // Synchroniser localHistory avec les vols historiques chargés
+  useEffect(() => {
+    setLocalHistory(historicalFlights);
+  }, [historicalFlights, setLocalHistory]);
+
+  // Charger automatiquement le dernier fichier historique à chaque arrivée / modification
+  useEffect(() => {
+    if (historyFiles.length === 0) {
+      setCurrentHistoryFile(null);
+      setHistoricalFlights([]);
+      dlog("[AppContent] Aucun fichier historique disponible");
+      return;
+    }
+    const latestFile = historyFiles[historyFiles.length - 1];
+
+    if (currentHistoryFile === null) {
+      dlog(`[AppContent] Chargement automatique dernier fichier historique : ${latestFile}`);
+      setCurrentHistoryFile(latestFile);
+      handleLoadHistoricalFile(latestFile);
+    } else if (!historyFiles.includes(currentHistoryFile)) {
+      // Si fichier actuel disparait
+      dlog(`[AppContent] Fichier historique courant disparu, chargement: ${latestFile}`);
+      setCurrentHistoryFile(latestFile);
+      handleLoadHistoricalFile(latestFile);
+    } else {
+      // Sinon recharger le fichier courant (afin de rafraîchir contenu)
+      dlog(`[AppContent] Rafraîchissement du fichier historique courant: ${currentHistoryFile}`);
+      handleLoadHistoricalFile(currentHistoryFile);
+    }
+  }, [historyFiles, currentHistoryFile, dlog]);
+
+  const handleLoadHistoricalFile = useCallback(async (filename: string) => {
+    dlog(`[AppContent] Chargement historique fichier: ${filename}`);
+    const flights = await fetchHistoryFile(filename);
+    dlog(`[AppContent] Vols historiques chargés: ${flights.length}`);
+    const flightsWithType = flights.map(f => ({ ...f, _type: "local" as const }));
+    setHistoricalFlights(flightsWithType);
+  }, [fetchHistoryFile, dlog]);
+
+  const combinedFlights = useMemo(() => {
+    const processedLiveDrones = wsDrones.map(d =>
+      d._type === "live" ? d : { ...d, _type: "live" as const }
+    );
+    return [...historicalFlights, ...processedLiveDrones];
+  }, [historicalFlights, wsDrones]);
+
+  const { anchored } = useAnchored({ debug });
 
   const localIds = useMemo(() => new Set(localHistory.map(f => f.id)), [localHistory]);
 
   const dronesWithType = useMemo(() => {
-    const filtered = wsDrones
+    const filtered = combinedFlights
+      .filter(d => {
+        if (d._type === "live") return true; // Garder tous les live
+        if (d._type === "local") return true; // Garder les locaux (archives)
+        return false; // Exclure autres (ex: type live erroné dans historique)
+      })
       .filter(d => d.latitude !== 0 && d.longitude !== 0)
-      //.filter(d => !localIds.has(d.id)) // temporairement commenté pour debug
-      .map(d => ({ ...d, _type: "live" as const }));
-    console.log(`[AppContent] dronesWithType calculés: ${filtered.length}`);
+      .map(d => ({ ...d, _type: d._type ?? "live" as const }));
+
+    dlog(`[AppContent] dronesWithType calculés: ${filtered.length}`);
     return filtered;
-  }, [wsDrones, localIds]);
+  }, [combinedFlights, dlog]);
 
   const liveTracesRef = useRef<Record<string, { flight: Flight; trace: LatLng[] }>>({});
 
-  // Suppression complète de la fonction onArchiveFlight qui faisait des POST vers /history
+  const { liveTraces } = useLiveTraces(dronesWithType.filter(d => d._type === "live"), { debug });
 
-  const { liveTraces } = useLiveTraces(dronesWithType, { debug });
+  useEffect(() => {
+    Object.entries(liveTraces).forEach(([id, data]) => {
+      dlog(`[AppContent] liveTrace drone ${id}, trace points: ${data.trace?.length ?? 0}`);
+    });
+  }, [liveTraces, dlog]);
+
   liveTracesRef.current = liveTraces;
 
   const [selected, setSelected] = useState<Flight | null>(null);
@@ -96,12 +149,20 @@ function AppContent() {
     dlog(`[AppContent] Vol sélectionné id=${flight.id}`);
   }, [dlog]);
 
-  const { anchorModal, anchorDescription, isZipping, setAnchorDescription,
-    onValidate: handleAnchorValidate, onCancel: handleAnchorCancel, openModal, anchorDataPreview } = useAnchorModal({ handleSelect, debug });
+  const {
+    anchorModal,
+    anchorDescription,
+    isZipping,
+    setAnchorDescription,
+    onValidate: handleAnchorValidate,
+    onCancel: handleAnchorCancel,
+    openModal,
+    anchorDataPreview
+  } = useAnchorModal({ handleSelect, debug });
 
   const detailFields = useMemo(() => {
     if (!selected) return [];
-    return selected._type === "event" ? EVENT_DETAILS : LIVE_DETAILS;
+    return selected._type === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
   const [selectedTracePoints, selectedTraceRaw] = useMemo(() => {
@@ -110,39 +171,23 @@ function AppContent() {
 
     if (selected._type === "live") {
       trace = liveTraces[selected.id]?.trace ?? [];
+      dlog(`[AppContent] (selected live) Trace points count: ${trace.length}`);
     } else if (selected._type === "local") {
       trace = (selected as any).trace ?? [];
-    } else if (selected._type === "event") {
-      const t = traces.find(tr => tr.id === selected.id);
-      if (t?.points) {
-        try {
-          trace = JSON.parse(t.points);
-        } catch {
-          trace = [];
-        }
-      }
+      dlog(`[AppContent] (selected local) Trace points count: ${trace.length}`);
     } else {
       trace = getFlightTrace(selected);
+      dlog(`[AppContent] (selected fallback) Trace points count: ${trace.length}`);
     }
-    dlog(`[AppContent] Trace calculée pour vol id=${selected.id}, points=${trace.length}`);
-    return [trace, selected._type === "event" ? trace : undefined];
-  }, [selected, traces, liveTraces, dlog]);
+
+    return [trace, undefined];
+  }, [selected, liveTraces, dlog]);
 
   const getTraceForFlight = useCallback((flight: Flight): LatLng[] => {
     if (flight._type === "live") return liveTraces[flight.id]?.trace ?? [];
     if (flight._type === "local") return (flight as any).trace ?? [];
-    if (flight._type === "event") {
-      const t = traces.find(tr => tr.id === flight.id);
-      if (t?.points) {
-        try {
-          return JSON.parse(t.points);
-        } catch {
-          return [];
-        }
-      }
-    }
     return [];
-  }, [liveTraces, traces]);
+  }, [liveTraces]);
 
   const renderAnchorCell = useCallback((flight: Flight) => (
     <button onClick={e => {
@@ -190,11 +235,6 @@ function AppContent() {
           localPageData={localPageData}
           isAnchored={(id, created_time) => anchored.some(a => a.id === id && a.created_time === created_time)}
           renderAnchorCell={renderAnchorCell}
-          apiPage={apiPage}
-          apiMaxPage={apiMaxPage}
-          setApiPage={setApiPage}
-          apiPageData={apiPageData}
-          HISTORY_API_FIELDS={HISTORY_API_FIELDS}
           handleSelect={handleSelect}
         />
       </div>
@@ -213,6 +253,22 @@ function AppContent() {
           <div className="modal-map-capture" />
         </AnchorModalLayout>
       )}
+
+      <div className="history-file-container">
+        <h3>Historique des vols</h3>
+        {historyFiles.length === 0 ? (
+          <p>Aucun historique disponible</p>
+        ) : (
+          <ul>
+            {historyFiles.map(filename => (
+              <li key={filename}>
+                <button onClick={() => handleLoadHistoricalFile(filename)}>{filename}</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p>{historicalFlights.length} vols historiques chargés</p>
+      </div>
     </div>
   );
 }

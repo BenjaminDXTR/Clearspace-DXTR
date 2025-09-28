@@ -1,7 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type {
   Flight,
-  Event,
   IsAnchoredFn,
   RenderAnchorCellFn,
   HandleSelectFn,
@@ -21,11 +20,6 @@ interface TablesLayoutProps {
   localPageData: Flight[];
   isAnchored: IsAnchoredFn;
   renderAnchorCell?: RenderAnchorCellFn;
-  apiPage: number;
-  setApiPage: (page: number) => void;
-  apiMaxPage: number;
-  apiPageData: Event[];
-  HISTORY_API_FIELDS: string[]; // renommé ici
   handleSelect: HandleSelectFn;
   debug?: boolean;
 }
@@ -40,47 +34,55 @@ export default function TablesLayout({
   localPageData,
   isAnchored,
   renderAnchorCell,
-  apiPage,
-  setApiPage,
-  apiMaxPage,
-  apiPageData,
-  HISTORY_API_FIELDS, // renommé ici
   handleSelect,
   debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) console.log("[TablesLayout]", ...args);
+  }, [debug]);
+
   const onSelect = useCallback(
     (flight: Flight) => {
+      dlog(`Vol sélectionné id=${flight.id ?? "?"}`);
       handleSelect(flight);
     },
-    [handleSelect]
+    [handleSelect, dlog]
   );
 
-  const genKey = (item: { id?: string | number; created_time?: string }, idx: number): string =>
+  const genKey = (item: { id?: string | number; created_time?: string | number }, idx: number): string =>
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
-  const liveDrones = drones.filter((d) => d._type === "live");
-  const archivedDrones = localPageData.filter((d) => d._type === "local");
+  const liveDrones = useMemo(() => {
+    const filtered = drones.filter(d => d._type === "live");
+    dlog(`Nombre drones live: ${filtered.length}`);
+    return filtered;
+  }, [drones, dlog]);
+
+  const archivedDrones = useMemo(() => {
+    const filtered = localPageData.filter(d => d._type === "local");
+    dlog(`Nombre drones archivés: ${filtered.length}`);
+    return filtered;
+  }, [localPageData, dlog]);
 
   const renderTable = (
     title: string,
     fields: string[] | undefined,
-    data: (Flight | Event)[],
+    data: Flight[],
     withAnchor = false
   ) => {
     const safeFields = fields ?? [];
+    dlog(`Rendu tableau "${title}" avec ${data.length} lignes et ${safeFields.length} colonnes`);
     return (
       <section className="table-container" aria-label={title}>
         <h2 className="table-title">{title}</h2>
         {data.length === 0 ? (
-          <p className="table-empty">Aucune donnée à afficher.</p>
+          <p className="table-empty">Aucun vol.</p>
         ) : (
           <table className="data-table" role="grid">
             <thead>
               <tr>
                 {safeFields.map((field) => (
-                  <th key={field} scope="col">
-                    {field}
-                  </th>
+                  <th key={field} scope="col">{field}</th>
                 ))}
                 {withAnchor && <th scope="col">Ancrage</th>}
               </tr>
@@ -91,14 +93,14 @@ export default function TablesLayout({
                   key={genKey(item, idx)}
                   tabIndex={0}
                   className="clickable-row"
-                  onClick={() => onSelect(item as Flight)}
+                  onClick={() => onSelect(item)}
                   aria-selected="false"
                 >
                   {safeFields.map((field) => (
                     <td key={field}>{prettyValue(field, (item as any)[field])}</td>
                   ))}
                   {withAnchor && renderAnchorCell && (
-                    <td className="anchor-cell">{renderAnchorCell(item as Flight)}</td>
+                    <td className="anchor-cell">{renderAnchorCell(item)}</td>
                   )}
                 </tr>
               ))}
@@ -120,18 +122,11 @@ export default function TablesLayout({
       {renderTable("Détection en direct", LIVE_FIELDS, liveDrones, true)}
 
       {renderTable("Vols archivés (local)", LIVE_FIELDS, archivedDrones, true)}
+
       <Pagination
         page={localPage}
         maxPage={localMaxPage}
         onPageChange={setLocalPage}
-        debug={debug}
-      />
-
-      {renderTable("Événements historiques (API)", HISTORY_API_FIELDS, apiPageData, false)}
-      <Pagination
-        page={apiPage}
-        maxPage={apiMaxPage}
-        onPageChange={setApiPage}
         debug={debug}
       />
     </div>

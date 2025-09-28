@@ -36,7 +36,7 @@ export function logConstantsAccess(debug = config.debug): void {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🆕 Ajout des constantes attendues par App.tsx                               */
+/* Constantes utilisées par App.tsx et TablesLayout.tsx                       */
 /* -------------------------------------------------------------------------- */
 
 /** Colonnes à afficher pour les drones en direct */
@@ -48,13 +48,6 @@ export const LIVE_FIELDS = [
   "altitude",
   "distance",    // Distance drone
   "speed",
-  "created_time"
-];
-
-/** Colonnes à afficher pour l'historique API */
-export const HISTORY_API_FIELDS = [
-  "id",
-  "sequence",
   "created_time"
 ];
 
@@ -84,12 +77,4 @@ export const LIVE_DETAILS = [
   "reliability",
   "seen_sensor",
   "tracing"
-];
-
-/** Champs détaillés pour un événement (provenance API/events) */
-export const EVENT_DETAILS = [
-  "id",
-  "sequence",
-  "created_time",
-  "points"
 ];
