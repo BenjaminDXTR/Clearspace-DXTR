@@ -16,7 +16,7 @@ const server = http.createServer(app);
 
 if (config.backend.ignoreTlsErrors) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  // log('warn', '⚠️ TLS désactivé (IGNORE_TLS_ERRORS=true)');
+  log('warn', '⚠️ TLS désactivé (IGNORE_TLS_ERRORS=true)');
 }
 
 app.use(cors({ origin: config.backend.corsOrigin }));
@@ -32,29 +32,28 @@ const wss = setupWebSocket(server);
 if (config.backend.useTestSim) {
   const { startTestSimulation, setBroadcast } = require('./simulation');
   setBroadcast(broadcast);
-  startTestSimulation(2000);
+  startTestSimulation();
 }
 
 let flushIntervalId;
 let archiveIntervalId;
 
 function startIntervals() {
-  flushIntervalId = setInterval(() => {
+  flushIntervalId = setInterval(async () => {
     try {
-      // flushAllCache is synchronous, but handle potential errors
-      flushAllCache();
-      // log('[flushAllCache] Flush périodique OK');
+      await flushAllCache();
+      log('[flushAllCache] Flush périodique OK');
     } catch (e) {
-      // log('[flushAllCache] Erreur flush périodique : ' + e.message);
+      log('[flushAllCache] Erreur flush périodique : ' + e.message);
     }
   }, 60000);
 
-  archiveIntervalId = setInterval(() => {
+  archiveIntervalId = setInterval(async () => {
     try {
-      archiveInactiveFlights();
-      // log('[interval] Archivage automatique des vols inactifs OK');
+      await archiveInactiveFlights();
+      log('[interval] Archivage automatique des vols inactifs OK');
     } catch (e) {
-      // log('[interval] Erreur archivage vols : ' + e.message);
+      log('[interval] Erreur archivage vols : ' + e.message);
     }
   }, config.backend.archiveCheckIntervalMs);
 }
@@ -69,22 +68,23 @@ function clearIntervals() {
 startIntervals();
 
 async function gracefulShutdown() {
-  // log('info', 'Arrêt serveur : arrêt polling, flush cache en cours...');
+  log('info', 'Arrêt serveur : arrêt polling, flush cache en cours...');
   try {
-    stopPolling(); // Arrête le polling dans websocket.js
-    clearIntervals(); // Nettoie les timers
-    flushAllCache(); // Flush synchro
+    stopPolling(); // Arrêt du polling dans websocket.js
+    clearIntervals(); // Nettoyage des timers
+    await flushAllCache(); // Flush final asynchrone du cache
+    log('info', 'Flush final du cache réussi');
   } catch (e) {
-    // log('error', 'Erreur flush cache à l\'arrêt : ' + e.message);
+    log('error', 'Erreur flush cache à l\'arrêt : ' + e.message);
   }
   server.close(() => {
-    // log('info', 'Serveur HTTP arrêté, sortie du process');
+    log('info', 'Serveur HTTP arrêté, sortie du process');
     process.exit(0);
   });
 
-  // Force sortie après 5 secondes si jamais bloqué
+  // Forcer sortie après 5 secondes si bloqué
   setTimeout(() => {
-    // log('warn', 'Forçage sortie process après timeout');
+    log('warn', 'Forçage sortie process après timeout');
     process.exit(1);
   }, 5000);
 }
@@ -93,14 +93,14 @@ process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
 process.on('uncaughtException', err => {
-  // log('error', 'uncaughtException: ' + (err.stack || err));
+  log('error', 'uncaughtException: ' + (err.stack || err));
 });
 
 process.on('unhandledRejection', (reason) => {
-  // log('error', 'unhandledRejection: ' + (reason.stack || reason));
+  log('error', 'unhandledRejection: ' + (reason.stack || reason));
 });
 
 const port = config.backend.port || 3200;
 server.listen(port, () => {
-  // log('info', `✅ Backend DroneWeb démarré sur http://localhost:${port}`);
+  log('info', `✅ Backend DroneWeb démarré sur http://localhost:${port}`);
 });

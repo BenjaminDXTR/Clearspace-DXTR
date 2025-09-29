@@ -19,7 +19,7 @@ let isPolling = false;
 const flightTraces = new Map();
 
 /**
- * Diffuse un message JSON à tous les clients connectés.
+ * Envoie un message JSON à tous les clients WebSocket connectés.
  * @param {Object} data 
  */
 function broadcast(data) {
@@ -28,18 +28,20 @@ function broadcast(data) {
     log(`[broadcast] Envoi à ${clients.size} client(s), taille: ${message.length} octets`);
     clients.forEach(ws => {
       if (ws.readyState === WebSocket.OPEN) {
-        try { ws.send(message); } catch (e) {
+        try {
+          ws.send(message);
+        } catch (e) {
           log(`[broadcast] Erreur envoi message WS: ${e.message}`);
         }
       }
     });
-  } catch(e) {
+  } catch (e) {
     log(`[broadcast] Erreur sérialisation message: ${e.message}`);
   }
 }
 
 /**
- * Notifie les clients d'une mise à jour de fichier historique.
+ * Notifie tous les clients de la mise à jour d'un fichier historique.
  * @param {string} filename 
  */
 function notifyHistoryUpdate(filename) {
@@ -49,17 +51,17 @@ function notifyHistoryUpdate(filename) {
     let sentCount = 0;
     clients.forEach(ws => {
       if (ws.readyState === WebSocket.OPEN) {
-        try { 
+        try {
           ws.send(msg);
-          sentCount++; 
+          sentCount++;
           log(`[notifyHistoryUpdate] Notification envoyée au client pour fichier: ${filename}`);
-        } catch(e) { 
+        } catch (e) {
           log(`[notifyHistoryUpdate] Erreur envoi notification WS: ${e.message}`);
         }
       }
     });
     log(`[notifyHistoryUpdate] Nombre total de notifications envoyées : ${sentCount}`);
-  } catch(e) {
+  } catch (e) {
     log(`[notifyHistoryUpdate] Erreur générale: ${e.message}`);
   }
 }
@@ -76,18 +78,18 @@ async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
     try {
       log(`[fetchWithRetry] Tentative ${attempt + 1}`);
       return await fetchFn();
-    } catch(err) {
+    } catch (err) {
       attempt++;
       if (attempt >= maxRetries) throw err;
-      const delay = baseDelayMs * Math.pow(2, attempt-1);
-      log(`[fetchWithRetry] Erreur tentative ${attempt}: ${err.message}. Réessai dans ${delay}ms`);
+      const delay = baseDelayMs * Math.pow(2, attempt - 1);
+      log(`[fetchWithRetry] Erreur tentative ${attempt}: ${err.message}. Réessai dans ${delay} ms`);
       await new Promise(r => setTimeout(r, delay));
     }
   }
 }
 
 /**
- * Interroge machine de détection, met à jour traces et sauvegarde historique.
+ * Interroge la machine de détection, met à jour les traces et sauvegarde l'historique.
  */
 async function pollDetectionMachine() {
   if (config.backend.useTestSim) {
@@ -110,17 +112,18 @@ async function pollDetectionMachine() {
           log(`[pollDetectionMachine] Nouvelle trace créée pour vol ${drone.id}`);
         }
         const trace = flightTraces.get(drone.id);
-
         if (typeof drone.latitude === 'number' && typeof drone.longitude === 'number') {
-          trace.push([drone.latitude, drone.longitude]);
-          log(`[pollDetectionMachine] Ajout coordonnées (${drone.latitude}, ${drone.longitude}) à trace vol ${drone.id} (total:${trace.length})`);
+          // Ajout du point s'il est différent du dernier
+          if (trace.length === 0 || trace[trace.length - 1][0] !== drone.latitude || trace[trace.length - 1][1] !== drone.longitude) {
+            trace.push([drone.latitude, drone.longitude]);
+            log(`[pollDetectionMachine] Ajout coordonnées (${drone.latitude}, ${drone.longitude}) à trace vol ${drone.id} (total: ${trace.length})`);
+          } else {
+            log(`[pollDetectionMachine] Coordonnées identiques à précédentes pour vol ${drone.id}, pas ajout`);
+          }
         } else {
           log(`[pollDetectionMachine] Coordonnées invalides pour vol ${drone.id}, pas ajout à la trace`);
         }
-
         drone.trace = trace;
-        log(`[pollDetectionMachine] Trace assignée à drone.id=${drone.id}, longueur: ${trace.length}`);
-
         if (!drone.type) drone.type = "live";
 
         const historyFile = await saveFlightToHistory(drone);
@@ -143,7 +146,7 @@ async function pollDetectionMachine() {
 
 /**
  * Met à jour la trace d’un vol appelé par la simulation.
- * Si simulation, sauvegarde le vol.
+ * Sauvegarde en mode simulation avec gestion timeout dans saveFlightToHistory.
  */
 async function updateFlightTrace(droneUpdate) {
   const { id, latitude, longitude, created_time } = droneUpdate;
@@ -153,21 +156,25 @@ async function updateFlightTrace(droneUpdate) {
   }
   const trace = flightTraces.get(id);
 
+  // Ajoute seulement si position différente du dernier point
   if (typeof latitude === 'number' && typeof longitude === 'number') {
-    trace.push([latitude, longitude]);
-    log(`[updateFlightTrace] Ajout coordonnées (${latitude}, ${longitude}) à trace vol ${id} (total:${trace.length})`);
+    if (trace.length === 0 || trace[trace.length - 1][0] !== latitude || trace[trace.length - 1][1] !== longitude) {
+      trace.push([latitude, longitude]);
+      log(`[updateFlightTrace] Ajout coordonnées (${latitude}, ${longitude}) à trace vol ${id} (total: ${trace.length})`);
+    } else {
+      log(`[updateFlightTrace] Coordonnées identiques au dernier point, pas d'ajout pour vol ${id}`);
+    }
   } else {
     log(`[updateFlightTrace] Coordonnées invalides pour vol ${id}, pas ajout à la trace`);
   }
-
+  
   if (config.backend.useTestSim) {
     try {
       const fullFlight = {
-        ...droneUpdate,         // copie complète des données entrantes
-        trace: trace.slice(),   // ajout ou mise à jour de la trace
+        ...droneUpdate,
+        trace: trace.slice(),
         type: "live"
       };
-
       const historyFile = await saveFlightToHistory(fullFlight);
       log(`[updateFlightTrace] Vol ${id} sauvegardé avec trace (${trace.length} points) dans ${historyFile} (simulation)`);
       notifyHistoryUpdate(historyFile);
@@ -267,7 +274,6 @@ function setupWebSocket(server) {
     });
   });
 
-  // Intégration de la fonction de mise à jour trace de la simulation
   const { setUpdateFlightTrace } = require('./simulation');
   setUpdateFlightTrace(updateFlightTrace);
 
@@ -292,5 +298,5 @@ module.exports = {
   broadcast,
   stopPolling,
   notifyHistoryUpdate,
-  updateFlightTrace
+  updateFlightTrace,
 };
