@@ -5,6 +5,7 @@ const { fetchDroneData } = require('./graphqlClient');
 const {
   saveFlightToHistory,
   archiveInactiveFlights,
+  INACTIVE_TIMEOUT
 } = require('./flightsHistoryManager');
 
 const fs = require('fs').promises;
@@ -18,10 +19,6 @@ let isPolling = false;
 
 const flightTraces = new Map();
 
-/**
- * Envoie un message JSON à tous les clients WebSocket connectés.
- * @param {Object} data 
- */
 function broadcast(data) {
   try {
     const message = JSON.stringify(data);
@@ -40,10 +37,6 @@ function broadcast(data) {
   }
 }
 
-/**
- * Notifie tous les clients de la mise à jour d'un fichier historique.
- * @param {string} filename 
- */
 function notifyHistoryUpdate(filename) {
   try {
     const msg = JSON.stringify({ type: 'historyUpdate', filename });
@@ -66,12 +59,6 @@ function notifyHistoryUpdate(filename) {
   }
 }
 
-/**
- * Effectue un fetch avec retry exponentiel.
- * @param {Function} fetchFn 
- * @param {number} maxRetries 
- * @param {number} baseDelayMs 
- */
 async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
   let attempt = 0;
   while (attempt < maxRetries) {
@@ -88,9 +75,6 @@ async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
   }
 }
 
-/**
- * Interroge la machine de détection, met à jour les traces et sauvegarde l'historique.
- */
 async function pollDetectionMachine() {
   if (config.backend.useTestSim) {
     log('[pollDetectionMachine] Mode simulation activé, pas d’appel API');
@@ -113,10 +97,15 @@ async function pollDetectionMachine() {
         }
         const trace = flightTraces.get(drone.id);
         if (typeof drone.latitude === 'number' && typeof drone.longitude === 'number') {
-          // Ajout du point s'il est différent du dernier
-          if (trace.length === 0 || trace[trace.length - 1][0] !== drone.latitude || trace[trace.length - 1][1] !== drone.longitude) {
+          if (
+            trace.length === 0 ||
+            trace[trace.length - 1][0] !== drone.latitude ||
+            trace[trace.length - 1][1] !== drone.longitude
+          ) {
             trace.push([drone.latitude, drone.longitude]);
-            log(`[pollDetectionMachine] Ajout coordonnées (${drone.latitude}, ${drone.longitude}) à trace vol ${drone.id} (total: ${trace.length})`);
+            log(
+              `[pollDetectionMachine] Ajout coordonnées (${drone.latitude}, ${drone.longitude}) à trace vol ${drone.id} (total: ${trace.length})`
+            );
           } else {
             log(`[pollDetectionMachine] Coordonnées identiques à précédentes pour vol ${drone.id}, pas ajout`);
           }
@@ -124,7 +113,7 @@ async function pollDetectionMachine() {
           log(`[pollDetectionMachine] Coordonnées invalides pour vol ${drone.id}, pas ajout à la trace`);
         }
         drone.trace = trace;
-        if (!drone.type) drone.type = "live";
+        if (!drone.type) drone.type = 'live';
 
         const historyFile = await saveFlightToHistory(drone);
         log(`[pollDetectionMachine] Vol ${drone.id} sauvegardé avec trace (${trace.length} points) dans ${historyFile}`);
@@ -132,7 +121,7 @@ async function pollDetectionMachine() {
         notifyHistoryUpdate(historyFile);
       }
       broadcast(drones);
-      log(`[pollDetectionMachine] Broadcast des drones avec leurs traces`);
+      log('[pollDetectionMachine] Broadcast des drones avec leurs traces');
     } else {
       log('[pollDetectionMachine] Pas de données drone trouvées');
     }
@@ -144,10 +133,6 @@ async function pollDetectionMachine() {
   }
 }
 
-/**
- * Met à jour la trace d’un vol appelé par la simulation.
- * Sauvegarde en mode simulation avec gestion timeout dans saveFlightToHistory.
- */
 async function updateFlightTrace(droneUpdate) {
   const { id, latitude, longitude, created_time } = droneUpdate;
   if (!flightTraces.has(id)) {
@@ -155,10 +140,12 @@ async function updateFlightTrace(droneUpdate) {
     log(`[updateFlightTrace] Nouvelle trace créée pour vol ${id}`);
   }
   const trace = flightTraces.get(id);
-
-  // Ajoute seulement si position différente du dernier point
   if (typeof latitude === 'number' && typeof longitude === 'number') {
-    if (trace.length === 0 || trace[trace.length - 1][0] !== latitude || trace[trace.length - 1][1] !== longitude) {
+    if (
+      trace.length === 0 ||
+      trace[trace.length - 1][0] !== latitude ||
+      trace[trace.length - 1][1] !== longitude
+    ) {
       trace.push([latitude, longitude]);
       log(`[updateFlightTrace] Ajout coordonnées (${latitude}, ${longitude}) à trace vol ${id} (total: ${trace.length})`);
     } else {
@@ -167,16 +154,17 @@ async function updateFlightTrace(droneUpdate) {
   } else {
     log(`[updateFlightTrace] Coordonnées invalides pour vol ${id}, pas ajout à la trace`);
   }
-  
   if (config.backend.useTestSim) {
     try {
       const fullFlight = {
         ...droneUpdate,
         trace: trace.slice(),
-        type: "live"
+        type: 'live',
       };
       const historyFile = await saveFlightToHistory(fullFlight);
-      log(`[updateFlightTrace] Vol ${id} sauvegardé avec trace (${trace.length} points) dans ${historyFile} (simulation)`);
+      log(
+        `[updateFlightTrace] Vol ${id} sauvegardé avec trace (${trace.length} points) dans ${historyFile} (simulation)`
+      );
       notifyHistoryUpdate(historyFile);
     } catch (e) {
       log(`[updateFlightTrace] Erreur sauvegarde vol ${id} en simulation : ${e.message}`);
@@ -184,31 +172,20 @@ async function updateFlightTrace(droneUpdate) {
   }
 }
 
-/**
- * Démarre la boucle de polling (mode réel).
- */
 async function startPollingLoop() {
   log('[startPollingLoop] Démarrage boucle polling');
   while (pollingActive) {
     await pollDetectionMachine();
-    await new Promise(r => setTimeout(r, config.backend.pollingIntervalMs));
+    await new Promise((r) => setTimeout(r, config.backend.pollingIntervalMs));
   }
   log('[startPollingLoop] Boucle polling arrêtée');
 }
 
-/**
- * Arrête la boucle de polling.
- */
 function stopPolling() {
   log('[stopPolling] Arrêt de la boucle polling demandé');
   pollingActive = false;
 }
 
-/**
- * Initialise le serveur WebSocket et gère les connexions.
- * @param {*} server Instance HTTP server
- * @returns {WebSocket.Server} Serveur WebSocket
- */
 function setupWebSocket(server) {
   if (wss) {
     log('[setupWebSocket] WS déjà initialisé');
@@ -226,8 +203,8 @@ function setupWebSocket(server) {
       await fs.access(historyDir);
       const files = await fs.readdir(historyDir);
       const summaries = files
-        .filter(f => f.endsWith('.json'))
-        .map(f => ({ filename: f }))
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => ({ filename: f }))
         .sort();
       log(`[ws] Envoi résumé historique (${summaries.length} fichiers) au client`);
       ws.send(JSON.stringify({ type: 'historySummaries', data: summaries }));
@@ -247,12 +224,14 @@ function setupWebSocket(server) {
           flightTraces.set(data.id, data.trace);
           log(`[ws] Trace mise à jour pour vol ${data.id} (${data.trace.length} points)`);
 
-          saveFlightToHistory(data).then((historyFile) => {
-            log(`[ws] Vol ${data.id} sauvegardé dans historique ${historyFile}`);
-            notifyHistoryUpdate(historyFile);
-          }).catch(e => {
-            log(`[ws] Erreur sauvegarde vol ${data.id}: ${e.message}`);
-          });
+          saveFlightToHistory(data)
+            .then((historyFile) => {
+              log(`[ws] Vol ${data.id} sauvegardé dans historique ${historyFile}`);
+              notifyHistoryUpdate(historyFile);
+            })
+            .catch((e) => {
+              log(`[ws] Erreur sauvegarde vol ${data.id}: ${e.message}`);
+            });
 
           broadcast(data);
           log(`[ws] Vol ${data.id} mis à jour via message WS`);
@@ -280,13 +259,13 @@ function setupWebSocket(server) {
   if (!config.backend.useTestSim) {
     startPollingLoop();
   } else {
-    log("[setupWebSocket] Mode simulation activé, boucle polling désactivée");
+    log('[setupWebSocket] Mode simulation activé, boucle polling désactivée');
   }
 
   setInterval(() => {
-    archiveInactiveFlights()
+    archiveInactiveFlights(notifyHistoryUpdate)
       .then(() => log('[interval] Archivage automatique vols inactifs OK'))
-      .catch(e => log('[interval] Erreur archivage vols: ' + e.message));
+      .catch((e) => log('[interval] Erreur archivage vols: ' + e.message));
   }, config.backend.archiveCheckIntervalMs);
 
   return wss;

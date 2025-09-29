@@ -1,29 +1,20 @@
 let broadcastFn = () => {};
 let updateFlightTraceFn = () => {};
 
-/**
- * Définit la fonction de broadcast (envoi aux clients front)
- * @param {function} fn fonction appelée pour diffuser les données
- */
 function setBroadcast(fn) {
   broadcastFn = fn;
 }
 
-/**
- * Définit la fonction de mise à jour des traces appelée lors de simulation
- * @param {function} fn fonction pour mettre à jour la trace dans backend
- */
 function setUpdateFlightTrace(fn) {
   updateFlightTraceFn = fn;
 }
 
-// Drone test complet avec données initiales
 const testDrone = {
   altitude: 0,
   attack_bands: [2400],
   blacklisted: false,
   confirmed: true,
-  created_time: null, // sera fixé au début du cycle
+  created_time: null,
   deleted_time: "0001-01-01T00:00:00Z",
   description: "",
   direction: 90,
@@ -54,14 +45,14 @@ const testDrone = {
   whitelisted: false,
 };
 
-// Drone clone pour détection simultanée au cycle 3
 const testDroneClone = {
   ...testDrone,
   id: "1748CLONEHMG924501040",
   name: "AUTEL Clone",
+  direction: 60,
+  speed: 10,
 };
 
-// Liste étendue de positions simulées
 const simulatedPath = [
   [49.5310, 0.0936],
   [49.5311, 0.0937],
@@ -85,20 +76,11 @@ let cycleCount = 0;
 let cycleCreatedTime = null;
 let simulationTimeout = null;
 
-/**
- * Envoie un message JSON vide pour indiquer fin de détection.
- */
 function sendEmptyDetection() {
   broadcastFn({ data: { drone: [] } });
   console.log("[TestSim] Envoi JSON vide pour fin de détection");
 }
 
-/**
- * Génère périodiquement les positions simulées,
- * appelle backend pour mise à jour trace,
- * diffuse aux clients les drones détectés,
- * supporte cycle double détection.
- */
 async function generateSimulatedDetection() {
   if (currentStep >= simulatedPath.length) {
     currentStep = 0;
@@ -107,6 +89,7 @@ async function generateSimulatedDetection() {
 
     sendEmptyDetection();
 
+    // Forcer nouveau created_time pour nouvelle session 
     cycleCreatedTime = null;
 
     if (cycleCount > 3) {
@@ -114,8 +97,11 @@ async function generateSimulatedDetection() {
       return;
     }
 
-    // Pause longue après cycle 1 (12s), plus courte après autres (5s)
-    const delay = cycleCount === 1 ? 12000 : 5000;
+    // Délai entre cycles (retarder légèrement pour bien tester timeout)
+    let delay;
+    if (cycleCount === 1) delay = 30000;
+    else if (cycleCount === 2) delay = 20000;
+    else delay = 10000;
 
     clearTimeout(simulationTimeout);
     simulationTimeout = setTimeout(generateSimulatedDetection, delay);
@@ -129,18 +115,16 @@ async function generateSimulatedDetection() {
   const [lat, lng] = simulatedPath[currentStep++];
   const now = new Date().toISOString();
 
-  // Drone principal
   const droneData = JSON.parse(JSON.stringify(testDrone));
   droneData.latitude = lat;
   droneData.longitude = lng;
   droneData.lastseen_time = now;
   droneData.created_time = cycleCreatedTime;
 
-  // Au cycle 3, détection simultanée d’un second drone clone
   if (cycleCount === 3) {
     const cloneData = JSON.parse(JSON.stringify(testDroneClone));
-    cloneData.latitude = lat + 0.0002;
-    cloneData.longitude = lng + 0.0002;
+    cloneData.latitude = lat + 0.0004;
+    cloneData.longitude = lng + 0.0003;
     cloneData.lastseen_time = now;
     cloneData.created_time = cycleCreatedTime;
 
@@ -158,9 +142,6 @@ async function generateSimulatedDetection() {
   simulationTimeout = setTimeout(generateSimulatedDetection, 2000);
 }
 
-/**
- * Démarre la simulation en initialisant l’état.
- */
 function startTestSimulation() {
   currentStep = 0;
   cycleCount = 0;
