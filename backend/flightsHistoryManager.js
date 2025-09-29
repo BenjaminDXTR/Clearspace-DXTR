@@ -4,11 +4,16 @@ const { log } = require('./utils/logger');
 const { config } = require('./config');
 
 const historyBaseDir = path.resolve(__dirname, config.backend.historyBaseDir || 'history');
-const INACTIVE_TIMEOUT = 5000; // Timeout réduit à 5 secondes pour tests rapides
+const INACTIVE_TIMEOUT = 5000; // Timeout réduit à 5 secondes pour tests
 
 const historyCache = new Map();
 const lastSeenMap = new Map();
 
+/**
+ * Calcule la période (dimanche-samedi) et génère un nom de fichier pour une date donnée.
+ * @param {string} dateStr ISO string date
+ * @returns {{start: string, end: string, filename: string}}
+ */
 function getWeekPeriod(dateStr) {
   const d = new Date(dateStr);
   const day = d.getDay();
@@ -18,16 +23,20 @@ function getWeekPeriod(dateStr) {
   const saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
 
-  function fmt(date) {
-    return date.toISOString().slice(0, 10);
-  }
+  const fmt = (date) => date.toISOString().slice(0, 10);
+
   return {
     start: fmt(sunday),
     end: fmt(saturday),
-    filename: `history-${fmt(sunday)}_to_${fmt(saturday)}.json`
+    filename: `history-${fmt(sunday)}_to_${fmt(saturday)}.json`,
   };
 }
 
+/**
+ * Charge un fichier historique depuis le disque ou retourne un tableau vide si absent.
+ * @param {string} filePath
+ * @returns {Promise<Array>}
+ */
 async function loadHistoryFile(filePath) {
   try {
     await fs.access(filePath);
@@ -41,6 +50,11 @@ async function loadHistoryFile(filePath) {
   }
 }
 
+/**
+ * Sauvegarde données JSON dans un fichier, avec log succès ou erreur.
+ * @param {string} filePath
+ * @param {Array} data
+ */
 async function saveHistoryFile(filePath, data) {
   try {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2));
@@ -50,18 +64,32 @@ async function saveHistoryFile(filePath, data) {
   }
 }
 
+/**
+ * Met à jour ou ajoute un vol dans le tableau d'historique en mémoire.
+ * La clé est composée de id + created_time pour unicité.
+ * @param {object} flight
+ * @param {Array} historyFile
+ */
 function addOrUpdateFlightInFile(flight, historyFile) {
   const flightKey = flight.id + '|' + flight.created_time;
+  const traceLength = Array.isArray(flight.trace) ? flight.trace.length : 0;
+
   const idx = historyFile.findIndex(f => (f.id + '|' + f.created_time) === flightKey);
   if (idx !== -1) {
     historyFile[idx] = flight;
-    log(`[addOrUpdateFlightInFile] Mise à jour vol ${flightKey}`);
+    log(`[addOrUpdateFlightInFile] Mise à jour vol ${flightKey} avec trace (${traceLength} points)`);
   } else {
     historyFile.push(flight);
-    log(`[addOrUpdateFlightInFile] Ajout vol ${flightKey}`);
+    log(`[addOrUpdateFlightInFile] Ajout vol ${flightKey} avec trace (${traceLength} points)`);
   }
 }
 
+/**
+ * Charge le contenu historique en cache pour un fichier donné.
+ * Si absent en cache, charge depuis disque et mémorise.
+ * @param {string} filename
+ * @returns {Promise<Array>}
+ */
 async function loadHistoryToCache(filename) {
   if (!historyCache.has(filename)) {
     const filePath = path.join(historyBaseDir, filename);
@@ -72,6 +100,10 @@ async function loadHistoryToCache(filename) {
   return historyCache.get(filename);
 }
 
+/**
+ * Sauvegarde la donnée en cache sur disque.
+ * @param {string} filename
+ */
 async function flushCacheToDisk(filename) {
   if (!historyCache.has(filename)) return;
   const data = historyCache.get(filename);
@@ -79,6 +111,9 @@ async function flushCacheToDisk(filename) {
   await saveHistoryFile(filePath, data);
 }
 
+/**
+ * Sauvegarde toutes les données cache sur disque.
+ */
 async function flushAllCache() {
   for (const filename of historyCache.keys()) {
     await flushCacheToDisk(filename);
@@ -87,9 +122,11 @@ async function flushAllCache() {
 }
 
 /**
- * Sauvegarde ou met à jour un vol dans l'historique,
- * en y incluant la trace complète si elle est présente,
- * retourne le nom du fichier historique modifié.
+ * Sauvegarde un vol dans l'historique, en incluant la trace.
+ * Met à jour lastSeenMap si vol live.
+ * Garantit les champs nécessaires et logue les détails.
+ * @param {object} flight
+ * @returns {Promise<string>} - nom du fichier historique
  */
 async function saveFlightToHistory(flight) {
   if (!flight.created_time) flight.created_time = new Date().toISOString();
@@ -110,22 +147,28 @@ async function saveFlightToHistory(flight) {
 
   const historyData = await loadHistoryToCache(historyFilePath);
 
-  // Construire un objet vol à sauvegarder incluant la trace (fallback si manquant)
+  const traceLength = Array.isArray(flight.trace) ? flight.trace.length : 0;
+  log(`[saveFlightToHistory] Trace reçue pour vol ${flight.id}: ${traceLength} points`);
+
   const flightToSave = {
     ...flight,
-    trace: Array.isArray(flight.trace) ? flight.trace : (flight.tracing?.points ?? []),
+    trace: traceLength > 0 ? flight.trace : [],
   };
 
   addOrUpdateFlightInFile(flightToSave, historyData);
-
   historyCache.set(historyFilePath, historyData);
 
   await flushCacheToDisk(historyFilePath);
-  log(`[saveFlightToHistory] Vol sauvegardé dans historique ${historyFilePath} (ID=${flight.id})`);
+
+  log(`[saveFlightToHistory] Vol sauvegardé dans historique ${historyFilePath} (ID=${flight.id}) avec trace (${flightToSave.trace.length} points)`);
 
   return historyFilePath;
 }
 
+/**
+ * Archive les vols inactifs en les marquant local
+ * puis met à jour l'historique.
+ */
 async function archiveInactiveFlights() {
   const now = Date.now();
 
@@ -134,13 +177,14 @@ async function archiveInactiveFlights() {
   } catch {
     return;
   }
+
   const files = (await fs.readdir(historyBaseDir)).filter(f => f.endsWith('.json'));
 
   for (const file of files) {
     const data = await loadHistoryToCache(file);
     let updated = false;
 
-    data.forEach((flight) => {
+    data.forEach(flight => {
       if (flight.type === 'live' && flight.id) {
         const lastSeen = lastSeenMap.get(flight.id) || 0;
         if ((now - lastSeen) > INACTIVE_TIMEOUT) {

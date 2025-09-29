@@ -1,10 +1,12 @@
 .
 ├── backend
-│   ├── history
-│   │   ├── history-2025-09-28_to_2025-10-04.json
 │   ├── config.js
 │   ├── flights_history.json
+│   ├── flightsHistoryManager.js
 │   ├── .gitignore
+│   ├── graphqlClient.js
+│   ├── history
+│   │   └── history-2025-09-28_to_2025-10-04.json
 │   ├── Infos.txt
 │   ├── middleware
 │   │   ├── errorHandler.js
@@ -19,6 +21,7 @@
 │   ├── services
 │   │   ├── anchorService.js
 │   │   └── flightService.js
+│   ├── simulation.js
 │   ├── utils
 │   │   └── logger.js
 │   └── websocket.js
@@ -61,16 +64,14 @@
 │   │   │       └── TablesLayout.tsx
 │   │   ├── config.ts
 │   │   ├── contexts
-│   │   │   └── DronexContext.tsx
+│   │   │   └── DronesContext.tsx
 │   │   ├── custom.d.ts
 │   │   ├── env.d.ts
 │   │   ├── hooks
 │   │   │   ├── useAnchored.ts
 │   │   │   ├── useAnchorModal.ts
-│   │   │   ├── useDrones.ts
 │   │   │   ├── useLiveTraces.ts
-│   │   │   ├── useLocalHistory.ts
-│   │   │   └── useRemoteEvents.ts
+│   │   │   └── useLocalHistory.ts
 │   │   ├── index.css
 │   │   ├── index.tsx
 │   │   ├── services
@@ -87,7 +88,6 @@
 │   │       ├── displayConfig.ts
 │   │       ├── fieldConfig.ts
 │   │       ├── format.ts
-│   │       ├── graphql.ts
 │   │       ├── icons.ts
 │   │       └── UtilsInfos.txt
 │   ├── tsconfig.json
@@ -102,4 +102,4 @@
 ├── stop-servers.sh
 └── tree.txt
 
-17 directories, 85 files
+18 directories, 84 files

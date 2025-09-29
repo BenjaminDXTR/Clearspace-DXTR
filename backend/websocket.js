@@ -18,66 +18,84 @@ let isPolling = false;
 
 const flightTraces = new Map();
 
+/**
+ * Diffuse un message JSON à tous les clients connectés.
+ * @param {Object} data 
+ */
 function broadcast(data) {
-  const message = JSON.stringify(data);
-  log(`[broadcast] Envoi à ${clients.size} client(s), taille: ${message.length} octets`);
-  clients.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(message);
-        log('[broadcast] Message WS envoyé à un client');
-      } catch (e) {
-        log(`[broadcast] Erreur envoi message WS: ${e.message}`);
+  try {
+    const message = JSON.stringify(data);
+    log(`[broadcast] Envoi à ${clients.size} client(s), taille: ${message.length} octets`);
+    clients.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try { ws.send(message); } catch (e) {
+          log(`[broadcast] Erreur envoi message WS: ${e.message}`);
+        }
       }
-    } else {
-      log('[broadcast] Client WS fermé, message non envoyé');
-    }
-  });
+    });
+  } catch(e) {
+    log(`[broadcast] Erreur sérialisation message: ${e.message}`);
+  }
 }
 
+/**
+ * Notifie les clients d'une mise à jour de fichier historique.
+ * @param {string} filename 
+ */
 function notifyHistoryUpdate(filename) {
-  const msg = JSON.stringify({ type: 'historyUpdate', filename });
-  log(`[notifyHistoryUpdate] Propagation mise à jour historique: ${filename} à ${clients.size} client(s)`);
-  let sentCount = 0;
-  clients.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(msg);
-        sentCount++;
-        log(`[notifyHistoryUpdate] Notification envoyée au client pour fichier: ${filename}`);
-      } catch (e) {
-        log(`[notifyHistoryUpdate] Erreur envoi notification WS: ${e.message}`);
+  try {
+    const msg = JSON.stringify({ type: 'historyUpdate', filename });
+    log(`[notifyHistoryUpdate] Propagation mise à jour historique: ${filename} à ${clients.size} client(s)`);
+    let sentCount = 0;
+    clients.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try { 
+          ws.send(msg);
+          sentCount++; 
+          log(`[notifyHistoryUpdate] Notification envoyée au client pour fichier: ${filename}`);
+        } catch(e) { 
+          log(`[notifyHistoryUpdate] Erreur envoi notification WS: ${e.message}`);
+        }
       }
-    }
-  });
-  log(`[notifyHistoryUpdate] Nombre total de notifications envoyées : ${sentCount}`);
+    });
+    log(`[notifyHistoryUpdate] Nombre total de notifications envoyées : ${sentCount}`);
+  } catch(e) {
+    log(`[notifyHistoryUpdate] Erreur générale: ${e.message}`);
+  }
 }
 
-
+/**
+ * Effectue un fetch avec retry exponentiel.
+ * @param {Function} fetchFn 
+ * @param {number} maxRetries 
+ * @param {number} baseDelayMs 
+ */
 async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelayMs = 1000) {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
       log(`[fetchWithRetry] Tentative ${attempt + 1}`);
       return await fetchFn();
-    } catch (err) {
+    } catch(err) {
       attempt++;
       if (attempt >= maxRetries) throw err;
-      const delay = baseDelayMs * Math.pow(2, attempt - 1);
-      log(`[fetchWithRetry] Erreur tentative ${attempt}: ${err.message}. Nouvel essai dans ${delay} ms`);
+      const delay = baseDelayMs * Math.pow(2, attempt-1);
+      log(`[fetchWithRetry] Erreur tentative ${attempt}: ${err.message}. Réessai dans ${delay}ms`);
       await new Promise(r => setTimeout(r, delay));
     }
   }
 }
 
-
+/**
+ * Interroge machine de détection, met à jour traces et sauvegarde historique.
+ */
 async function pollDetectionMachine() {
   if (config.backend.useTestSim) {
     log('[pollDetectionMachine] Mode simulation activé, pas d’appel API');
     return;
   }
   if (isPolling) {
-    log('[pollDetectionMachine] Requête précédente toujours en cours, skipping');
+    log('[pollDetectionMachine] Requête précédente active, skipping');
     return;
   }
   isPolling = true;
@@ -91,37 +109,77 @@ async function pollDetectionMachine() {
           flightTraces.set(drone.id, []);
           log(`[pollDetectionMachine] Nouvelle trace créée pour vol ${drone.id}`);
         }
-        if (Array.isArray(drone.points)) {
-          flightTraces.get(drone.id).push(...drone.points);
-          log(`[pollDetectionMachine] Ajout de ${drone.points.length} points à trace vol ${drone.id}`);
+        const trace = flightTraces.get(drone.id);
+
+        if (typeof drone.latitude === 'number' && typeof drone.longitude === 'number') {
+          trace.push([drone.latitude, drone.longitude]);
+          log(`[pollDetectionMachine] Ajout coordonnées (${drone.latitude}, ${drone.longitude}) à trace vol ${drone.id} (total:${trace.length})`);
         } else {
-          log(`[pollDetectionMachine] Pas de points pour vol ${drone.id}`);
+          log(`[pollDetectionMachine] Coordonnées invalides pour vol ${drone.id}, pas ajout à la trace`);
         }
 
-        // Bien mettre à jour la trace dans l'objet drone avant sauvegarde
-        drone.trace = flightTraces.get(drone.id);
+        drone.trace = trace;
+        log(`[pollDetectionMachine] Trace assignée à drone.id=${drone.id}, longueur: ${trace.length}`);
 
         if (!drone.type) drone.type = "live";
 
         const historyFile = await saveFlightToHistory(drone);
-        log(`[pollDetectionMachine] Vol ${drone.id} sauvegardé avec trace (${flightTraces.get(drone.id).length} points) dans ${historyFile}`);
+        log(`[pollDetectionMachine] Vol ${drone.id} sauvegardé avec trace (${trace.length} points) dans ${historyFile}`);
 
         notifyHistoryUpdate(historyFile);
       }
-
       broadcast(drones);
+      log(`[pollDetectionMachine] Broadcast des drones avec leurs traces`);
     } else {
       log('[pollDetectionMachine] Pas de données drone trouvées');
     }
   } catch (error) {
-    log(`[pollDetectionMachine] Échec final : ${error.message}`);
+    log(`[pollDetectionMachine] Erreur : ${error.message}`);
   } finally {
     isPolling = false;
     log('[pollDetectionMachine] Fin de la requête API Drone');
   }
 }
 
+/**
+ * Met à jour la trace d’un vol appelé par la simulation.
+ * Si simulation, sauvegarde le vol.
+ */
+async function updateFlightTrace(droneUpdate) {
+  const { id, latitude, longitude, created_time } = droneUpdate;
+  if (!flightTraces.has(id)) {
+    flightTraces.set(id, []);
+    log(`[updateFlightTrace] Nouvelle trace créée pour vol ${id}`);
+  }
+  const trace = flightTraces.get(id);
 
+  if (typeof latitude === 'number' && typeof longitude === 'number') {
+    trace.push([latitude, longitude]);
+    log(`[updateFlightTrace] Ajout coordonnées (${latitude}, ${longitude}) à trace vol ${id} (total:${trace.length})`);
+  } else {
+    log(`[updateFlightTrace] Coordonnées invalides pour vol ${id}, pas ajout à la trace`);
+  }
+
+  if (config.backend.useTestSim) {
+    try {
+      const fullFlight = {
+        ...droneUpdate,         // copie complète des données entrantes
+        trace: trace.slice(),   // ajout ou mise à jour de la trace
+        type: "live"
+      };
+
+      const historyFile = await saveFlightToHistory(fullFlight);
+      log(`[updateFlightTrace] Vol ${id} sauvegardé avec trace (${trace.length} points) dans ${historyFile} (simulation)`);
+      notifyHistoryUpdate(historyFile);
+    } catch (e) {
+      log(`[updateFlightTrace] Erreur sauvegarde vol ${id} en simulation : ${e.message}`);
+    }
+  }
+}
+
+/**
+ * Démarre la boucle de polling (mode réel).
+ */
 async function startPollingLoop() {
   log('[startPollingLoop] Démarrage boucle polling');
   while (pollingActive) {
@@ -131,15 +189,22 @@ async function startPollingLoop() {
   log('[startPollingLoop] Boucle polling arrêtée');
 }
 
+/**
+ * Arrête la boucle de polling.
+ */
 function stopPolling() {
   log('[stopPolling] Arrêt de la boucle polling demandé');
   pollingActive = false;
 }
 
-
+/**
+ * Initialise le serveur WebSocket et gère les connexions.
+ * @param {*} server Instance HTTP server
+ * @returns {WebSocket.Server} Serveur WebSocket
+ */
 function setupWebSocket(server) {
   if (wss) {
-    log('[setupWebSocket] Attention : WS déjà initialisé');
+    log('[setupWebSocket] WS déjà initialisé');
     return wss;
   }
 
@@ -147,7 +212,6 @@ function setupWebSocket(server) {
 
   wss.on('connection', async (ws) => {
     log('[ws] Client WebSocket connecté');
-
     clients.add(ws);
 
     try {
@@ -161,7 +225,7 @@ function setupWebSocket(server) {
       log(`[ws] Envoi résumé historique (${summaries.length} fichiers) au client`);
       ws.send(JSON.stringify({ type: 'historySummaries', data: summaries }));
     } catch (e) {
-      log(`[ws] Erreur envoi des historiques: ${e.message}`);
+      log(`[ws] Erreur envoi historiques: ${e.message}`);
       ws.send(JSON.stringify({ type: 'historySummaries', data: [] }));
     }
 
@@ -177,8 +241,10 @@ function setupWebSocket(server) {
           log(`[ws] Trace mise à jour pour vol ${data.id} (${data.trace.length} points)`);
 
           saveFlightToHistory(data).then((historyFile) => {
-            log(`[ws] Vol ${data.id} sauvegardé dans l'historique ${historyFile}`);
+            log(`[ws] Vol ${data.id} sauvegardé dans historique ${historyFile}`);
             notifyHistoryUpdate(historyFile);
+          }).catch(e => {
+            log(`[ws] Erreur sauvegarde vol ${data.id}: ${e.message}`);
           });
 
           broadcast(data);
@@ -201,7 +267,15 @@ function setupWebSocket(server) {
     });
   });
 
-  startPollingLoop();
+  // Intégration de la fonction de mise à jour trace de la simulation
+  const { setUpdateFlightTrace } = require('./simulation');
+  setUpdateFlightTrace(updateFlightTrace);
+
+  if (!config.backend.useTestSim) {
+    startPollingLoop();
+  } else {
+    log("[setupWebSocket] Mode simulation activé, boucle polling désactivée");
+  }
 
   setInterval(() => {
     archiveInactiveFlights()
@@ -212,4 +286,11 @@ function setupWebSocket(server) {
   return wss;
 }
 
-module.exports = { setupWebSocket, getWebSocketServer: () => wss, broadcast, stopPolling, notifyHistoryUpdate };
+module.exports = {
+  setupWebSocket,
+  getWebSocketServer: () => wss,
+  broadcast,
+  stopPolling,
+  notifyHistoryUpdate,
+  updateFlightTrace
+};
