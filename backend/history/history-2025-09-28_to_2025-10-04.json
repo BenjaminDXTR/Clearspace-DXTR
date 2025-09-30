@@ -3658,10 +3658,10 @@
       "lng": 0.09360614114544319
     },
     "lastseen": null,
-    "lastseen_time": "2025-09-30T15:23:02.844Z",
-    "latitude": 49.5311,
+    "lastseen_time": "2025-09-30T15:23:28.863Z",
+    "latitude": 49.5308,
     "localization": null,
-    "longitude": 0.0937,
+    "longitude": 0.0939,
     "name": "AUTEL RemoteID",
     "rc_location": {
       "lat": 210,
@@ -3693,6 +3693,134 @@
         49.5311,
         0.0937,
         2057
+      ],
+      [
+        49.5312,
+        0.0939,
+        4059
+      ],
+      [
+        49.5313,
+        0.0941,
+        6063
+      ],
+      [
+        49.5314,
+        0.094,
+        8066
+      ],
+      [
+        49.53145,
+        0.0938,
+        10069
+      ],
+      [
+        49.5314,
+        0.0936,
+        12072
+      ],
+      [
+        49.5313,
+        0.0934,
+        14075
+      ],
+      [
+        49.5312,
+        0.0933,
+        16079
+      ],
+      [
+        49.5311,
+        0.0934,
+        18082
+      ],
+      [
+        49.531,
+        0.0935,
+        20085
+      ],
+      [
+        49.53095,
+        0.0936,
+        22088
+      ],
+      [
+        49.5309,
+        0.0937,
+        24090
+      ],
+      [
+        49.53085,
+        0.0938,
+        26092
+      ],
+      [
+        49.5308,
+        0.0939,
+        28094
+      ]
+    ],
+    "type": "local"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-09-30T15:23:50.954Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 90,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748FEV3HMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-09-30T15:23:54.867Z",
+    "latitude": 49.5312,
+    "localization": null,
+    "longitude": 0.0939,
+    "name": "AUTEL RemoteID",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 0,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5311,
+        0.0937,
+        2092
+      ],
+      [
+        49.5312,
+        0.0939,
+        4094
       ]
     ],
     "type": "live"
