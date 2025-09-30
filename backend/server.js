@@ -4,8 +4,8 @@ const http = require('http');
 
 const { log } = require('./utils/logger');
 const { config } = require('./config');
-const { setupWebSocket, stopPolling } = require('./websocket');
-const { flushAllCache, archiveInactiveFlights } = require('./flightsHistoryManager');
+const { setup, stopPolling, broadcast, notifyUpdate } = require('./websocket/websocket');
+const { flushAllCache, archiveInactiveFlights } = require('./flightsManager');
 
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
@@ -26,13 +26,11 @@ app.use(apiRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const { broadcast } = require('./websocket');
-const wss = setupWebSocket(server);
+const wss = setup(server);
 
 if (config.backend.useTestSim) {
-  const { startTestSimulation, setBroadcast } = require('./simulation');
-  setBroadcast(broadcast);
-  startTestSimulation();
+  const simulation = require('./simulation');
+  simulation.startSimulation();
 }
 
 let flushIntervalId;
@@ -50,8 +48,8 @@ function startIntervals() {
 
   archiveIntervalId = setInterval(async () => {
     try {
-      await archiveInactiveFlights();
-      log('[interval] Archivage automatique des vols inactifs OK');
+      await archiveInactiveFlights(notifyUpdate);
+      log('[interval] Archivage automatique vols inactifs OK');
     } catch (e) {
       log('[interval] Erreur archivage vols : ' + e.message);
     }
@@ -70,9 +68,9 @@ startIntervals();
 async function gracefulShutdown() {
   log('info', 'Arrêt serveur : arrêt polling, flush cache en cours...');
   try {
-    stopPolling(); // Arrêt du polling dans websocket.js
-    clearIntervals(); // Nettoyage des timers
-    await flushAllCache(); // Flush final asynchrone du cache
+    stopPolling();
+    clearIntervals();
+    await flushAllCache();
     log('info', 'Flush final du cache réussi');
   } catch (e) {
     log('error', 'Erreur flush cache à l\'arrêt : ' + e.message);
@@ -82,7 +80,6 @@ async function gracefulShutdown() {
     process.exit(0);
   });
 
-  // Forcer sortie après 5 secondes si bloqué
   setTimeout(() => {
     log('warn', 'Forçage sortie process après timeout');
     process.exit(1);

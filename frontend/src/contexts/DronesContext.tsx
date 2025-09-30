@@ -64,9 +64,9 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
           const files = parsed.data.map((f: { filename: string }) => f.filename);
           setHistoryFiles(files);
           console.log(`[DronesProvider] Résumé historique reçu: ${files.length} fichiers`);
-        } else if (parsed.type === 'historyUpdate') {
+        } else if (parsed.type === 'refresh') {
           // Notification fichier modifié - rafraichir liste
-          const updatedFile = parsed.filename;
+          const updatedFile = parsed.data.filename;
           setHistoryFiles(current => {
             if (!current.includes(updatedFile)) {
               console.log(`[DronesProvider] Nouveau fichier historique détecté: ${updatedFile}`);

@@ -1,14 +1,3 @@
-let broadcastFn = () => {};
-let updateFlightTraceFn = () => {};
-
-function setBroadcast(fn) {
-  broadcastFn = fn;
-}
-
-function setUpdateFlightTrace(fn) {
-  updateFlightTraceFn = fn;
-}
-
 const testDrone = {
   altitude: 0,
   attack_bands: [2400],
@@ -45,6 +34,7 @@ const testDrone = {
   whitelisted: false,
 };
 
+
 const testDroneClone = {
   ...testDrone,
   id: "1748CLONEHMG924501040",
@@ -74,84 +64,73 @@ const simulatedPath = [
 let currentStep = 0;
 let cycleCount = 0;
 let cycleCreatedTime = null;
-let simulationTimeout = null;
+let currentSimDrones = [];
 
-function sendEmptyDetection() {
-  broadcastFn({ data: { drone: [] } });
-  console.log("[TestSim] Envoi JSON vide pour fin de détection");
+function buildDrone(position, createdTime, now, base) {
+  const d = JSON.parse(JSON.stringify(base));
+  d.latitude = position[0];
+  d.longitude = position[1];
+  d.created_time = createdTime;
+  d.lastseen_time = now;
+  // Trace on drone will be assembled separately
+  return d;
 }
 
-async function generateSimulatedDetection() {
+async function generateSimulationStep() {
   if (currentStep >= simulatedPath.length) {
     currentStep = 0;
     cycleCount++;
-    console.log(`[TestSim] Cycle terminé #${cycleCount}`);
+    currentSimDrones = [];
 
-    sendEmptyDetection();
+    // End of cycle: include empty detection
+    currentSimDrones.push({ data: { drone: [] } });
 
-    // Forcer nouveau created_time pour nouvelle session 
     cycleCreatedTime = null;
 
     if (cycleCount > 3) {
-      console.log("[TestSim] Fin simulation après 3 cycles");
-      return;
+      return; // stop
     }
 
-    // Délai entre cycles (retarder légèrement pour bien tester timeout)
-    let delay;
-    if (cycleCount === 1) delay = 30000;
-    else if (cycleCount === 2) delay = 20000;
-    else delay = 10000;
-
-    clearTimeout(simulationTimeout);
-    simulationTimeout = setTimeout(generateSimulatedDetection, delay);
+    let delay = cycleCount === 1 ? 30000 : cycleCount === 2 ? 20000 : 10000;
+    setTimeout(generateSimulationStep, delay);
     return;
   }
 
   if (!cycleCreatedTime) {
     cycleCreatedTime = new Date().toISOString();
   }
-
-  const [lat, lng] = simulatedPath[currentStep++];
   const now = new Date().toISOString();
+  const pos = simulatedPath[currentStep++];
 
-  const droneData = JSON.parse(JSON.stringify(testDrone));
-  droneData.latitude = lat;
-  droneData.longitude = lng;
-  droneData.lastseen_time = now;
-  droneData.created_time = cycleCreatedTime;
+  let drone = buildDrone(pos, cycleCreatedTime, now, testDrone);
 
   if (cycleCount === 3) {
-    const cloneData = JSON.parse(JSON.stringify(testDroneClone));
-    cloneData.latitude = lat + 0.0004;
-    cloneData.longitude = lng + 0.0003;
-    cloneData.lastseen_time = now;
-    cloneData.created_time = cycleCreatedTime;
-
-    updateFlightTraceFn(droneData);
-    updateFlightTraceFn(cloneData);
-    broadcastFn([droneData, cloneData]);
-    console.log(`[TestSim] Cycle 3: deux drones détectés simultanément en points (${lat},${lng}) et (${cloneData.latitude},${cloneData.longitude})`);
+    const clone = buildDrone([pos[0] + 0.0004, pos[1] + 0.0003], cycleCreatedTime, now, testDroneClone);
+    currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id && d.id !== clone.id);
+    currentSimDrones.push(drone);
+    currentSimDrones.push(clone);
   } else {
-    updateFlightTraceFn(droneData);
-    broadcastFn([droneData]);
-    console.log(`[TestSim] Point simulé ajouté: (${lat}, ${lng})`);
+    currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id);
+    currentSimDrones.push(drone);
   }
 
-  clearTimeout(simulationTimeout);
-  simulationTimeout = setTimeout(generateSimulatedDetection, 2000);
+  setTimeout(generateSimulationStep, 2000);
 }
 
-function startTestSimulation() {
+function getCurrentSimulationData() {
+  // Return deep copy or fresh array of current state drones for poller
+  return JSON.parse(JSON.stringify(currentSimDrones));
+}
+
+function startSimulation() {
   currentStep = 0;
   cycleCount = 0;
   cycleCreatedTime = null;
-  console.log("[TestSim] Démarrage simulation drone avec cycle double et pause timeout");
-  generateSimulatedDetection();
+  currentSimDrones = [];
+  generateSimulationStep();
 }
 
 module.exports = {
-  startTestSimulation,
-  setBroadcast,
-  setUpdateFlightTrace,
+  startSimulation,
+  getCurrentSimulationData,
 };

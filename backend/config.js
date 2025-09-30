@@ -11,7 +11,6 @@ const parseFloatOrDefault = (value, defaultValue) => {
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-// Requête GraphQL drone complète définie ici (non modifiable)
 const graphqlDroneQuery = `
 {
   drone {
@@ -83,6 +82,11 @@ const config = {
     apiPort: process.env.API_PORT || '3200',
     anchoredDir: process.env.ANCHORED_DIR || 'anchored',
     anchorFile: process.env.ANCHOR_FILE || 'anchored.json',
+
+    // Constantes déplacées ici
+    inactiveTimeoutMs: 10000,
+    maxTraceLength: 1000,
+    distanceEpsilon: 0.00001,
 
     // Valeurs avancées (non modifiables via .env)
     graphqlDroneQuery: graphqlDroneQuery,

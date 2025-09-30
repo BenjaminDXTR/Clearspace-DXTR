@@ -1,8 +1,16 @@
 .
 ├── backend
+│   ├── backtree.txt
 │   ├── config.js
-│   ├── flights_history.json
-│   ├── flightsHistoryManager.js
+│   ├── flightsManager
+│   │   ├── fileOperations.js
+│   │   ├── flightsController.js
+│   │   ├── flightSessions.js
+│   │   ├── historyCache.js
+│   │   ├── index.js
+│   │   ├── notification.js
+│   │   ├── state.js
+│   │   └── utils.js
 │   ├── .gitignore
 │   ├── graphqlClient.js
 │   ├── history
@@ -19,12 +27,16 @@
 │   │   └── index.js
 │   ├── server.js
 │   ├── services
-│   │   ├── anchorService.js
-│   │   └── flightService.js
+│   │   └── anchorService.js
 │   ├── simulation.js
 │   ├── utils
 │   │   └── logger.js
-│   └── websocket.js
+│   └── websocket
+│       ├── broadcast.js
+│       ├── connections.js
+│       ├── poller.js
+│       ├── updateTrace.js
+│       └── websocket.js
 ├── .env
 ├── env.exemple
 ├── env.prod
@@ -102,4 +114,4 @@
 ├── stop-servers.sh
 └── tree.txt
 
-18 directories, 84 files
+20 directories, 94 files
