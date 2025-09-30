@@ -24,6 +24,22 @@ interface TablesLayoutProps {
   debug?: boolean;
 }
 
+const DEBUG = config.debug || config.environment === "development";
+
+function dlog(...args: unknown[]) {
+  if (DEBUG) {
+    // Limitation simple : ne log que si message ne contient pas "Nombre drones live filtrés" ou "Nombre drones archivés filtrés"
+    const skipPatterns = [
+      "Nombre drones live filtrés",
+      "Nombre drones archivés filtrés",
+      "Rendu tableau"
+    ];
+    if (!skipPatterns.some(pat => args.some(arg => typeof arg === "string" && arg.includes(pat)))) {
+      console.log(...args);
+    }
+  }
+}
+
 export default function TablesLayout({
   drones,
   error,
@@ -37,32 +53,32 @@ export default function TablesLayout({
   handleSelect,
   debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
-  const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[TablesLayout]", ...args);
-  }, [debug]);
-
   const onSelect = useCallback(
     (flight: Flight) => {
       dlog(`Vol sélectionné id=${flight.id ?? "?"}`);
       handleSelect(flight);
     },
-    [handleSelect, dlog]
+    [handleSelect]
   );
 
   const genKey = (item: { id?: string | number; created_time?: string | number }, idx: number): string =>
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
   const liveDrones = useMemo(() => {
-    const filtered = drones.filter(d => d._type === "live");
-    dlog(`Nombre drones live: ${filtered.length}`);
+    const filtered = drones.filter(
+      d => d._type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
+    );
+    dlog(`Nombre drones live filtrés: ${filtered.length}`);
     return filtered;
-  }, [drones, dlog]);
+  }, [drones]);
 
   const archivedDrones = useMemo(() => {
-    const filtered = localPageData.filter(d => d._type === "local");
-    dlog(`Nombre drones archivés: ${filtered.length}`);
+    const filtered = localPageData.filter(
+      d => d._type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
+    );
+    dlog(`Nombre drones archivés filtrés: ${filtered.length}`);
     return filtered;
-  }, [localPageData, dlog]);
+  }, [localPageData]);
 
   const renderTable = (
     title: string,

@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { Flight } from '../types/models';
 
 interface DronesContextValue {
-  drones: Flight[]; // Vols live
-  historyFiles: string[]; // Liste fichiers historiques (noms)
+  drones: Flight[];
+  historyFiles: string[];
   fetchHistoryFile: (filename: string) => Promise<Flight[]>;
   error: string | null;
+  loading: boolean;
 }
 
 const DronesContext = createContext<DronesContextValue | undefined>(undefined);
@@ -24,18 +25,20 @@ interface DronesProviderProps {
 
 export const DronesProvider = ({ children }: DronesProviderProps) => {
   const [drones, setDrones] = useState<Flight[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [historyFiles, setHistoryFiles] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<number | null>(null);
   const websocketUrl = "ws://localhost:3200";
 
   const fetchHistoryFile = useCallback(async (filename: string): Promise<Flight[]> => {
     try {
+      console.log(`[DronesProvider] Chargement fichier historique : ${filename}`);
       const response = await fetch(`http://localhost:3200/history/${filename}`);
       if (!response.ok) throw new Error(`Erreur fetch historique: ${response.statusText}`);
       const data = await response.json();
-      console.log(`[DronesProvider] Fichier historique chargé: ${filename}, vols: ${data.length}`);
+      console.log(`[DronesProvider] Fichier historique chargé : ${filename}, nombre de vols : ${data.length}`);
       return data;
     } catch (err) {
       console.error('[DronesProvider] fetchHistoryFile error:', err);
@@ -45,31 +48,39 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
   }, []);
 
   const connectWebSocket = useCallback(() => {
-    console.log('[DronesProvider] Tentative connexion WS à', websocketUrl);
+    console.log('[DronesProvider] Tentative connexion WebSocket à', websocketUrl);
     wsRef.current = new WebSocket(websocketUrl);
 
     wsRef.current.onopen = () => {
-      console.log('[DronesProvider] WS connecté');
+      console.log('[DronesProvider] WebSocket connecté');
       setError(null);
+      setLoading(false);
     };
 
     wsRef.current.onmessage = (event) => {
       try {
-        const parsed = JSON.parse(event.data);
+        const rawData = event.data;
+        console.log('[DronesProvider] Message WebSocket reçu brut :', rawData);
+        const parsed = JSON.parse(rawData);
+        console.log('[DronesProvider] Message WebSocket analysé :', parsed);
+
         if (Array.isArray(parsed)) {
-          // Message tableau = drones live
-          setDrones(parsed);
+          if (parsed.length === 0) {
+            console.log('[DronesProvider] Tableau de drones vide reçu, suppression des drones live');
+            setDrones([]);
+          } else {
+            const validDrones = parsed.filter(d => d?.id);
+            setDrones(validDrones);
+          }
         } else if (parsed.type === 'historySummaries') {
-          // Liste fichiers historique reçue
           const files = parsed.data.map((f: { filename: string }) => f.filename);
           setHistoryFiles(files);
-          console.log(`[DronesProvider] Résumé historique reçu: ${files.length} fichiers`);
+          console.log(`[DronesProvider] Résumé historique reçu : ${files.length} fichiers`);
         } else if (parsed.type === 'refresh') {
-          // Notification fichier modifié - rafraichir liste
           const updatedFile = parsed.data.filename;
           setHistoryFiles(current => {
             if (!current.includes(updatedFile)) {
-              console.log(`[DronesProvider] Nouveau fichier historique détecté: ${updatedFile}`);
+              console.log(`[DronesProvider] Nouveau fichier historique détecté : ${updatedFile}`);
               return [...current, updatedFile].sort();
             }
             return current;
@@ -83,24 +94,26 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
             setDrones(parsed.data.drone);
           }
         } else {
-          console.warn('[DronesProvider] Message WS inconnu:', parsed);
+          console.warn('[DronesProvider] Message WebSocket inconnu:', parsed);
         }
       } catch (e) {
-        console.error('[DronesProvider] Erreur parse message WS', e);
+        console.error('[DronesProvider] Erreur parsing message WebSocket', e);
       }
     };
 
     wsRef.current.onerror = (err) => {
-      console.error('[DronesProvider] WS erreur', err);
+      console.error('[DronesProvider] Erreur WebSocket', err);
       setError('WebSocket error');
+      setLoading(false);
     };
 
     wsRef.current.onclose = (event) => {
-      console.warn(`[DronesProvider] WS fermé, reconnexion dans 3s, raison: ${event.reason ?? 'inconnue'}`);
+      console.warn(`[DronesProvider] WebSocket fermé, reconnexion dans 3s. Raison : ${event.reason ?? 'inconnue'}`);
+      setLoading(true);
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
       reconnectTimeout.current = window.setTimeout(() => connectWebSocket(), 3000);
     };
-  }, []);
+  }, [websocketUrl]);
 
   useEffect(() => {
     connectWebSocket();
@@ -111,7 +124,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
   }, [connectWebSocket]);
 
   return (
-    <DronesContext.Provider value={{ drones, historyFiles, fetchHistoryFile, error }}>
+    <DronesContext.Provider value={{ drones, historyFiles, fetchHistoryFile, error, loading }}>
       {children}
     </DronesContext.Provider>
   );

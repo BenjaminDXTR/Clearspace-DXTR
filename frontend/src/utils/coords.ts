@@ -1,28 +1,19 @@
 import { DEFAULT_MAX_GEO_DISTANCE_METERS } from "./constants";
-import { config } from "../config";  // Import config centralisée
+import { config } from "../config";
 
-/**
- * Type représentant un point géographique [latitude, longitude].
- */
 export type LatLng = [number, number];
 
-/**
- * Type simplifié d'un Flight (vol)
- */
 export interface Flight {
   trace?: LatLng[] | string;
   tracing?: { 
     points?: LatLng[]; 
-    origin?: { lat: number; lng: number } 
+    origin?: { lat: number; lng: number }
   };
   initial_location?: { lat: number; lng: number };
   id?: string;
   [key: string]: any;
 }
 
-/**
- * Type minimal d’un événement
- */
 export interface Event {
   id: string;
   latitude?: number;
@@ -30,15 +21,12 @@ export interface Event {
   [key: string]: any;
 }
 
-/** Flag debug global */
 const DEBUG = config.debug || config.environment === "development";
 
-/** Log conditionnel */
 function dlog(...args: any[]): void {
   if (DEBUG) console.log(...args);
 }
 
-/** Vérifie si une valeur est un LatLng valide */
 export function isLatLng(val: unknown): val is LatLng {
   return (
     Array.isArray(val) &&
@@ -48,9 +36,6 @@ export function isLatLng(val: unknown): val is LatLng {
   );
 }
 
-/**
- * Parse une chaîne JSON représentant une trace [lat, lng][]
- */
 export function parseTracePoints(pointsStr: string): LatLng[] {
   if (typeof pointsStr !== "string") {
     if (DEBUG) console.warn("[parseTracePoints] Argument non string");
@@ -68,33 +53,27 @@ export function parseTracePoints(pointsStr: string): LatLng[] {
   return [];
 }
 
-/**
- * Récupère la trace d’un vol depuis flight.trace, tracing.points,
- * ou en fallback depuis initial_location ou tracing.origin
- */
 export function getFlightTrace(flight?: Flight | null): LatLng[] {
   if (!flight) {
     if (DEBUG) console.warn("[getFlightTrace] Vol null/undefined");
     return [];
   }
 
-  // Tableau direct
+  // Trace directe, minimum 2 points valides
   if (Array.isArray(flight.trace) && flight.trace.every(isLatLng)) {
-    dlog("[getFlightTrace] Trace fournie directement");
     if (flight.trace.length >= 2) {
+      dlog("[getFlightTrace] Trace fournie directement");
       return flight.trace as LatLng[];
     }
-    // Si trace trop courte, essayez fallback origin ou duplicata
   }
 
-  // String JSON
+  // Trace JSON string
   if (typeof flight.trace === "string") {
     const parsed = parseTracePoints(flight.trace);
     if (parsed.length >= 2) return parsed;
-    // Sinon fallback
   }
 
-  // Tracing.points (validation + non vide)
+  // Tracing.points fallback
   const tracingPoints = flight.tracing?.points;
   if (
     Array.isArray(tracingPoints) &&
@@ -105,7 +84,7 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
     return tracingPoints as LatLng[];
   }
 
-  // Si trace trop courte, fallback sur initial_location ou origin origin
+  // Fallback sur initial_location ou tracing.origin
   let fallbackPoint: LatLng | null = null;
   if (
     flight.initial_location &&
@@ -114,7 +93,8 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
     flight.initial_location.lng !== 0
   ) {
     fallbackPoint = [flight.initial_location.lat, flight.initial_location.lng];
-    dlog("[getFlightTrace] Fallback sur initial_location");
+    // Commenté pour réduire les logs trop répétitifs
+    // dlog("[getFlightTrace] Fallback sur initial_location");
   } else if (
     flight.tracing?.origin &&
     isLatLng([flight.tracing.origin.lat, flight.tracing.origin.lng]) &&
@@ -122,14 +102,13 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
     flight.tracing.origin.lng !== 0
   ) {
     fallbackPoint = [flight.tracing.origin.lat, flight.tracing.origin.lng];
-    dlog("[getFlightTrace] Fallback sur tracing.origin");
+    // dlog("[getFlightTrace] Fallback sur tracing.origin");
   }
 
   if (fallbackPoint) {
-    // Pour que Leaflet dessine la ligne, créez un second point très proche
     const offsetPoint: LatLng = [fallbackPoint[0] + 0.00001, fallbackPoint[1] + 0.00001];
     const trace = [fallbackPoint, offsetPoint];
-    dlog("[getFlightTrace] Doublage du point fallback pour polyline", trace);
+    // dlog("[getFlightTrace] Doublage du point fallback pour polyline", trace);
     return trace;
   }
 
@@ -137,12 +116,9 @@ export function getFlightTrace(flight?: Flight | null): LatLng[] {
   return [];
 }
 
-/**
- * Calcule la distance entre deux points (Haversine)
- */
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371000; // Rayon Terre en mètres
+  const R = 6371000;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -151,9 +127,6 @@ export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/**
- * Trouve une trace qui correspond à un Event (par ID ou proximité géo)
- */
 export function findMatchingTrace(
   traces: Flight[],
   event: Event,
@@ -175,7 +148,7 @@ export function findMatchingTrace(
     return byId;
   }
 
-  // Par proximité géographique
+  // Proximité géographique
   if (typeof event.latitude === "number" && typeof event.longitude === "number") {
     for (const trace of traces) {
       const points = getFlightTrace(trace);

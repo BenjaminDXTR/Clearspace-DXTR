@@ -1,4 +1,4 @@
-import { useEffect, ChangeEvent, useCallback } from "react";
+import { useEffect, ChangeEvent, useCallback, useRef } from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
@@ -34,11 +34,17 @@ export default function AnchorModalLayout({
     if (debug) console.log("[AnchorModalLayout]", ...args);
   }, [debug]);
 
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  const mapDivRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (anchorModal?.flight?.id !== undefined) {
       dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
     }
-    // Optional cleanup log on unmount
+    // Scroll au top à chaque ouverture
+    if (modalContentRef.current) {
+      modalContentRef.current.scrollTop = 0;
+    }
     return () => {
       dlog("[AnchorModal] Fermée");
     };
@@ -46,6 +52,7 @@ export default function AnchorModalLayout({
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+    e.stopPropagation();
     setAnchorDescription(value);
     dlog(`[AnchorModal] Description modifiée (${value.length} caractères)`);
   };
@@ -72,17 +79,14 @@ export default function AnchorModalLayout({
       aria-labelledby="anchorModalTitle"
       aria-describedby="anchorModalDesc"
     >
-      <div className="anchor-modal-content" tabIndex={-1}>
+      <div className="anchor-modal-content" tabIndex={-1} ref={modalContentRef}>
         <h3 id="anchorModalTitle">Préparation de l&apos;ancrage</h3>
 
         <div className="anchor-modal-scrollable">
-          {/* Colonne gauche : JSON & description */}
           <div className="left-panel">
-            {/* JSON complet, affiché en entier et lisible */}
             <pre className="anchor-modal-json">
               {anchorDataPreview ? JSON.stringify(anchorDataPreview, null, 2) : "Aucune donnée"}
             </pre>
-            {/* Zone commentaire confortable */}
             <div className="anchor-modal-section">
               <label htmlFor="anchor-description-textarea">
                 <b>Description :</b>
@@ -99,10 +103,10 @@ export default function AnchorModalLayout({
             </div>
           </div>
 
-          {/* Colonne droite : carte */}
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>
             <FlightMap
+              ref={mapDivRef}
               trace={trace}
               markerIcon={historyIcon}
               zoom={10}
@@ -110,7 +114,7 @@ export default function AnchorModalLayout({
               className="anchor-modal-map modal-map-capture"
             />
             {!hasValidTrace && (
-              <div className="anchor-modal-warning">
+              <div className="anchor-modal-warning" role="alert">
                 ⚠️ La trace est vide ou invalide, impossible de valider.
               </div>
             )}
@@ -120,7 +124,6 @@ export default function AnchorModalLayout({
           </div>
         </div>
 
-        {/* Footer - boutons */}
         <div className="anchor-modal-actions">
           <button
             disabled={disableValidation}

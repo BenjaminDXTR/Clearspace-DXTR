@@ -57,10 +57,12 @@ function AppContent() {
 
   useEffect(() => {
     dlog(`[AppContent] wsDrones updated, count: ${wsDrones.length}`);
+    dlog('[AppContent] wsDrones data:', wsDrones);
   }, [wsDrones, dlog]);
 
   useEffect(() => {
     dlog(`[AppContent] Historique fichiers disponibles: ${historyFiles.length}`);
+    dlog('[AppContent] historyFiles data:', historyFiles);
   }, [historyFiles, dlog]);
 
   // Synchroniser localHistory avec les vols historiques chargés en forçant _type à partir de type backend
@@ -99,6 +101,7 @@ function AppContent() {
     dlog(`[AppContent] Chargement historique fichier: ${filename}`);
     const flights = await fetchHistoryFile(filename);
     dlog(`[AppContent] Vols historiques chargés: ${flights.length}`);
+    dlog('[AppContent] Détail vols historiques:', flights);
     setHistoricalFlights(flights);
   }, [fetchHistoryFile, dlog]);
 
@@ -116,15 +119,12 @@ function AppContent() {
 
   const dronesWithType = useMemo(() => {
     const filtered = combinedFlights
-      .filter(d => {
-        if (d._type === "live") return true;
-        if (d._type === "local") return true;
-        return false;
-      })
+      .filter(d => d._type === "live" || d._type === "local")
       .filter(d => d.latitude !== 0 && d.longitude !== 0)
       .map(d => ({ ...d, _type: d._type ?? "live" as const }));
-
+      
     dlog(`[AppContent] dronesWithType calculés: ${filtered.length}`);
+    dlog('[AppContent] dronesWithType data:', filtered);
     return filtered;
   }, [combinedFlights, dlog]);
 
@@ -136,6 +136,7 @@ function AppContent() {
     Object.entries(liveTraces).forEach(([id, data]) => {
       dlog(`[AppContent] liveTrace drone ${id}, trace points: ${data.trace?.length ?? 0}`);
     });
+    dlog('[AppContent] liveTraces full data:', liveTraces);
   }, [liveTraces, dlog]);
 
   liveTracesRef.current = liveTraces;

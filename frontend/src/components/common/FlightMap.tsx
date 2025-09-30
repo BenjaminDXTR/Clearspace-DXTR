@@ -1,4 +1,4 @@
-import { useRef, useEffect, CSSProperties } from "react";
+import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -10,7 +10,6 @@ import {
 } from "react-leaflet";
 import L, { Icon, Map as LeafletMap, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
-
 import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
 import "./FlightMap.css";
@@ -58,13 +57,12 @@ interface FlightMapProps {
   center?: [number, number] | null;
   polylineOptions?: L.PathOptions;
   debug?: boolean;
-
   livePosition?: LatLngExpression | null;
   startPosition?: LatLngExpression | null;
   flyToTrigger?: number;
 }
 
-export default function FlightMap({
+const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   trace = [],
   markerIcon = null,
   zoom = 13,
@@ -77,14 +75,18 @@ export default function FlightMap({
   livePosition = null,
   startPosition = null,
   flyToTrigger,
-}: FlightMapProps) {
+}, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Expose via ref the Leaflet container div for capture
+  useImperativeHandle(ref, () => containerRef.current as HTMLElement, []);
 
   // Filtrage des points valides
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  // Centre initial de la carte : centre passé en props > milieu trace > position Paris par défaut
+  // Centre initial de la carte : centre passé en props > milieu trace > Paris par défaut
   const computedCenter: [number, number] =
     center ??
     (hasTrace
@@ -103,6 +105,9 @@ export default function FlightMap({
       aria-label="Carte du tracé de vol"
     >
       <InvalidateMapSize />
+      <div ref={containerRef} className="leaflet-container">
+        {/* Leaflet DOM is rendered within MapContainer, here we just attach ref */}
+      </div>
 
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -150,4 +155,8 @@ export default function FlightMap({
       />
     </MapContainer>
   );
-}
+});
+
+FlightMap.displayName = "FlightMap";
+
+export default FlightMap;
