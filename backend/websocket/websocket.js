@@ -52,7 +52,7 @@ function setup(server) {
   wss.on('connection', async ws => {
     clients.add(ws);
     log.info(`[websocket] New client connected. Total clients: ${clients.size}`);
-    setupConnection(ws);
+    setupConnection(ws, broadcast, notifyUpdate);
 
     try {
       const historyDir = path.resolve(__dirname, '../history');

@@ -15,7 +15,7 @@ function isValidTrace(trace) {
   );
 }
 
-function setupConnection(ws) {
+function setupConnection(ws, broadcastFn, notifyUpdateFn) {
   clients.add(ws);
   log.info(`[connections] New client connected. Total clients: ${clients.size}`);
 
@@ -34,8 +34,8 @@ function setupConnection(ws) {
         flightTraces.set(data.id, data.trace);
         try {
           const filename = await saveFlight(data);
-          notifyUpdate(filename);
-          broadcast([data], clients);
+          notifyUpdateFn(filename);
+          broadcastFn([data], clients);
           log.info(`[connections] Broadcasted updated flight: ${data.id}`);
         } catch (e) {
           log.error(`[connections] Error saving flight: ${e.message}`);

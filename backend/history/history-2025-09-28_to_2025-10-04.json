@@ -484,7 +484,7 @@
         28126
       ]
     ],
-    "type": "live"
+    "type": "local"
   },
   {
     "altitude": 0,
@@ -605,6 +605,616 @@
         49.5312,
         0.09419999999999999,
         28128
+      ]
+    ],
+    "type": "local"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-10-01T13:29:19.314Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 90,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748FEV3HMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-10-01T13:29:45.331Z",
+    "latitude": 49.5308,
+    "localization": null,
+    "longitude": 0.0939,
+    "name": "AUTEL RemoteID",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 0,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5312,
+        0.0939,
+        4009
+      ],
+      [
+        49.5313,
+        0.0941,
+        6012
+      ],
+      [
+        49.5314,
+        0.094,
+        8014
+      ],
+      [
+        49.53145,
+        0.0938,
+        10016
+      ],
+      [
+        49.5314,
+        0.0936,
+        12018
+      ],
+      [
+        49.5313,
+        0.0934,
+        14020
+      ],
+      [
+        49.5312,
+        0.0933,
+        16021
+      ],
+      [
+        49.5311,
+        0.0934,
+        18025
+      ],
+      [
+        49.531,
+        0.0935,
+        20027
+      ],
+      [
+        49.53095,
+        0.0936,
+        22030
+      ],
+      [
+        49.5309,
+        0.0937,
+        24033
+      ],
+      [
+        49.53085,
+        0.0938,
+        26035
+      ],
+      [
+        49.5308,
+        0.0939,
+        28045
+      ]
+    ],
+    "type": "local"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-10-01T13:30:17.392Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 90,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748FEV3HMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-10-01T13:30:45.361Z",
+    "latitude": 49.5308,
+    "localization": null,
+    "longitude": 0.0939,
+    "name": "AUTEL RemoteID",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 0,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5311,
+        0.0937,
+        2062
+      ],
+      [
+        49.5312,
+        0.0939,
+        4064
+      ],
+      [
+        49.5313,
+        0.0941,
+        6066
+      ],
+      [
+        49.5314,
+        0.094,
+        8069
+      ],
+      [
+        49.53145,
+        0.0938,
+        10071
+      ],
+      [
+        49.5314,
+        0.0936,
+        12073
+      ],
+      [
+        49.5313,
+        0.0934,
+        14075
+      ],
+      [
+        49.5312,
+        0.0933,
+        16077
+      ],
+      [
+        49.5311,
+        0.0934,
+        18079
+      ],
+      [
+        49.531,
+        0.0935,
+        20081
+      ],
+      [
+        49.53095,
+        0.0936,
+        22083
+      ],
+      [
+        49.5309,
+        0.0937,
+        24086
+      ],
+      [
+        49.53085,
+        0.0938,
+        26087
+      ],
+      [
+        49.5308,
+        0.0939,
+        28088
+      ]
+    ],
+    "type": "local"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-10-01T13:31:07.443Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 90,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748FEV3HMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-10-01T13:31:35.388Z",
+    "latitude": 49.5308,
+    "localization": null,
+    "longitude": 0.0939,
+    "name": "AUTEL RemoteID",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 0,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5311,
+        0.0937,
+        2080
+      ],
+      [
+        49.5312,
+        0.0939,
+        4083
+      ],
+      [
+        49.5313,
+        0.0941,
+        6085
+      ],
+      [
+        49.5314,
+        0.094,
+        8088
+      ],
+      [
+        49.53145,
+        0.0938,
+        10091
+      ],
+      [
+        49.5314,
+        0.0936,
+        12093
+      ],
+      [
+        49.5313,
+        0.0934,
+        14095
+      ],
+      [
+        49.5312,
+        0.0933,
+        16097
+      ],
+      [
+        49.5311,
+        0.0934,
+        18099
+      ],
+      [
+        49.531,
+        0.0935,
+        20101
+      ],
+      [
+        49.53095,
+        0.0936,
+        22104
+      ],
+      [
+        49.5309,
+        0.0937,
+        24107
+      ],
+      [
+        49.53085,
+        0.0938,
+        26110
+      ],
+      [
+        49.5308,
+        0.0939,
+        28113
+      ]
+    ],
+    "type": "local"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-10-01T13:31:47.492Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 90,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748FEV3HMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-10-01T13:32:15.421Z",
+    "latitude": 49.5308,
+    "localization": null,
+    "longitude": 0.0939,
+    "name": "AUTEL RemoteID",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 0,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5311,
+        0.0937,
+        2105
+      ],
+      [
+        49.5312,
+        0.0939,
+        4109
+      ],
+      [
+        49.5313,
+        0.0941,
+        6111
+      ],
+      [
+        49.5314,
+        0.094,
+        8115
+      ],
+      [
+        49.53145,
+        0.0938,
+        10120
+      ],
+      [
+        49.5314,
+        0.0936,
+        12124
+      ],
+      [
+        49.5313,
+        0.0934,
+        14127
+      ],
+      [
+        49.5312,
+        0.0933,
+        16130
+      ],
+      [
+        49.5311,
+        0.0934,
+        18132
+      ],
+      [
+        49.531,
+        0.0935,
+        20135
+      ],
+      [
+        49.53095,
+        0.0936,
+        22137
+      ],
+      [
+        49.5309,
+        0.0937,
+        24139
+      ],
+      [
+        49.53085,
+        0.0938,
+        26142
+      ],
+      [
+        49.5308,
+        0.0939,
+        28146
+      ]
+    ],
+    "type": "live"
+  },
+  {
+    "altitude": 0,
+    "attack_bands": [
+      2400
+    ],
+    "blacklisted": false,
+    "confirmed": true,
+    "created_time": "2025-10-01T13:31:47.493Z",
+    "deleted_time": "0001-01-01T00:00:00Z",
+    "description": "",
+    "direction": 60,
+    "distance": 9000000,
+    "height": 0,
+    "id": "1748CLONEHMG924501040",
+    "initial_location": {
+      "lat": 49.53097720147358,
+      "lng": 0.09360614114544319
+    },
+    "lastseen": null,
+    "lastseen_time": "2025-10-01T13:32:15.421Z",
+    "latitude": 49.5312,
+    "localization": null,
+    "longitude": 0.09419999999999999,
+    "name": "AUTEL Clone",
+    "rc_location": {
+      "lat": 210,
+      "lng": 210
+    },
+    "seen_sensor": [
+      {
+        "bandwidth_khz": 20000,
+        "detected_freq_khz": 2437000,
+        "noise_dbm": 0,
+        "port": "rf",
+        "sensor_id": "178",
+        "signal_dbm": 0,
+        "snr_dB": 0
+      }
+    ],
+    "speed": 10,
+    "tracing": {
+      "lastlen": 0,
+      "origin": {
+        "lat": 0,
+        "lng": 0
+      },
+      "points": []
+    },
+    "whitelisted": false,
+    "trace": [
+      [
+        49.5315,
+        0.094,
+        2107
+      ],
+      [
+        49.5316,
+        0.09419999999999999,
+        4110
+      ],
+      [
+        49.5317,
+        0.0944,
+        6113
+      ],
+      [
+        49.5318,
+        0.0943,
+        8118
+      ],
+      [
+        49.53185,
+        0.09409999999999999,
+        10121
+      ],
+      [
+        49.5318,
+        0.0939,
+        12125
+      ],
+      [
+        49.5317,
+        0.09369999999999999,
+        14129
+      ],
+      [
+        49.5316,
+        0.09359999999999999,
+        16132
+      ],
+      [
+        49.5315,
+        0.09369999999999999,
+        18134
+      ],
+      [
+        49.5314,
+        0.0938,
+        20136
+      ],
+      [
+        49.531349999999996,
+        0.0939,
+        22139
+      ],
+      [
+        49.5313,
+        0.094,
+        24141
+      ],
+      [
+        49.53125,
+        0.09409999999999999,
+        26144
+      ],
+      [
+        49.5312,
+        0.09419999999999999,
+        28148
       ]
     ],
     "type": "live"
