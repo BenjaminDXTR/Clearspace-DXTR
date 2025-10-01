@@ -1,4 +1,4 @@
-const log = require('../utils/logger'); // nouveau logger avec log.debug/info/warn/error
+const log = require('../utils/logger');
 const broadcast = require('./broadcast');
 const { fetchDroneData } = require('../graphqlClient');
 const { saveFlightToHistory, notifyUpdate } = require('../flightsManager');
@@ -90,8 +90,12 @@ async function poller() {
             notifyUpdate(filename);
         }
 
-        broadcast(fullDrones, clients);
+        // Filtrer les drones locaux pour ne pas les renvoyer en live
+        const filteredFullDrones = fullDrones.filter(flight => flight.type !== 'local');
+        log.info(`[POOOOOOOLLER]Broadcasting ${filteredFullDrones.length} drones after filtering local`);
+        broadcast(filteredFullDrones, clients, true);
         log.info('[poller] Broadcast to clients complete');
+
     } catch (err) {
         log.error(`[poller] Error during polling: ${err.message}`);
     } finally {

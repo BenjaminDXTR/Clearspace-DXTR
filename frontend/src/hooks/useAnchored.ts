@@ -3,15 +3,15 @@ import type { Flight } from "../types/models";
 import { config } from "../config";
 
 interface UseAnchoredOptions {
-  /** Intervalle entre deux rafraîchissements (ms). 0 ou négatif pour désactiver */
-  pollInterval?: number;
-  /** Activer les logs debug (par défaut en mode dev) */
+  pollInterval?: number; // Intervalle en ms, 0 ou négatif désactive la récupération périodique
   debug?: boolean;
+  onUserError?: (message: string) => void; // Erreurs destinées à être affichées à l’utilisateur
 }
 
 export default function useAnchored({
   pollInterval = 5000,
   debug = config.debug || config.environment === "development",
+  onUserError,
 }: UseAnchoredOptions = {}) {
   const [anchored, setAnchored] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +57,7 @@ export default function useAnchored({
             ? err.message
             : "Erreur inconnue lors de la récupération des vols ancrés";
         setError(message);
+        if (onUserError) onUserError(message);
         if (debug) console.error("[useAnchored] Erreur :", err);
       } finally {
         if (isMounted) setLoading(false);
@@ -76,9 +77,8 @@ export default function useAnchored({
       if (intervalId) clearInterval(intervalId);
     };
     */
-    // Depuis la route backend 'anchored' n'existe pas, on désactive temporairement.
     dlog("useAnchored est en pause, fetch désactivé.");
-  }, [pollInterval, dlog]);
+  }, [pollInterval, dlog, debug, onUserError]);
 
   return { anchored, loading, error };
 }

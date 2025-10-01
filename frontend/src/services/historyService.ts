@@ -10,13 +10,15 @@ export interface Flight {
   [key: string]: unknown;
 }
 
-/** Log conditionnel */
 function dlog(...args: any[]): void {
   if (DEBUG) console.log(...args);
 }
 
-/** Type guard : valide qu'un objet est un Flight */
-function isFlight(f: unknown): f is Flight {
+function warnUser(message: string, onUserError?: (msg: string) => void) {
+  if (onUserError) onUserError(message);
+}
+
+export function isFlight(f: unknown): f is Flight {
   return (
     typeof f === "object" &&
     f !== null &&
@@ -25,79 +27,79 @@ function isFlight(f: unknown): f is Flight {
   );
 }
 
-/**
- * Lit l'historique depuis le localStorage navigateur
- */
-export function getLocalHistory(): Flight[] {
+export function getLocalHistory(onUserError?: (msg: string) => void): Flight[] {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!data) {
-      dlog("[getLocalHistory] Aucun historique trouvé");
+      dlog("[getLocalHistory] No history found");
       return [];
     }
     const parsed = JSON.parse(data);
     if (!Array.isArray(parsed)) {
-      console.warn("[getLocalHistory] Données invalides (non tableau)");
+      const warning = "[getLocalHistory] Invalid data (not an array)";
+      console.warn(warning);
+      warnUser(warning, onUserError);
       return [];
     }
     const flights = parsed.filter(isFlight);
-    dlog(`[getLocalHistory] ${flights.length} vol(s) valide(s)`);
+    dlog(`[getLocalHistory] Found ${flights.length} valid flights`);
     return flights;
   } catch (error) {
-    console.error("[getLocalHistory] Erreur de parsing :", error);
+    const errMsg = `[getLocalHistory] Parsing error: ${(error as Error).message}`;
+    console.error(errMsg);
+    warnUser(errMsg, onUserError);
     return [];
   }
 }
 
-/**
- * Ajoute un vol à l'historique (évite doublons, limite la taille)
- */
-export function addToLocalHistory(flight: Flight): void {
+export function addToLocalHistory(flight: Flight, onUserError?: (msg: string) => void): void {
   if (!isFlight(flight)) {
-    console.warn("[addToLocalHistory] Vol invalide :", flight);
+    const warning = "[addToLocalHistory] Invalid flight object";
+    console.warn(warning, flight);
+    warnUser(warning, onUserError);
     return;
   }
   try {
-    let history = getLocalHistory();
+    let history = getLocalHistory(onUserError);
     if (history.some(f => f.id === flight.id && f.created_time === flight.created_time)) {
-      dlog("[addToLocalHistory] Vol déjà présent, ignoré");
+      dlog("[addToLocalHistory] Flight already present, skipping");
       return;
     }
     history = [flight, ...history].slice(0, MAX_HISTORY_LENGTH);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
-    dlog(`[addToLocalHistory] Vol ajouté id=${flight.id}`);
+    dlog(`[addToLocalHistory] Added flight id=${flight.id}`);
   } catch (error) {
-    console.error("[addToLocalHistory] Erreur lors de l’ajout :", error);
+    const errMsg = `[addToLocalHistory] Error adding flight: ${(error as Error).message}`;
+    console.error(errMsg);
+    warnUser(errMsg, onUserError);
   }
 }
 
-/**
- * Supprime un vol par id + created_time
- */
-export function removeFromLocalHistory(id: string, created_time: string): void {
+export function removeFromLocalHistory(id: string, created_time: string, onUserError?: (msg: string) => void): void {
   if (!id || !created_time) {
-    console.warn("[removeFromLocalHistory] id ou created_time manquant");
+    const warning = "[removeFromLocalHistory] Missing id or created_time";
+    console.warn(warning);
+    warnUser(warning, onUserError);
     return;
   }
   try {
-    const filtered = getLocalHistory().filter(
-      f => !(f.id === id && f.created_time === created_time)
-    );
+    const filtered = getLocalHistory(onUserError).filter(f => !(f.id === id && f.created_time === created_time));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-    dlog(`[removeFromLocalHistory] Vol supprimé id=${id}`);
+    dlog(`[removeFromLocalHistory] Removed flight id=${id}`);
   } catch (error) {
-    console.error("[removeFromLocalHistory] Erreur lors de la suppression :", error);
+    const errMsg = `[removeFromLocalHistory] Error removing flight: ${(error as Error).message}`;
+    console.error(errMsg);
+    warnUser(errMsg, onUserError);
   }
 }
 
-/**
- * Vide totalement l'historique local
- */
-export function clearLocalHistory(): void {
+export function clearLocalHistory(onUserError?: (msg: string) => void): void {
   try {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
-    dlog("[clearLocalHistory] Historique vidé");
+    dlog("[clearLocalHistory] Cleared local history");
   } catch (error) {
-    console.error("[clearLocalHistory] Erreur lors du vidage :", error);
+    const errMsg = `[clearLocalHistory] Error clearing history: ${(error as Error).message}`;
+    console.error(errMsg);
+    warnUser(errMsg, onUserError);
   }
 }

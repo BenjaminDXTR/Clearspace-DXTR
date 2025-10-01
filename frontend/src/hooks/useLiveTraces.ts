@@ -2,64 +2,86 @@ import { useState, useEffect, useCallback } from "react";
 import type { Flight, LatLng, LatLngTimestamp } from "../types/models";
 import { config } from "../config";
 
-interface UseLiveTracesOptions {
-  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[] | LatLngTimestamp[]) => void;
+
+interface UseLivetraceOptions {
+  onUpdate?: (flight: Flight, trace: LatLng[] | LatLngTimestamp[]) => void;
+  onUserError?: (message: string) => void; // Erreurs destinées à l'utilisateur
   debug?: boolean;
 }
+
 
 interface DroneTraceState {
   flight: Flight;
   trace: LatLng[] | LatLngTimestamp[];
 }
 
-export default function useLiveTraces(
+
+export default function useLivetrace(
   drones: Flight[],
   {
-    onUpdateLiveFlight,
-    debug = config.debug || config.environment === "development",
-  }: UseLiveTracesOptions = {}
+    onUpdate,
+    onUserError,
+    debug = config.debug || config.environment === "development"
+  }: UseLivetraceOptions = {}
 ) {
   const [liveTraces, setLiveTraces] = useState<Record<string, DroneTraceState>>({});
 
   const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[useLiveTraces]", ...args);
+    if (debug) {
+      console.log("[useLivetrace]", ...args);
+    }
   }, [debug]);
 
   useEffect(() => {
-    if (drones.length && debug) {
-      dlog(`Mise à jour avec ${drones.length} drone(s)`);
+    if(drones.length && debug){
+      dlog(`Update with ${drones.length} drone(s)`);
     }
 
-    setLiveTraces((prev) => {
-      const updated = { ...prev };
-      let hasChange = false;
+    try {
+      setLiveTraces((prev) => {
+        const updated = { ...prev };
+        let changed = false;
 
-      drones.forEach((drone) => {
-        if (drone.id) {
-          const traceFromBackend = Array.isArray(drone.trace) ? drone.trace : [];
-
-          if (!updated[drone.id]) {
-            updated[drone.id] = { flight: drone, trace: traceFromBackend };
-            hasChange = true;
-            dlog(`Nouveau drone ajouté ${drone.id} avec trace de ${traceFromBackend.length} points`);
-          } else if (
-            JSON.stringify(traceFromBackend) !== JSON.stringify(updated[drone.id].trace) ||
-            JSON.stringify(drone) !== JSON.stringify(updated[drone.id].flight)
-          ) {
-            updated[drone.id] = { flight: drone, trace: traceFromBackend };
-            hasChange = true;
-            dlog(`Drone ${drone.id} mis à jour avec trace de ${traceFromBackend.length} points`);
+        drones.forEach(drone => {
+          if(!drone.id){
+            dlog("Ignored drone without id");
+            if(onUserError){
+              onUserError("Received drone without ID - ignored.");
+            }
+            return;
           }
 
-          if (onUpdateLiveFlight && hasChange) {
-            onUpdateLiveFlight(drone, traceFromBackend);
+          const newTrace = Array.isArray(drone.trace) ? drone.trace : [];
+
+          // Compare previous stored trace and flight data as JSON strings for deep equality:
+          if(!updated[drone.id]){
+            updated[drone.id] = { flight: drone, trace: newTrace };
+            changed = true;
+            dlog(`Added new drone ${drone.id} with trace length ${newTrace.length}`);
+          } else if(
+              JSON.stringify(newTrace) !== JSON.stringify(updated[drone.id].trace) ||
+              JSON.stringify(drone) !== JSON.stringify(updated[drone.id].flight)
+            ){
+            updated[drone.id] = { flight: drone, trace: newTrace };
+            changed = true;
+            dlog(`Updated drone ${drone.id} with new trace length ${newTrace.length}`);
           }
-        }
+
+          if(changed && onUpdate){
+            onUpdate(drone, newTrace);
+          }
+        });
+
+        return changed ? updated : prev;
       });
-
-      return hasChange ? updated : prev;
-    });
-  }, [drones, onUpdateLiveFlight, dlog]);
+    } catch(e){
+      const msg = `Error in useLivetrace: ${(e as Error).message}`;
+      dlog(msg);
+      if(onUserError){
+        onUserError(msg);
+      }
+    }
+  }, [drones, onUpdate, onUserError, dlog]);
 
   return { liveTraces };
 }

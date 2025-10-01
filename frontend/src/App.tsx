@@ -25,12 +25,12 @@ import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "./types/mo
 import { config } from './config';
 import { DronesProvider, useDrones } from './contexts/DronesContext';
 
-// Déclaration de l’interface ErrorMessage pour gérer les erreurs
 interface ErrorMessage {
   id: string;
   title?: string;
   message: string;
   severity?: "info" | "warning" | "error";
+  dismissible?: boolean; // ajoute si fermeture possible ou non
 }
 
 function exportAsJson(obj: unknown, filename: string) {
@@ -59,7 +59,7 @@ function AppContent() {
     }
   }, [debug]);
 
-  const { drones: wsDrones, historyFiles, fetchHistoryFile, error } = useDrones();
+  const { drones: wsDrones, historyFiles, fetchHistory, error } = useDrones();
 
   const [historicalFlights, setHistoricalFlights] = useState<Flight[]>([]);
   const [currentHistoryFile, setCurrentHistoryFile] = useState<string | null>(null);
@@ -72,7 +72,7 @@ function AppContent() {
     localPageData,
   } = useLocalHistory({ debug });
 
-  // Correction du type d’erreurs : passer à ErrorMessage[]
+  // Erreurs avec gestion dismissible selon severity
   const [errors, setErrors] = useState<ErrorMessage[]>([]);
 
   // Synchroniser erreurs du contexte DronesContext dans la liste d’erreurs typée
@@ -84,10 +84,16 @@ function AppContent() {
           id: `${Date.now()}`,
           message: error,
           severity: "error",
+          dismissible: false, // erreurs importantes non fermables
         }
       ]);
     }
   }, [error]);
+
+  // Fonction pour supprimer une erreur affichée
+  const handleDismissError = useCallback((id: string) => {
+    setErrors(prev => prev.filter(e => e.id !== id));
+  }, []);
 
   useEffect(() => {
     dlog(`[AppContent] wsDrones updated, count: ${wsDrones.length}`);
@@ -99,29 +105,30 @@ function AppContent() {
 
   useEffect(() => {
     if (historyFiles.length === 0) {
+      dlog("Aucun fichier historique disponible");
       setCurrentHistoryFile(null);
       setHistoricalFlights([]);
-      dlog("[AppContent] Aucun fichier historique disponible");
       return;
     }
     const latestFile = historyFiles[historyFiles.length - 1];
-    if (currentHistoryFile === null || !historyFiles.includes(currentHistoryFile)) {
-      dlog(`[AppContent] Chargement automatique dernier fichier historique : ${latestFile}`);
+    // Si currentHistoryFile est null ou non présent dans la liste, on le met à jour
+    if (!currentHistoryFile || !historyFiles.includes(currentHistoryFile)) {
+      dlog(`Chargement automatique du fichier d'historique: ${latestFile}`);
       setCurrentHistoryFile(latestFile);
       handleLoadHistoricalFile(latestFile);
     } else {
-      dlog(`[AppContent] Rafraîchissement du fichier historique courant: ${currentHistoryFile}`);
+      dlog(`Chargement du fichier d'historique sélectionné (current): ${currentHistoryFile}`);
       handleLoadHistoricalFile(currentHistoryFile);
     }
-  }, [historyFiles, currentHistoryFile, dlog]);
+  }, [historyFiles, currentHistoryFile]);
 
   const handleLoadHistoricalFile = useCallback(async (filename: string) => {
     dlog(`[AppContent] Chargement historique fichier: ${filename}`);
-    const flights = await fetchHistoryFile(filename);
+    const flights = await fetchHistory(filename);
     dlog(`[AppContent] Vols historiques chargés: ${flights.length}`);
     setHistoricalFlights(flights);
     setCurrentHistoryFile(filename);
-  }, [fetchHistoryFile, dlog]);
+  }, [fetchHistory, dlog]);
 
   const combinedFlights = useMemo(() => {
     const processedLiveDrones = wsDrones.map(d => ({ ...d, _type: "live" as const }));
@@ -224,7 +231,7 @@ function AppContent() {
   return (
     <div>
       <Header />
-      {errors.length > 0 && <ErrorPanel errors={errors} />}
+      {errors.length > 0 && <ErrorPanel errors={errors} onDismiss={handleDismissError}/>}
       <div className="container-detections">
         <MapLayout
           selectedTracePoints={selectedTracePoints}

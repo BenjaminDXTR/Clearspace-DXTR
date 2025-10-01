@@ -18,7 +18,7 @@ interface UseAnchorModalResult {
   onCancel: () => void;
   openModal: (flight: Flight, trace?: LatLng[]) => void;
   anchorDataPreview: ReturnType<typeof buildAnchorData> | null;
-  mapDivRef: React.MutableRefObject<HTMLElement | null>; // Ajout du ref ici
+  mapDivRef: React.MutableRefObject<HTMLElement | null>;
 }
 
 interface UseAnchorModalOptions {
@@ -34,21 +34,17 @@ export default function useAnchorModal({
   const [anchorDescription, setAnchorDescription] = useState("");
   const [isZipping, setIsZipping] = useState(false);
   const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
-
   const traceRef = useRef<LatLng[]>([]);
-  const mapDivRef = useRef<HTMLElement | null>(null); // Ref pour capture carte
+  const mapDivRef = useRef<HTMLElement | null>(null);
 
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
 
-  const convertTrace = useCallback((trace: LatLng[], altitude: number) => {
-    return trace.map(([lat, lng]) => ({
-      latitude: lat,
-      longitude: lng,
-      altitude,
-    }));
-  }, []);
+  const convertTrace = useCallback((trace: LatLng[], altitude: number) =>
+    trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
+    []
+  );
 
   const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
     dlog("Ouverture modal pour vol :", flight.id);
@@ -57,9 +53,7 @@ export default function useAnchorModal({
     setAnchorDescription("");
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
     setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
-    if (handleSelect) {
-      handleSelect({ ...flight, _type: "local" });
-    }
+    if (handleSelect) handleSelect({ ...flight, _type: "local" });
   }, [convertTrace, dlog, handleSelect]);
 
   useEffect(() => {
@@ -119,10 +113,7 @@ export default function useAnchorModal({
         handleSelect({ ...anchorModal.flight, _type: "local" });
       }
       dlog("Ancrage terminé avec succès");
-      setAnchorModal(null);
-      setAnchorDescription("");
-      traceRef.current = [];
-      setAnchorDataPreview(null);
+      onCancel();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Erreur inconnue";
       if (debug) console.error("[useAnchorModal] Erreur:", e);
@@ -130,7 +121,7 @@ export default function useAnchorModal({
     } finally {
       setIsZipping(false);
     }
-  }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, debug]);
+  }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, onCancel, debug]);
 
   return {
     anchorModal,
@@ -142,6 +133,6 @@ export default function useAnchorModal({
     onCancel,
     openModal,
     anchorDataPreview,
-    mapDivRef, // Ajouter dans le retour pour pouvoir le passer
+    mapDivRef,
   };
 }

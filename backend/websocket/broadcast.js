@@ -5,12 +5,16 @@ const log = require('../utils/logger');
  * @param {Object} data - Données à envoyer.
  * @param {Set} clients - Ensemble des clients WebSocket.
  */
-function broadcast(data, clients) {
+function broadcast(data, clients, filterLocal = false) {
+  let toSend = data;
+  if (filterLocal && Array.isArray(data)) {
+    toSend = data.filter(d => d.type !== 'local');
+  }
   try {
-    const message = JSON.stringify(data);
-    log.info(`[broadcast] Sending message to ${clients.size} clients, size: ${message.length} bytes`);
+    const message = JSON.stringify(toSend);
+    log.info(`[broadcast] Sending message to ${clients.size} clients, size ${message.length} bytes`);
     for (const ws of clients) {
-      if (ws.readyState === 1) { // Vérifie si client prêt (OPEN)
+      if (ws.readyState === 1) {
         try {
           ws.send(message);
         } catch (err) {
