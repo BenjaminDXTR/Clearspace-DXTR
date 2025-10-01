@@ -5,6 +5,7 @@ import Header from "./components/layout/Header";
 import MapLayout from "./components/layout/MapLayout";
 import TablesLayout from "./components/layout/TablesLayout";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
+import ErrorPanel from "./components/common/ErrorPanel";
 
 import useAnchored from "./hooks/useAnchored";
 import useLocalHistory from "./hooks/useLocalHistory";
@@ -50,7 +51,7 @@ function AppContent() {
     }
   }, [debug]);
 
-  const { drones: wsDrones, historyFiles, fetchHistoryFile } = useDrones();
+  const { drones: wsDrones, historyFiles, fetchHistoryFile, error } = useDrones();
 
   const [historicalFlights, setHistoricalFlights] = useState<Flight[]>([]);
   const [currentHistoryFile, setCurrentHistoryFile] = useState<string | null>(null);
@@ -79,7 +80,7 @@ function AppContent() {
     setLocalHistory(flightsWithType.filter(f => f._type === "local"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historicalFlights]);
-  
+
   useEffect(() => {
     if (historyFiles.length === 0) {
       setCurrentHistoryFile(null);
@@ -131,6 +132,15 @@ function AppContent() {
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
 
+  const [errors, setErrors] = useState<string[]>([]); // gestion des erreurs multiples
+
+  // Synchroniser erreurs du contexte DronesContext dans la liste d’erreurs
+  useEffect(() => {
+    if (error) {
+      setErrors(prev => [...prev, error]);
+    }
+  }, [error]);
+
   const handleSelect: HandleSelectFn = useCallback((flight) => {
     if (!flight?.id) return;
     setSelected({ ...flight, _type: flight._type ?? "live" });
@@ -153,7 +163,6 @@ function AppContent() {
     }
     return [];
   }, [liveTraces]);
-
 
   const renderAnchorCell = useCallback((flight: Flight) => (
     <button onClick={e => {
@@ -207,7 +216,11 @@ function AppContent() {
   return (
     <div>
       <Header />
+      {/* Zone dédiée affichage erreurs */}
+        {errors.length > 0 && <ErrorPanel errors={errors} />}
       <div className="container-detections">
+        
+        
         <MapLayout
           selectedTracePoints={selectedTracePoints}
           selectedTraceRaw={selectedTraceRaw}

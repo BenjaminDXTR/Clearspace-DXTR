@@ -1,0 +1,44 @@
+.error-panel {
+  /* même style général */
+}
+
+.error-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  position: relative;
+  font-size: 1rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.error-error {
+  background-color: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
+}
+
+.error-warning {
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffeeba;
+}
+
+.error-info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.error-dismiss {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
