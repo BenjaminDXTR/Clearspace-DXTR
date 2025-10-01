@@ -25,6 +25,14 @@ import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "./types/mo
 import { config } from './config';
 import { DronesProvider, useDrones } from './contexts/DronesContext';
 
+// Déclaration de l’interface ErrorMessage pour gérer les erreurs
+interface ErrorMessage {
+  id: string;
+  title?: string;
+  message: string;
+  severity?: "info" | "warning" | "error";
+}
+
 function exportAsJson(obj: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -64,6 +72,23 @@ function AppContent() {
     localPageData,
   } = useLocalHistory({ debug });
 
+  // Correction du type d’erreurs : passer à ErrorMessage[]
+  const [errors, setErrors] = useState<ErrorMessage[]>([]);
+
+  // Synchroniser erreurs du contexte DronesContext dans la liste d’erreurs typée
+  useEffect(() => {
+    if (error) {
+      setErrors(prev => [
+        ...prev,
+        {
+          id: `${Date.now()}`,
+          message: error,
+          severity: "error",
+        }
+      ]);
+    }
+  }, [error]);
+
   useEffect(() => {
     dlog(`[AppContent] wsDrones updated, count: ${wsDrones.length}`);
   }, [wsDrones, dlog]);
@@ -71,15 +96,6 @@ function AppContent() {
   useEffect(() => {
     dlog(`[AppContent] Historique fichiers disponibles: ${historyFiles.length}`);
   }, [historyFiles, dlog]);
-
-  useEffect(() => {
-    const flightsWithType = historicalFlights.map(f => ({
-      ...f,
-      _type: (f.type === "local" ? "local" : "live") as "live" | "local"
-    }));
-    setLocalHistory(flightsWithType.filter(f => f._type === "local"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historicalFlights]);
 
   useEffect(() => {
     if (historyFiles.length === 0) {
@@ -104,6 +120,7 @@ function AppContent() {
     const flights = await fetchHistoryFile(filename);
     dlog(`[AppContent] Vols historiques chargés: ${flights.length}`);
     setHistoricalFlights(flights);
+    setCurrentHistoryFile(filename);
   }, [fetchHistoryFile, dlog]);
 
   const combinedFlights = useMemo(() => {
@@ -131,15 +148,6 @@ function AppContent() {
 
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
-
-  const [errors, setErrors] = useState<string[]>([]); // gestion des erreurs multiples
-
-  // Synchroniser erreurs du contexte DronesContext dans la liste d’erreurs
-  useEffect(() => {
-    if (error) {
-      setErrors(prev => [...prev, error]);
-    }
-  }, [error]);
 
   const handleSelect: HandleSelectFn = useCallback((flight) => {
     if (!flight?.id) return;
@@ -216,11 +224,8 @@ function AppContent() {
   return (
     <div>
       <Header />
-      {/* Zone dédiée affichage erreurs */}
-        {errors.length > 0 && <ErrorPanel errors={errors} />}
+      {errors.length > 0 && <ErrorPanel errors={errors} />}
       <div className="container-detections">
-        
-        
         <MapLayout
           selectedTracePoints={selectedTracePoints}
           selectedTraceRaw={selectedTraceRaw}

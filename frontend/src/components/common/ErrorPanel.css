@@ -1,21 +1,31 @@
 .error-panel {
-  /* même style général */
+  max-width: 600px;
+  width: 90%;
+  margin: 1rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .error-item {
   margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.25rem;
+  padding: 1rem 1.5rem;
+  border-radius: 0.35rem;
   position: relative;
-  font-size: 1rem;
-  line-height: 1.4;
-  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  text-align: center; /* Texte centré */
+  user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 .error-error {
   background-color: #f8d7da;
   color: #842029;
   border: 1px solid #f5c2c7;
+  /* Erreurs importantes sans bouton close */
 }
 
 .error-warning {
@@ -32,13 +42,19 @@
 
 .error-dismiss {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 0.3rem;
+  right: 0.3rem;
   border: none;
   background: transparent;
   color: inherit;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   cursor: pointer;
   line-height: 1;
   padding: 0;
+  user-select: none;
+}
+
+.error-dismiss:hover,
+.error-dismiss:focus {
+  color: #000;
 }

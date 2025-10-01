@@ -40,8 +40,14 @@ async function saveFlightToHistory(flight) {
         log.info(`[saveFlightToHistory] Timeout ou nouvelle session, trace backend supprimée pour drone ${flight.id}`);
       }
       if (liveIdx !== -1) {
-        historyData[liveIdx].type = 'local';
-        log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé à 'local'`);
+        if (historyData[liveIdx].type !== 'local') {
+          historyData[liveIdx].type = 'local';
+          log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé à 'local'`);
+
+          // Notification d'archivage uniquement ici
+          notifyUpdate(filename);
+          log.info(`[saveFlightToHistory] Notifie mise à jour pour fichier ${filename} suite à archivage`);
+        }
       }
     }
 
@@ -70,9 +76,6 @@ async function saveFlightToHistory(flight) {
 
     await flushCacheToDisk(filename);
     log.info(`[saveFlightToHistory] Cache flushé disque pour fichier ${filename}`);
-
-    notifyUpdate(filename);
-    log.info(`[saveFlightToHistory] Notifie mise à jour pour fichier ${filename}`);
 
     return filename;
   } catch (err) {

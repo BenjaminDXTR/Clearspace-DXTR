@@ -28,6 +28,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
   const [historyFiles, setHistoryFiles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [currentHistoryFile, setCurrentHistoryFile] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<number | null>(null);
   const websocketUrl = "ws://localhost:3200";
@@ -39,6 +40,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
       if (!response.ok) throw new Error(`Erreur fetch historique: ${response.statusText}`);
       const data = await response.json();
       console.log(`[DronesProvider] Fichier historique chargé : ${filename}, nombre de vols : ${data.length}`);
+      setCurrentHistoryFile(filename);
       return data;
     } catch (err) {
       console.error('[DronesProvider] fetchHistoryFile error:', err);
@@ -90,6 +92,11 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
             return current;
           });
           console.log(`[DronesProvider] Notification mise à jour historique : ${updatedFile}`);
+
+          if (updatedFile === currentHistoryFile) {
+            console.log(`[DronesProvider] Fichier affiché mis à jour, rechargement de ${updatedFile}`);
+            fetchHistoryFile(updatedFile).then(data => setDrones(data));
+          }
         } else if (parsed.data && Array.isArray(parsed.data.drone)) {
           if (parsed.data.drone.length === 0) {
             console.log('[DronesProvider] Réception détection vide - suppression des vols live');
@@ -121,7 +128,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
       reconnectTimeout.current = window.setTimeout(() => connectWebSocket(), 100);
     };
-  }, [websocketUrl]);
+  }, [websocketUrl, currentHistoryFile, fetchHistoryFile]);
 
   useEffect(() => {
     connectWebSocket();

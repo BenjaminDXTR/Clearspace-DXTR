@@ -1,5 +1,5 @@
 const broadcast = require('../websocket/broadcast');
-const clients = require('../websocket/clients'); // Import singleton clients
+const clients = require('../websocket/clients');
 const log = require('../utils/logger');
 
 function notifyUpdate(filename) {

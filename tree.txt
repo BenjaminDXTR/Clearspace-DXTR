@@ -33,6 +33,7 @@
 │   │   └── logger.js
 │   └── websocket
 │       ├── broadcast.js
+│       ├── clients.js
 │       ├── connections.js
 │       ├── poller.js
 │       ├── updateTrace.js
@@ -52,6 +53,8 @@
 │   │   ├── App.tsx
 │   │   ├── components
 │   │   │   ├── common
+│   │   │   │   ├── ErrorPanel.css
+│   │   │   │   ├── ErrorPanel.tsx
 │   │   │   │   ├── FlightMap.css
 │   │   │   │   ├── FlightMap.tsx
 │   │   │   │   ├── FlyToPosition.tsx
@@ -114,4 +117,4 @@
 ├── stop-servers.sh
 └── tree.txt
 
-20 directories, 94 files
+20 directories, 97 files
