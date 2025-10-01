@@ -8,7 +8,8 @@
 │   ├── historyCache.js
 │   ├── index.js
 │   ├── notification.js
-│   └── state.js
+│   ├── state.js
+│   └── utils.js
 ├── .gitignore
 ├── graphqlClient.js
 ├── history
@@ -36,43 +37,4 @@
     ├── updateTrace.js
     └── websocket.js
 
-7 directories, 29 files
-.
-├── backtree.txt
-├── config.js
-├── flightsManager
-│   ├── fileOperations.js
-│   ├── flightsController.js
-│   ├── flightSessions.js
-│   ├── historyCache.js
-│   ├── index.js
-│   ├── notification.js
-│   └── state.js
-├── .gitignore
-├── graphqlClient.js
-├── history
-│   └── history-2025-09-28_to_2025-10-04.json
-├── Infos.txt
-├── middleware
-│   ├── errorHandler.js
-│   └── notFoundHandler.js
-├── package.json
-├── package-lock.json
-├── routes
-│   ├── anchor.js
-│   ├── history.js
-│   └── index.js
-├── server.js
-├── services
-│   └── anchorService.js
-├── simulation.js
-├── utils
-│   └── logger.js
-└── websocket
-    ├── broadcast.js
-    ├── connections.js
-    ├── poller.js
-    ├── updateTrace.js
-    └── websocket.js
-
-7 directories, 29 files
+7 directories, 30 files

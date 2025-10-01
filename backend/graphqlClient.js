@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { log } = require('./utils/logger');
+const log = require('./utils/logger');
 const { config } = require('./config');
 
 async function fetchDroneData() {
@@ -10,7 +10,7 @@ async function fetchDroneData() {
 
   const query = config.backend.graphqlDroneQuery;
 
-  log(`graphqlClient: Envoi requête vers ${graphqlUrl} avec query : ${query}`);
+  log.debug(`graphqlClient: Envoi requête vers ${graphqlUrl} avec query : ${query}`);
 
   try {
     const response = await fetch(graphqlUrl, {
@@ -19,20 +19,20 @@ async function fetchDroneData() {
       body: JSON.stringify({ query }),
     });
 
-    log(`graphqlClient: Réponse HTTP ${response.status} ${response.statusText}`);
+    log.debug(`graphqlClient: Réponse HTTP ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      log(`graphqlClient: Erreur réponse : ${errorText}`);
+      log.error(`graphqlClient: Erreur réponse : ${errorText}`);
       throw new Error(`API Erreur: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    log(`graphqlClient: Corps réponse reçu (début 500 caractères) : ${JSON.stringify(data).slice(0, 500)}`);
+    log.debug(`graphqlClient: Corps réponse reçu (début 500 caractères) : ${JSON.stringify(data).slice(0, 500)}`);
 
     return data;
   } catch (error) {
-    log('error', `graphqlClient: Erreur lors fetchDroneData : ${error.message}`);
+    log.error(`graphqlClient: Erreur lors fetchDroneData : ${error.message}`);
     throw error;
   }
 }

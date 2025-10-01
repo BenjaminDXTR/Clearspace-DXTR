@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const { config } = require('../config');
-const { log } = require('../utils/logger');
+const log = require('../utils/logger');
 
 const router = express.Router();
 const historyDir = path.resolve(__dirname, '..', 'history');
@@ -14,8 +14,9 @@ router.get('/', async (req, res) => {
     let files = await fs.readdir(historyDir);
     files = files.filter(f => f.endsWith('.json')).sort();
     res.json(files);
+    log.debug(`Liste des fichiers historiques envoyée, total: ${files.length}`);
   } catch (error) {
-    log('error', `Erreur listing historiques: ${error.message}`);
+    log.error(`Erreur listing historiques: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
   }
 });
@@ -27,6 +28,7 @@ router.get('/:filename', async (req, res) => {
 
     // Validation simple : nom doit être composé uniquement de chiffres/lettres, tirets, underscore ou points
     if (!/^[\w\-\.]+$/.test(filename) || !filename.endsWith('.json')) {
+      log.warn(`Nom de fichier invalide demandé: ${filename}`);
       return res.status(400).json({ error: 'Nom de fichier invalide' });
     }
 
@@ -36,8 +38,9 @@ router.get('/:filename', async (req, res) => {
     const data = await fs.readFile(filePath, 'utf8');
     const json = JSON.parse(data);
     res.json(json);
+    log.debug(`Contenu du fichier historique ${filename} envoyé`);
   } catch (error) {
-    log('error', `Erreur lecture historique ${req.params.filename}: ${error.message}`);
+    log.error(`Erreur lecture historique ${req.params.filename}: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
   }
 });
