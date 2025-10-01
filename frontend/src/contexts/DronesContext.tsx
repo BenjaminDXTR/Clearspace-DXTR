@@ -116,10 +116,10 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
     };
 
     wsRef.current.onclose = (event) => {
-      console.warn(`[DronesProvider] WebSocket fermé, reconnexion dans 3s. Raison : ${event.reason ?? 'inconnue'}`);
+      console.warn(`[DronesProvider] WebSocket fermé, reconnexion dans 100ms. Raison : ${event.reason ?? 'inconnue'}`);
       setLoading(true);
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-      reconnectTimeout.current = window.setTimeout(() => connectWebSocket(), 3000);
+      reconnectTimeout.current = window.setTimeout(() => connectWebSocket(), 100);
     };
   }, [websocketUrl]);
 
