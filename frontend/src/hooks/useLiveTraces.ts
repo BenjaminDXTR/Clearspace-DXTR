@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Flight, LatLng } from "../types/models";
-import { isLatLng } from "../utils/coords";
+import type { Flight, LatLng, LatLngTimestamp } from "../types/models";
 import { config } from "../config";
 
 interface UseLiveTracesOptions {
-  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[]) => void;
+  onUpdateLiveFlight?: (flight: Flight, trace: LatLng[] | LatLngTimestamp[]) => void;
   debug?: boolean;
 }
 
 interface DroneTraceState {
   flight: Flight;
-  trace: LatLng[];
+  trace: LatLng[] | LatLngTimestamp[];
 }
 
 export default function useLiveTraces(
@@ -36,43 +35,28 @@ export default function useLiveTraces(
       let hasChange = false;
 
       drones.forEach((drone) => {
-        if (drone.id && isLatLng([drone.latitude, drone.longitude])) {
+        if (drone.id) {
+          const traceFromBackend = Array.isArray(drone.trace) ? drone.trace : [];
+
           if (!updated[drone.id]) {
-            updated[drone.id] = { flight: drone, trace: [] };
+            updated[drone.id] = { flight: drone, trace: traceFromBackend };
             hasChange = true;
-            dlog(`Nouveau drone ajouté ${drone.id}`);
-          }
-
-          if (Array.isArray(drone.trace) && drone.trace.length > 0) {
-            const filteredTrace = drone.trace.filter(isLatLng);
-            if (
-              JSON.stringify(filteredTrace) !== JSON.stringify(updated[drone.id].trace)
-            ) {
-              updated[drone.id].trace = filteredTrace;
-              hasChange = true;
-              dlog(`Trace drone ${drone.id} mise à jour : ${updated[drone.id].trace.length} points`);
-            }
-          } else {
-            const currentTrace = updated[drone.id].trace;
-            const pt: LatLng = [Number(drone.latitude), Number(drone.longitude)];
-            const last = currentTrace[currentTrace.length - 1];
-            if (!last || last[0] !== pt[0] || last[1] !== pt[1]) {
-              updated[drone.id].trace = [...currentTrace, pt];
-              hasChange = true;
-              dlog(`Drone ${drone.id} fallback ajout point (${pt[0]},${pt[1]})`);
-            }
-          }
-
-          if (JSON.stringify(drone) !== JSON.stringify(updated[drone.id].flight)) {
-            updated[drone.id].flight = drone;
+            dlog(`Nouveau drone ajouté ${drone.id} avec trace de ${traceFromBackend.length} points`);
+          } else if (
+            JSON.stringify(traceFromBackend) !== JSON.stringify(updated[drone.id].trace) ||
+            JSON.stringify(drone) !== JSON.stringify(updated[drone.id].flight)
+          ) {
+            updated[drone.id] = { flight: drone, trace: traceFromBackend };
             hasChange = true;
+            dlog(`Drone ${drone.id} mis à jour avec trace de ${traceFromBackend.length} points`);
           }
 
           if (onUpdateLiveFlight && hasChange) {
-            onUpdateLiveFlight({ ...drone, _type: "live" }, updated[drone.id].trace);
+            onUpdateLiveFlight(drone, traceFromBackend);
           }
         }
       });
+
       return hasChange ? updated : prev;
     });
   }, [drones, onUpdateLiveFlight, dlog]);

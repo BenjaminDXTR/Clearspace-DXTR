@@ -2,7 +2,7 @@ import { useEffect, ChangeEvent, useCallback, useRef } from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
-import { isLatLng } from "../../utils/coords";
+import { getFlightTrace, stripTimestampFromTrace, isLatLng } from "../../utils/coords";
 import { config } from "../../config";
 import "./AnchorModalLayout.css";
 
@@ -10,7 +10,7 @@ interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
   anchorDescription: string;
   setAnchorDescription: (description: string) => void;
-  getFlightTrace: (flight: Flight) => [number, number][];
+  getFlightTrace: (flight: Flight) => [number, number, number][];
   isZipping: boolean;
   onValidate: () => void | Promise<void>;
   onCancel: () => void;
@@ -67,7 +67,8 @@ export default function AnchorModalLayout({
     return null;
   }
 
-  const trace = getFlightTrace(anchorModal.flight);
+  const fullTrace = getFlightTrace(anchorModal.flight);
+  const trace = stripTimestampFromTrace(fullTrace);
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
   const disableValidation = isZipping || !anchorDescription.trim() || !hasValidTrace;
 

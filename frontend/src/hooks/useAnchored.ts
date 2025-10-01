@@ -27,6 +27,7 @@ export default function useAnchored({
   );
 
   useEffect(() => {
+    /*
     let isMounted = true;
     let abortController: AbortController | null = null;
 
@@ -74,6 +75,9 @@ export default function useAnchored({
       abortController?.abort();
       if (intervalId) clearInterval(intervalId);
     };
+    */
+    // Depuis la route backend 'anchored' n'existe pas, on désactive temporairement.
+    dlog("useAnchored est en pause, fetch désactivé.");
   }, [pollInterval, dlog]);
 
   return { anchored, loading, error };

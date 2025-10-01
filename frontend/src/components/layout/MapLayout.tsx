@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useCallback, useState } from "react";
 import FlightMap from "../common/FlightMap";
 import DetailsPanel from "../flights/DetailsPanel";
-import { isLatLng, getFlightTrace } from "../../utils/coords";
-import type { Flight, LatLng } from "../../types/models";
+import type { Flight, LatLng, LatLngTimestamp } from "../../types/models";
+import { stripTimestampFromTrace } from "../../utils/coords";
 import { config } from "../../config";
 import "./MapLayout.css";
 
 interface MapLayoutProps {
-  selectedTracePoints?: LatLng[] | null;
+  selectedTracePoints?: LatLngTimestamp[] | null;
   selectedTraceRaw?: unknown;
   selected?: Flight | null;
   detailFields?: string[];
@@ -44,21 +44,15 @@ export default function MapLayout({
     }
   }, [selected, selectedTracePoints, selectedTraceRaw, dlog]);
 
-  const points = useMemo<LatLng[]>(() => {
-    if (Array.isArray(selectedTracePoints) && selectedTracePoints.length >= 2) {
-      const filtered = selectedTracePoints.filter(isLatLng);
+  const points = useMemo(() => {
+    if (selectedTracePoints && selectedTracePoints.length >= 2) {
+      const filtered = stripTimestampFromTrace(selectedTracePoints);
       dlog(`[MapLayout] Utilisation de selectedTracePoints filtrés, count: ${filtered.length}`);
-      return filtered;
-    }
-    if (selected) {
-      const trace = getFlightTrace(selected);
-      const filtered = trace.filter(isLatLng);
-      dlog(`[MapLayout] Utilisation de getFlightTrace sur vol sélectionné, count: ${filtered.length}`);
       return filtered;
     }
     dlog("[MapLayout] Pas de trace valide trouvée");
     return [];
-  }, [selectedTracePoints, selected, dlog]);
+  }, [selectedTracePoints, dlog]);
 
   const hasValidPoints = points.length > 0;
   const startPosition = hasValidPoints ? points[0] : null;
@@ -77,7 +71,6 @@ export default function MapLayout({
         <h2 className="map-layout__title">{title}</h2>
         <FlightMap
           trace={points}
-          markerIcon={null}
           livePosition={livePosition}
           startPosition={startPosition}
           zoom={zoom}

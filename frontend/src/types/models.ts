@@ -6,16 +6,22 @@ import type { ReactNode } from "react";
 export type LatLng = [number, number];
 
 /**
+ * Type représentant un point géo avec timestamp relatif
+ */
+export type LatLngTimestamp = [number, number, number];
+
+/**
  * Flight / vol principal utilisé dans l'app.
  * id est strictement une string.
  * created_time est optionnelle.
- * trace et tracing sont optionnels et peuvent contenir la trace géo.
+ * trace peut être sous forme tableau classique, tableau timestampé ou string json.
+ * tracing est optionnel.
  * _type est un champ interne pour indiquer le type d'origine ("live" | "local" | "event").
  */
 export interface Flight {
   id: string;
   created_time?: string;
-  trace?: LatLng[] | string;
+  trace?: LatLng[] | LatLngTimestamp[] | string;
   tracing?: {
     points?: LatLng[];
   };

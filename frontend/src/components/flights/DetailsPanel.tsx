@@ -1,8 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { formatDate } from "../../utils/format";
-import { getFlightTrace } from "../../utils/coords";
-import type { Flight } from "../../types/models";
-import type { LatLngTuple } from "leaflet";
+import type { Flight, LatLng } from "../../types/models";
 import { config } from "../../config";
 import "./DetailsPanel.css";
 
@@ -17,7 +15,7 @@ interface DetailsPanelProps {
   detailFields?: string[];
   exportObj: (obj: Flight) => void;
   selectedTraceRaw?: unknown;
-  selectedTracePoints?: LatLngTuple[];
+  selectedTracePoints?: LatLng[] | null;
   debug?: boolean;
 }
 
@@ -26,30 +24,27 @@ export default function DetailsPanel({
   detailFields = [],
   exportObj,
   selectedTraceRaw,
-  selectedTracePoints = [],
+  selectedTracePoints,
   debug = config.debug || config.environment === "development",
 }: DetailsPanelProps) {
   const dlog = (...args: unknown[]) => {
     if (debug) console.log("[DetailsPanel]", ...args);
   };
 
-  const normalizedSelected: Flight | null = selected
-    ? { ...selected, id: selected.id ? String(selected.id) : "" }
-    : null;
+  // Gestion nullable sécurisée
+  const tracePoints = selectedTracePoints ?? [];
 
   useEffect(() => {
-    if (normalizedSelected) {
-      dlog(`Vol sélectionné id=${normalizedSelected.id} avec ${detailFields.length} champs`);
-      dlog(`Trace sélectionnée points count = ${selectedTracePoints.length}`);
-      if (selectedTraceRaw != null) {
-        dlog("Trace brute (selectedTraceRaw) présente");
-      }
+    if (selected) {
+      dlog(`Vol sélectionné id=${selected.id} avec ${detailFields.length} champs`);
+      dlog(`Trace sélectionnée points count = ${tracePoints.length}`);
+      if (selectedTraceRaw != null) dlog("Trace brute (selectedTraceRaw) présente");
     } else {
       dlog("Aucun vol sélectionné");
     }
-  }, [normalizedSelected, detailFields, selectedTracePoints, selectedTraceRaw, dlog]);
+  }, [selected, detailFields, tracePoints, selectedTraceRaw, dlog]);
 
-  if (!normalizedSelected) {
+  if (!selected) {
     return (
       <div className="details-panel">
         <h3>Détails</h3>
@@ -66,12 +61,7 @@ export default function DetailsPanel({
     }
   };
 
-  // Récupère trace locale ou calculée
-  const localTracePoints = getFlightTrace(normalizedSelected);
-  const apiTracePoints = Array.isArray(selectedTracePoints) ? selectedTracePoints : [];
-
-  const showLocalPoints = normalizedSelected._type === "local" && localTracePoints.length > 0;
-  const showApiPoints = normalizedSelected._type === "event" && apiTracePoints.length > 0;
+  const showTracePoints = tracePoints.length > 0;
 
   const sortedFields = useMemo(() =>
     [
@@ -81,7 +71,7 @@ export default function DetailsPanel({
     [detailFields]
   );
 
-  const renderPointsList = (points: LatLngTuple[], label: string) => (
+  const renderPointsList = (points: LatLng[], label: string) => (
     <section className="points-section">
       <h4>{label}</h4>
       <ol className="points-list">
@@ -99,7 +89,7 @@ export default function DetailsPanel({
       <table className="details-table">
         <tbody>
           {sortedFields.map(field => {
-            const value = (normalizedSelected as any)[field];
+            const value = (selected as any)[field];
             if (value === undefined || value === null) return null;
             return (
               <tr key={field}>
@@ -122,16 +112,15 @@ export default function DetailsPanel({
         <button
           aria-label="Exporter les détails"
           onClick={() => {
-            dlog(`Export JSON vol id=${normalizedSelected.id}`);
-            exportObj(normalizedSelected);
+            dlog(`Export JSON vol id=${selected.id}`);
+            exportObj(selected);
           }}
         >
           Exporter JSON
         </button>
       </div>
 
-      {showLocalPoints && renderPointsList(localTracePoints, "Points du vol (local) :")}
-      {showApiPoints && renderPointsList(apiTracePoints, "Points du vol (API) :")}
+      {showTracePoints && renderPointsList(tracePoints, "Points du vol :")}
 
       {selectedTraceRaw != null && (
         <section className="raw-trace-section">
