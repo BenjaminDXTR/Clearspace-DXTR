@@ -38,7 +38,7 @@ export default function useAnchored({
       try {
         dlog("Récupération des vols ancrés...");
         const res = await fetch(
-          config.apiUrl.replace(/\/$/, "") + "/anchored",
+          config.apiUrl.replaceAC(/\/$/, "") + "/anchored",
           { signal: abortController.signal }
         );
 
