@@ -1,0 +1,108 @@
+
+
+## Synthèse structure actuelle
+
+- DronesContext : source WebSocket + historique JSON, traitements légers.
+- App.tsx : orchestration principale, gestion sélection, fusion + filtres.
+- Hooks métier (useLiveTraces, useLocalHistory, etc.) : logiques liées au traitement des vols, traces, pagination.
+- Services API / ancrage : appels réseaux + traitement spécifique.
+- Composants UI : affichage, interaction visuelle, gestion modale, pagination.
+- Config & utils : paramètres globaux, formatage, icônes.
+
+
+## Plan refactorisation détaillé
+
+### Étape 1 : Simplification DronesContext
+
+- Fournir uniquement données brutes : listes drones (live/local), fichiers historique, état erreur.
+- Supprimer toute transformation, fusion ou filtrage dans ce contexte.
+- Conserver uniquement gestion connexion WebSocket, fetch historique, propagation erreurs.
+
+### Étape 2 : Refactorisation App.tsx
+
+- Enlever fusion et filtrage des vols (suppression combinedFlights, dronesWithType).
+- Garder orchestration sélection de fichier historique et gestion erreur.
+- Faire appel à un nouveau hook métier `useProcessedFlights` pour obtenir données prêtes à afficher.
+- Passer ces données directes aux composants TablesLayout, MapLayout, etc.
+
+### Étape 3 : Création Hook métier `useProcessedFlights`
+
+- Prend en entrée données brutes DronesContext.
+- Applique mise à jour, fusion live + local, filtrage sur données invalides.
+- Gère pagination locale, tri, enrichissement (_type).
+- Expose données prêtes à consommer pour les composants UI.
+- Est compatible avec les hooks existants comme useLiveTraces, useLocalHistory, etc.
+
+### Étape 4 : Refactorisation Hooks métiers
+
+- Normaliser et consolider hooks useLiveTraces, useLocalHistory, useAnchored si possible.
+- Déplacer dans `useProcessedFlights` la logique de fusion et mise à jour des vols.
+- S’assurer que hooks métiers n’ont plus de dépendances directes aux contextes ou composants.
+- Hooks métiers utilisent désormais uniquement les données entrées sans post-traitement côté composant.
+
+### Étape 5 : Revue composants UI
+
+- Passer uniquement les données déjà traitées et filtrées aux composants TablesLayout, MapLayout, etc.
+- Supprimer toute logique métier ou filtrage dans ces composants.
+- Garder uniquement responsabilité affichage, interactions UI pures.
+
+### Étape 6 : Tests & Validation
+
+- Tester continuellement à chaque étape pour s’assurer que la mise à jour en temps réel, chargement historique et ancrages fonctionnent toujours.
+- Ajouter tests unitaires/ d’intégration sur hooks métiers.
+
+***
+
+Ce plan offre une séparation claire des responsabilités, améliore la maintenabilité et facilite l’évolution future.
+
+
+
+
+
+
+
+les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
+(le backend s'occupe des requets et fournit les résulatt) et compare aux historiques locaux. mais comme le backend 
+aura lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans 
+le front ? au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain.
+les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
+(le backend s'occupe des requets et fournit les résulatt) et compare aux historiques locaux. mais comme le backend aura 
+lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans le front ? 
+au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain
+
+
+
+
+Optimisation des dépendances des hooks
+Veiller à ce que les dépendances des hooks (useCallback, useEffect) soient exhaustives et ne provoquent pas de 
+re-rendus/invocations inutiles.
+Exemple : getTraceForFlight dépend uniquement de liveTraces — si une fonction externe comme setSelected est utilisée, 
+s'assurer qu'elle est stable ou listée.
+
+Gestion d’erreurs centralisée améliorée
+Le hook useErrorManager pourrait filtrer les doublons d'erreurs identiques pour éviter la répétition de messages.
+Ajouter des priorités et gestion des erreurs critiques vs warnings.
+Sauvegarder éventuellement l’historique d’erreurs pour debug.
+
+Chargement asynchrone et états de chargement
+Ajouter des indicateurs visuels dans l’UI pour signaler le chargement des données (live ou historiques).
+Gérer plus finement les erreurs réseau/display utilisateur avec messages plus explicites.
+
+Typage renforcé
+Remplacer les casts (flight as any) par un typage le plus précis possible pour éviter les erreurs au runtime.
+Typage strict des traces (gestion des deux formats LatLng et LatLngTimestamp).
+Ajouter des validations dans les hooks/utilitaires pour détecter les anomalies de format.
+
+Séparation des préoccupations
+Déléguer la construction du JSON d’export (exportSelectedAsAnchorJson) dans un fichier/service dédié (ex : anchorExportService.ts).
+Idem pour la fonction getTraceForFlight déplacée dans un utilitaire.
+
+Amélioration des performances
+Envisager la mémorisation en profondeur si le filtering devient lourd.
+Utiliser des librairies dédiées pour la comparaison d’objets complexes (ex : lodash.isequal) plutôt que JSON stringify.
+Accessibilité et ergonomie UI
+Vérifier que la navigation clavier et l’accessibilité ARIA sont bien gérées pour les boutons et notifications.
+Ajouter des messages de confirmation visuelle lors des actions sensibles (ex : export JSON).
+
+Tests unitaires et d’intégration
+Ajouter des tests des hooks métier et composants cruciaux pour améliorer la fiabilité et faciliter les évolutions.

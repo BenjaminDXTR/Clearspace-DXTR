@@ -1,85 +1,107 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Flight } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
-import { config } from "../config";
 
 interface UseLocalHistoryOptions {
-  pollInterval?: number; // not used currently, kept for backward compatibility
+  fetchHistory: (filename: string) => Promise<Flight[]>;
+  historyFiles: string[];
   debug?: boolean;
-  onUserError?: (msg: string) => void; // user-visible errors
+  onUserError?: (msg: string) => void;
+}
+
+interface UseLocalHistoryResult {
+  currentHistoryFile: string | null;
+  setCurrentHistoryFile: (filename: string | null) => void;
+  localHistory: Flight[];
+  setLocalHistory: (flights: Flight[]) => void;
+  localPage: number;
+  setLocalPage: (page: number) => void;
+  localMaxPage: number;
+  localPageData: Flight[];
+  error: string | null;
+  loading: boolean;
 }
 
 export default function useLocalHistory({
-  pollInterval = 0,
-  debug = config.debug || config.environment === "development",
-  onUserError
-}: UseLocalHistoryOptions = {}) {
-  const [localHistory, setLocalHistory] = useState<Flight[]>([]);
+  fetchHistory,
+  historyFiles,
+  debug = false,
+  onUserError,
+}: UseLocalHistoryOptions): UseLocalHistoryResult {
+  const [currentHistoryFile, setCurrentHistoryFile] = useState<string | null>(null);
+  const [localHistory, setLocalHistoryState] = useState<Flight[]>([]);
   const [localPage, setLocalPage] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const manualUpdatesRef = useRef(new Map<string, Flight>());
+  const [loading, setLoading] = useState(false);
 
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useLocalHistory]", ...args);
   }, [debug]);
 
-  // Merging fresh flights into local cache
-  const mergeFlights = useCallback((local: Flight[], fresh: Flight[]) => {
-    const freshMap = new Map(fresh.map(f => [f.id + (f.created_time ?? ""), f]));
-    const merged = local.map(flight => {
-      const key = flight.id + (flight.created_time ?? "");
-      if (freshMap.has(key)) {
-        return freshMap.get(key)!;
-      }
-      return flight;
-    });
-    fresh.forEach(flight => {
-      const key = flight.id + (flight.created_time ?? "");
-      if (!merged.some(f => (f.id + (f.created_time ?? "")) === key)) {
-        merged.push(flight);
-      }
-    });
-    return merged;
-  }, []);
-
-  const setLocalHistoryWithMerge = useCallback((updater: (current: Flight[]) => Flight[]) => {
-    setLocalHistory(old => {
+  useEffect(() => {
+    if (!currentHistoryFile) {
+      setLocalHistoryState([]);
+      setLocalPage(1);
+      setError(null);
+      setLoading(false);
+      dlog("No current history file selected");
+      return;
+    }
+    (async () => {
       try {
-        const updated = updater(old);
-        updated.forEach(flight => {
-          manualUpdatesRef.current.set(flight.id + (flight.created_time ?? ""), flight);
-        });
-        dlog(`Updated local history cache with ${updated.length} flights`);
-        return updated;
+        setLoading(true);
+        dlog(`Loading history file: ${currentHistoryFile}`);
+        const flights = await fetchHistory(currentHistoryFile);
+        setLocalHistoryState(flights);
+        setLocalPage(1);
+        setError(null);
+        dlog(`Loaded ${flights.length} flights from history`);
       } catch (e) {
-        const msg = `Error merging local history: ${(e as Error).message}`;
+        const msg = `Error loading history: ${(e as Error).message}`;
+        setError(msg);
+        setLocalHistoryState([]);
+        setLocalPage(1);
         dlog(msg);
         if (onUserError) onUserError(msg);
-        return old;
+      } finally {
+        setLoading(false);
       }
-    });
-  }, [dlog, onUserError]);
+    })();
+  }, [currentHistoryFile, fetchHistory, dlog, onUserError]);
 
-  const setLocalHistoryManual = useCallback((flights: Flight[]) => {
-    const filtered = flights.filter(f => f._type === "local");
-    setLocalHistoryWithMerge(() => filtered);
+  useEffect(() => {
+    if (historyFiles.length === 0) {
+      setCurrentHistoryFile(null);
+      setLocalHistoryState([]);
+      setLocalPage(1);
+      setError(null);
+      dlog("No history files available");
+    } else if (!currentHistoryFile || !historyFiles.includes(currentHistoryFile)) {
+      const latestFile = historyFiles[historyFiles.length - 1];
+      setCurrentHistoryFile(latestFile);
+      dlog(`Initial currentHistoryFile set to ${latestFile}`);
+    }
+  }, [historyFiles, currentHistoryFile, dlog]);
+
+  const setLocalHistory = useCallback((flights: Flight[]) => {
+    setLocalHistoryState(flights);
     setLocalPage(1);
-  }, [setLocalHistoryWithMerge]);
+    dlog(`Local history manually set, count: ${flights.length}`);
+  }, [dlog]);
 
-  // Pagination
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)), [localHistory]);
   const localPageData = useMemo(() => localHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [localHistory, localPage]);
 
   return {
+    currentHistoryFile,
+    setCurrentHistoryFile,
     localHistory,
-    setLocalHistory: setLocalHistoryManual,
+    setLocalHistory,
     localPage,
     setLocalPage,
     localMaxPage,
     localPageData,
-    loading,
     error,
+    loading,
   };
 }

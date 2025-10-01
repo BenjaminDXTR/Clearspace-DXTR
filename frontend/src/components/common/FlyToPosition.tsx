@@ -1,3 +1,4 @@
+// src/components/common/FlyToPosition.tsx
 import { useEffect, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
@@ -15,11 +16,6 @@ interface FlyToPositionProps {
   debug?: boolean;
 }
 
-/**
- * Composant utilitaire qui centre et anime la carte Leaflet vers la position.
- * Doit être utilisé uniquement dans un <MapContainer>.
- * Ne retourne rien (render null).
- */
 export default function FlyToPosition({
   position,
   zoom = 13,
@@ -35,7 +31,13 @@ export default function FlyToPosition({
   useEffect(() => {
     if (isLatLng(position)) {
       dlog(`Animation vers position: (${position![0]}, ${position![1]})`);
-      map.flyTo(position!, zoom, { duration });
+      
+      // Différer le flyTo pour s'assurer que la carte est bien ready
+      const timer = setTimeout(() => {
+        map.flyTo(position!, zoom, { duration });
+      }, 50); // 50ms retarde assez sans effet visible
+      
+      return () => clearTimeout(timer);
     } else {
       dlog(`Position invalide ou nulle :`, position);
     }

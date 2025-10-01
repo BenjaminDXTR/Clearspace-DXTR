@@ -1,3 +1,4 @@
+// src/components/common/Pagination.tsx
 import { useCallback } from "react";
 import { config } from "../../config";
 import "./Pagination.css";
@@ -19,7 +20,6 @@ export default function Pagination({
   onPageChange,
   debug = config.debug || config.environment === "development",
 }: PaginationProps) {
-  // Memoized logging function for conditional debug logging
   const dlog = useCallback(
     (...args: unknown[]) => {
       if (debug) {
@@ -29,10 +29,10 @@ export default function Pagination({
     [debug]
   );
 
-  // Ensure total pages cannot be less than 1
+  // S’assure que maxPage est au moins 1
   const totalPages = Math.max(1, maxPage);
 
-  // Handler to go to previous page if available
+  // Gérer clic page précédente
   const onPrevious = useCallback(() => {
     if (page > 1) {
       const newPage = page - 1;
@@ -41,7 +41,7 @@ export default function Pagination({
     }
   }, [page, onPageChange, dlog]);
 
-  // Handler to go to next page if available
+  // Gérer clic page suivante
   const onNext = useCallback(() => {
     if (page < totalPages) {
       const newPage = page + 1;

@@ -1,3 +1,4 @@
+// src/components/layout/TablesLayout.tsx
 import { useCallback, useMemo } from "react";
 import type {
   Flight,
@@ -104,22 +105,39 @@ export default function TablesLayout({
               </tr>
             </thead>
             <tbody>
-              {data.map((item, idx) => (
-                <tr
-                  key={genKey(item, idx)}
-                  tabIndex={0}
-                  className="clickable-row"
-                  onClick={() => onSelect(item)}
-                  aria-selected="false"
-                >
-                  {safeFields.map((field) => (
-                    <td key={field}>{prettyValue(field, (item as any)[field])}</td>
-                  ))}
-                  {withAnchor && renderAnchorCell && (
-                    <td className="anchor-cell">{renderAnchorCell(item)}</td>
-                  )}
-                </tr>
-              ))}
+              {data.map((item, idx) => {
+                const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
+                return (
+                  <tr
+                    key={genKey(item, idx)}
+                    tabIndex={0}
+                    className={`clickable-row ${anchored ? "anchored" : ""}`}
+                    onClick={() => onSelect(item)}
+                    aria-selected="false"
+                  >
+                    {safeFields.map((field) => (
+                      <td key={field}>{prettyValue(field, (item as any)[field])}</td>
+                    ))}
+                    {withAnchor && (
+                      <td className="anchor-cell">
+                        {anchored
+                          ? "✔️"
+                          : renderAnchorCell
+                          ? renderAnchorCell(item)
+                          : (
+                              <button
+                                onClick={e => e.stopPropagation()}
+                                disabled={anchored}
+                                aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
+                              >
+                                Ancrer
+                              </button>
+                            )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

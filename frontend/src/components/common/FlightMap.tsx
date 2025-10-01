@@ -1,3 +1,4 @@
+// src/components/common/FlightMap.tsx
 import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties } from "react";
 import {
   MapContainer,
@@ -14,7 +15,7 @@ import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
 import "./FlightMap.css";
 
-/** Hook : force Leaflet à recalculer sa taille */
+/** Hook qui force Leaflet à recalculer la taille de la carte */
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
@@ -25,7 +26,8 @@ function InvalidateMapSize() {
 }
 
 /**
- * Centre et anime la carte vers une position UNIQUEMENT À CHAQUE CHANGEMENT DE flyToTrigger.
+ * Composant utilitaire qui centre et anime la carte Leaflet vers une position
+ * uniquement lors d’un changement du trigger flyToTrigger.
  */
 function FlyToPosition({
   position,
@@ -42,7 +44,7 @@ function FlyToPosition({
     if (flyToTrigger !== undefined && position && Array.isArray(position)) {
       map.flyTo(position, zoom, { duration: 1.0 });
     }
-  }, [flyToTrigger]);  // <-- NE dépend QUE de flyToTrigger
+  }, [flyToTrigger, position, zoom, map]);
 
   return null;
 }
@@ -86,7 +88,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  // Centre initial de la carte : centre passé en props > milieu trace > Paris par défaut
+  // Centre initial : props center > milieu trace > Paris par défaut
   const computedCenter: [number, number] =
     center ??
     (hasTrace
@@ -105,10 +107,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       aria-label="Carte du tracé de vol"
     >
       <InvalidateMapSize />
-      <div ref={containerRef} className="leaflet-container">
-        {/* Leaflet DOM is rendered within MapContainer, here we just attach ref */}
-      </div>
-
+      <div ref={containerRef} className="leaflet-container" />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="© OpenStreetMap contributors"

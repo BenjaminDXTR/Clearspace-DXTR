@@ -1,3 +1,4 @@
+// src/components/layout/AnchorModalLayout.tsx
 import { useEffect, ChangeEvent, useCallback, useRef } from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
@@ -41,7 +42,6 @@ export default function AnchorModalLayout({
     if (anchorModal?.flight?.id !== undefined) {
       dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
     }
-    // Scroll au top à chaque ouverture
     if (modalContentRef.current) {
       modalContentRef.current.scrollTop = 0;
     }
@@ -51,10 +51,9 @@ export default function AnchorModalLayout({
   }, [anchorModal?.flight, dlog]);
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
     e.stopPropagation();
-    setAnchorDescription(value);
-    dlog(`[AnchorModal] Description modifiée (${value.length} caractères)`);
+    setAnchorDescription(e.target.value);
+    dlog(`[AnchorModal] Description modifiée (${e.target.value.length} caractères)`);
   };
 
   const handleValidate = () => {

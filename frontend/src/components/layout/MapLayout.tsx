@@ -1,3 +1,4 @@
+// src/components/layout/MapLayout.tsx
 import { useEffect, useMemo, useCallback, useState } from "react";
 import FlightMap from "../common/FlightMap";
 import DetailsPanel from "../flights/DetailsPanel";
@@ -28,7 +29,9 @@ export default function MapLayout({
   flyToTrigger,
 }: MapLayoutProps) {
   const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[MapLayout]", ...args);
+    if (debug) {
+      console.log("[MapLayout]", ...args);
+    }
   }, [debug]);
 
   const [zoom, setZoom] = useState(10);
@@ -91,6 +94,7 @@ export default function MapLayout({
             exportObj={exportObj}
             selectedTraceRaw={selectedTraceRaw}
             selectedTracePoints={points}
+            debug={debug}
           />
         ) : (
           <div className="map-layout__no-selection">Sélectionnez un vol pour voir les détails</div>
