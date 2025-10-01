@@ -70,12 +70,16 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
             setDrones([]);
           } else {
             const validDrones = parsed.filter(d => d?.id);
+            validDrones.forEach(d => {
+              console.log(`[DronesProvider] Drone ${d.id} trace points count: ${d.trace?.length ?? 0}`);
+              console.log(`[DronesProvider] Drone ${d.id} trace sample:`, d.trace?.slice(0, 5) ?? []);
+            });
             setDrones(validDrones);
           }
         } else if (parsed.type === 'historySummaries') {
           const files = parsed.data.map((f: { filename: string }) => f.filename);
-          setHistoryFiles(files);
           console.log(`[DronesProvider] Résumé historique reçu : ${files.length} fichiers`);
+          setHistoryFiles(files);
         } else if (parsed.type === 'refresh') {
           const updatedFile = parsed.data.filename;
           setHistoryFiles(current => {
@@ -91,6 +95,10 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
             console.log('[DronesProvider] Réception détection vide - suppression des vols live');
             setDrones([]);
           } else {
+            parsed.data.drone.forEach((d: Flight) => {
+              console.log(`[DronesProvider] Drone ${d.id} trace points count: ${d.trace?.length ?? 0}`);
+              console.log(`[DronesProvider] Drone ${d.id} trace sample:`, d.trace?.slice(0,5) ?? []);
+            });
             setDrones(parsed.data.drone);
           }
         } else {

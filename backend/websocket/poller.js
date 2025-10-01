@@ -55,6 +55,8 @@ async function poller() {
             return;
         }
 
+        const fullDrones = [];
+
         for (const drone of drones) {
             if (drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0) {
                 log('[poller] Empty drone data detected, ignoring');
@@ -78,6 +80,8 @@ async function poller() {
                 type: drone.type || 'live',
             };
 
+            fullDrones.push(fullDroneData);
+
             log(`[poller] Drone ${drone.id} fullDroneData trace length before save: ${fullDroneData.trace.length}`);
             log(`[poller] Drone ${drone.id} fullDroneData trace sample before save: ${JSON.stringify(fullDroneData.trace.slice(0, 5))}`);
 
@@ -91,7 +95,7 @@ async function poller() {
             notifyUpdate(filename);
         }
 
-        broadcast(drones, clients);
+        broadcast(fullDrones, clients);  // <-- Envoi des données enrichies avec trace
         log('[poller] Broadcast to clients complete');
     } catch (err) {
         log(`[poller] Error: ${err.message}`);
@@ -99,5 +103,6 @@ async function poller() {
         isPolling = false;
     }
 }
+
 
 module.exports = poller;
