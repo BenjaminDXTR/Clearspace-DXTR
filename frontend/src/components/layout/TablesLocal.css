@@ -1,0 +1,92 @@
+/* Conteneur de chaque tableau */
+.table-container {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 5px;
+    width: 100%;
+    min-width: 480px;
+}
+
+/* Titre */
+.table-title {
+    margin-bottom: 8px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Message vide */
+.table-empty {
+    padding: 8px;
+    font-style: italic;
+    color: #666;
+    text-align: center;
+}
+
+/* Table */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 0.89rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.data-table thead {
+    background-color: #f0f0f0;
+}
+
+.data-table th {
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+    background-color: #f5faff;
+}
+
+.anchor-cell {
+    text-align: center;
+    min-width: 58px;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+@media (max-width: 800px) {
+    .table-title {
+        font-size: 1rem;
+    }
+
+    .table-container {
+        padding: 5px;
+        min-width: 80vw;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 4px 6px;
+        font-size: 0.81rem;
+        max-width: 88vw;
+    }
+}

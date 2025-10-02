@@ -36,10 +36,10 @@ export function logConstantsAccess(debug = config.debug): void {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Constantes utilisées par App.tsx et TablesLayout.tsx                       */
+/* Constantes utilisées par App.tsx et composants tableau séparés              */
 /* -------------------------------------------------------------------------- */
 
-/** Colonnes à afficher pour les drones en direct */
+/** Colonnes à afficher pour les drones en direct (live) */
 export const LIVE_FIELDS = [
   "id",          // Identifiant unique
   "name",        // Modèle/Nom
@@ -47,6 +47,18 @@ export const LIVE_FIELDS = [
   "longitude",
   "altitude",
   "distance",    // Distance drone
+  "speed",
+  "created_time"
+];
+
+/** Colonnes à afficher pour les vols archivés locaux */
+export const LOCAL_FIELDS = [
+  "id",
+  "name",
+  "latitude",
+  "longitude",
+  "altitude",
+  "distance",
   "speed",
   "created_time"
 ];

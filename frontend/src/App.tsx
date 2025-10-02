@@ -1,5 +1,3 @@
-// src/App.tsx
-
 import React from "react";
 import "./App.css";
 
@@ -7,13 +5,14 @@ import { DronesProvider } from "./contexts/DronesContext";
 
 import Header from "./components/layout/Header";
 import MapLayout from "./components/layout/MapLayout";
-import TablesLayout from "./components/layout/TablesLayout";
+import TablesLive from "./components/layout/TablesLive";
+import TablesLocal from "./components/layout/TablesLocal";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 import ErrorPanel from "./components/common/ErrorPanel";
 
 import HistoryFileSelector from "./components/common/HistoryFileSelector";
 
-import { LIVE_FIELDS, LIVE_DETAILS } from "./utils/constants";
+import { LIVE_FIELDS, LOCAL_FIELDS, LIVE_DETAILS } from "./utils/constants";
 import useAppLogic from "./hooks/useAppLogic";
 
 function AppContent() {
@@ -23,44 +22,68 @@ function AppContent() {
     <div>
       <Header />
 
-      <ErrorPanel
-        errors={logic.errors}
-        criticalErrors={logic.criticalErrors}
-        onDismiss={logic.dismissError}
-        showHistoryToggle={true}
-        errorHistory={logic.errorHistory}
-      />
-
-      <div style={{ maxWidth: '1200px', margin: '16px auto' }}>
-        <HistoryFileSelector
-          historyFiles={logic.historyFiles}
-          currentFile={logic.currentHistoryFile}
-          onSelectFile={logic.setCurrentHistoryFile}
+      <div className="error-container">
+        <ErrorPanel
+          errors={logic.errors}
+          criticalErrors={logic.criticalErrors}
+          onDismiss={logic.dismissError}
+          showHistoryToggle={true}
+          errorHistory={logic.errorHistory}
         />
       </div>
 
-      <div className="container-detections">
-        <MapLayout
-          selectedTracePoints={logic.selectedTracePoints}
-          selectedTraceRaw={logic.selectedTraceRaw}
-          selected={logic.selected}
-          detailFields={logic.detailFields}
-          exportObj={logic.exportSelectedAsAnchorJson}
-          flyToTrigger={logic.flyToTrigger}
-        />
+      <div className="container-main">
+        <div className="left-column">
+          <div className="map-container">
+            <MapLayout
+              selectedTracePoints={logic.selectedTracePoints}
+              selectedTraceRaw={logic.selectedTraceRaw}
+              selected={logic.selected}
+              detailFields={logic.detailFields}
+              exportObj={logic.exportSelectedAsAnchorJson}
+              flyToTrigger={logic.flyToTrigger}
+            />
+          </div>
+          <div className="info-details">
+            <p>Détails test</p>
+            <ul>
+              <li>Id: 123</li>
+              <li>Nom: Drone A</li>
+              <li>Altitude: 300m</li>
+            </ul>
+          </div>
+        </div>
 
-        <TablesLayout
-          drones={[...logic.localFlights, ...logic.liveFlights]}
-          LIVE_FIELDS={LIVE_FIELDS}
-          localPage={logic.localPage}
-          localMaxPage={logic.localMaxPage}
-          setLocalPage={logic.setLocalPage}
-          localPageData={logic.localPageData}
-          isAnchored={logic.isAnchoredFn}
-          renderAnchorCell={logic.renderAnchorCell}
-          handleSelect={logic.handleSelect}
-          debug={logic.debug}
-        />
+        <div className="right-column">
+          <TablesLive
+            drones={logic.liveFlights}
+            LIVE_FIELDS={LIVE_FIELDS}
+            isAnchored={logic.isAnchoredFn}
+            renderAnchorCell={logic.renderAnchorCell}
+            handleSelect={logic.handleSelect}
+            debug={logic.debug}
+          />
+
+          <div className="history-selector-container">
+            <HistoryFileSelector
+              historyFiles={logic.historyFiles}
+              currentFile={logic.currentHistoryFile}
+              onSelectFile={logic.setCurrentHistoryFile}
+            />
+          </div>
+
+          <TablesLocal
+            localPage={logic.localPage}
+            setLocalPage={logic.setLocalPage}
+            localMaxPage={logic.localMaxPage}
+            localPageData={logic.localPageData}
+            LOCAL_FIELDS={LOCAL_FIELDS}
+            isAnchored={logic.isAnchoredFn}
+            renderAnchorCell={logic.renderAnchorCell}
+            handleSelect={logic.handleSelect}
+            debug={logic.debug}
+          />
+        </div>
       </div>
 
       {logic.anchorModal && (
@@ -81,7 +104,6 @@ function AppContent() {
   );
 }
 
-// Enroule AppContent dans DronesProvider
 export default function App() {
   return (
     <React.StrictMode>

@@ -11,13 +11,15 @@ export type LatLng = [number, number];
 export type LatLngTimestamp = [number, number, number];
 
 /**
- * Flight / vol principal utilisé dans l'app.
- * id est strictement une string.
- * created_time est optionnelle.
- * trace peut être sous forme tableau classique, tableau timestampé ou string json.
- * tracing est optionnel.
- * _type est un champ interne pour indiquer le type d'origine ("live" | "local" | "event").
- * isAnchored (optionnel) indique si le vol est ancré dans la blockchain.
+ * Flight / vol principal utilisé dans l'application.
+ * L'identifiant `id` est strictement une chaîne de caractères.
+ * Le champ `created_time` est optionnel et correspond à la date de création du vol.
+ * Le champ `trace` peut contenir le tracé sous forme de tableau de points classiques,
+ * tableau avec timestamps relatifs ou une chaîne JSON.
+ * Le champ `tracing` est optionnel et stocke des informations supplémentaires sur le tracé.
+ * Le champ `type` indique la nature du vol : "live" pour vol en temps réel,
+ * "local" pour vol archivé (historique), et "event" pour un événement associé.
+ * Le champ `isAnchored` optionnel précise si le vol est ancré dans la blockchain.
  */
 export interface Flight {
   id: string;
@@ -26,15 +28,15 @@ export interface Flight {
   tracing?: {
     points?: LatLng[];
   };
-  _type?: "live" | "local" | "event";
+  type?: "live" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
   isAnchored?: boolean;
   [key: string]: any;
 }
 
 /**
- * Détection (ex: dans TablesLayout ou live drone).
- * Semblable à Flight mais séparé pour une meilleure clarté si besoin.
- * id obligatoire et string.
+ * Détection associée, par exemple utilisée dans des tableaux de détections ou vols live.
+ * Similaire à Flight mais séparée pour une meilleure clarté.
+ * `id` est obligatoire et de type chaîne.
  */
 export interface Detection {
   id: string;
@@ -43,7 +45,7 @@ export interface Detection {
 }
 
 /**
- * Événement historique (ex: distant).
+ * Événement historique, par exemple pour des événements distants ou autres entités temporelles.
  */
 export interface Event {
   id: string;
@@ -55,25 +57,26 @@ export interface Event {
 }
 
 /**
- * Type pour la fonction vérifiant si un vol est ancré.
- * Doit prendre id (string) et created_time (string) obligatoire.
+ * Type de fonction permettant de vérifier si un vol est ancré dans la blockchain.
+ * Elle prend un `id` de vol et son `created_time`, tous deux chaînes, et retourne un booléen.
  */
 export type IsAnchoredFn = (id: string, created_time: string) => boolean;
 
 /**
- * Fonction de rendu d'une cellule d'ancrage dans les tables.
- * Reçoit un vol Flight et retourne un ReactNode.
+ * Fonction de rendu d’une cellule d’ancrage dans les tableaux.
+ * Prend un vol de type Flight et retourne un ReactNode (élément JSX).
  */
 export type RenderAnchorCellFn = (flight: Flight) => ReactNode;
 
 /**
- * Fonction de sélection d'un vol/détection.
- * Reçoit un Flight et ne retourne rien.
+ * Fonction de sélection d’un vol ou d’une détection.
+ * Reçoit un objet Flight et ne retourne rien.
  */
 export type HandleSelectFn = (flight: Flight) => void;
 
 /**
- * Interface pour la modale ancrage.
+ * Interface décrivant la modale d’ancrage.
+ * Contient un vol Flight et des propriétés additionnelles éventuelles.
  */
 export interface AnchorModal {
   flight: Flight;

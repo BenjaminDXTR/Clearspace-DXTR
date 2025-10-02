@@ -41,7 +41,6 @@ export function useProcessedFlights(
         }
     }, [debug]);
 
-    // Utilisation du hook localHistory pour gestion des vols locaux paginés
     const {
         setLocalHistory,
         localPage,
@@ -51,60 +50,48 @@ export function useProcessedFlights(
         error: localHistoryError,
     } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
-    // Mémo de la référence précédente des vols locaux bruts pour éviter traitements inutiles
     const prevRawLocalFlightsRef = useRef<Flight[] | null>(null);
 
-    // Quand les données brutes locales évoluent, on met à jour l’historique local dans useLocalHistory
     useEffect(() => {
-        // Optimisation rapide : si tableau vide et précédent aussi vide, pas de traitement
-        if (
-            rawLocalFlights.length === 0 &&
-            prevRawLocalFlightsRef.current &&
-            prevRawLocalFlightsRef.current.length === 0
-        ) {
+        if (rawLocalFlights.length === 0 && prevRawLocalFlightsRef.current && prevRawLocalFlightsRef.current.length === 0) {
             return;
         }
-
-        // Mise à jour de la référence précédente et mise à jour de l’historique local
         prevRawLocalFlightsRef.current = rawLocalFlights;
         debugLog(`Mise à jour des vols locaux reçus, count: ${rawLocalFlights.length}`);
         setLocalHistory(rawLocalFlights);
     }, [rawLocalFlights, setLocalHistory, debugLog]);
 
-    // Gestion des erreurs liées à l’historique local
     useEffect(() => {
         if (localHistoryError && onUserError) {
             onUserError(`Erreur historique local : ${localHistoryError}`);
         }
     }, [localHistoryError, onUserError]);
 
-    // Filtrage et enrichissement des vols live
     const liveFlights = useMemo(() => {
         const filtered: (Flight & { _type: "live" })[] = rawLiveFlights
-            .filter((flight: Flight) =>
-                typeof flight.latitude === "number"
-                && typeof flight.longitude === "number"
-                && flight.latitude !== 0
-                && flight.longitude !== 0
-                && !!flight.id
+            .filter((flight) =>
+                typeof flight.latitude === "number" &&
+                typeof flight.longitude === "number" &&
+                flight.latitude !== 0 &&
+                flight.longitude !== 0 &&
+                !!flight.id
             )
-            .map((flight: Flight) => ({ ...flight, _type: "live" }));
+            .map((flight) => ({ ...flight, _type: "live" }));
         debugLog(`Vols live filtrés: ${filtered.length}`);
         return filtered;
     }, [rawLiveFlights, debugLog]);
 
-    // Filtrage et enrichissement des vols locaux paginés
     const localFlights = useMemo(() => {
         const filtered: (Flight & { _type: "local" })[] = localPageData
-            .filter((flight: Flight) =>
-                flight !== null
-                && typeof flight.latitude === "number"
-                && typeof flight.longitude === "number"
-                && flight.latitude !== 0
-                && flight.longitude !== 0
-                && !!flight.id
+            .filter((flight) =>
+                flight !== null &&
+                typeof flight.latitude === "number" &&
+                typeof flight.longitude === "number" &&
+                flight.latitude !== 0 &&
+                flight.longitude !== 0 &&
+                !!flight.id
             )
-            .map((flight: Flight) => ({ ...flight, _type: "local" }));
+            .map((flight) => ({ ...flight, _type: "local" }));
         debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
         return filtered;
     }, [localPageData, localPage, debugLog]);

@@ -25,76 +25,127 @@ body {
   user-select: none;
 }
 
+/* ===== Erreur centrée ===== */
+.error-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
 /* ===== Layout principal ===== */
-.container-detections {
+.container-main {
   display: flex;
   flex-direction: row;
-  gap: 20px;
-  max-width: 1700px;     /* Large desktop ! */
-  margin: 28px auto;
-  padding: 0 20px;
+  gap: 40px;
+  width: 100vw;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  min-height: 700px;
   align-items: flex-start;
-  width: 100%;
 }
 
-.map-layout, .map-container {
-  flex: 1 1 600px;
-  min-width: 480px;
-  max-width: 900px;      /* Carte grande */
-}
-
-.flight-map {
-  width: 100%;
-  min-width: 420px;
-  max-width: 900px;
-  min-height: 450px;
-  height: 600px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* Tableaux à droite */
-.tables-layout, .tables-container {
-  flex: 2 1 900px;
-  min-width: 400px;
-  max-width: 100%;
+/* Colonne gauche carte + détails */
+.left-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  flex: 1 1 55%;
+  min-width: 420px;
+  gap: 20px;
+  box-sizing: border-box;
 }
-
-/* ===== Panneaux Map et Détails ===== */
-.map-container, .details-panel {
-  background-color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-  padding: 22px 18px;
-  margin-bottom: 16px;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.map-container:hover, .details-panel:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
-}
-
-/* ===== Sidebar ===== */
-.sidebar {
+/* Carte prend tout l'espace disponible */
+.map-container {
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-  padding: 18px 12px;
-  font-size: 1rem;
-  color: #374151;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  height: 460px;   /* Hauteur FIXE OU min-height (selon tes besoins) */
+  min-width: 380px;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* ===== Boutons ===== */
+/* Détails sous carte */
+.info-details {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  min-height: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 18px 20px;
+  box-sizing: border-box;
+}
+
+/* Colonne droite tableaux */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 45%;
+  min-width: 420px;
+  gap: 28px;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+
+/* Conteneurs des tableaux et sélecteur */
+.table-container, .history-selector-container {
+  width: 100%;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+/* Tableaux styling */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  text-align: left;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table thead {
+  background-color: #f0f0f0;
+}
+
+.data-table th {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background-color: #f5faff;
+}
+
+.anchor-cell {
+  text-align: center;
+  min-width: 58px;
+}
+
+/* Buttons */
 button {
   background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 8px 15px;
+  padding: 8px 18px;
   font-size: 0.94rem;
   font-weight: 600;
   cursor: pointer;
@@ -111,22 +162,22 @@ button:disabled {
   opacity: 0.7;
 }
 
-/* ===== Pagination ===== */
+/* Pagination */
 .pagination {
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
-/* ===== Messages d'erreur ===== */
+/* Message d'erreur */
 .error {
   color: #dc2626;
   font-weight: 600;
   margin: 10px 0;
 }
 
-/* ===== Modale ===== */
+/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -147,23 +198,41 @@ button:disabled {
   box-shadow: 0 8px 32px rgba(0,0,0,0.13);
 }
 
-/* ===== Responsive ===== */
+/* Responsive */
 @media (max-width: 1200px) {
-  .container-detections {
+  .container-main {
     flex-direction: column;
-    gap: 18px;
+    gap: 26px;
     max-width: 99vw;
     padding: 0 3vw;
+    min-height: auto;
   }
-  .map-layout, .map-container, .tables-layout, .tables-container {
+  .left-column,
+  .right-column {
     min-width: 0;
     max-width: 100%;
     flex: 1 1 100%;
   }
-  .flight-map {
+  .map-layout, .map-container {
     min-width: 220px;
     max-width: 99vw;
-    min-height: 200px;
-    height: 300px;
+    min-height: 220px;
+    height: 350px;
+  }
+}
+
+@media (max-width: 800px) {
+  .table-title {
+    font-size: 1rem;
+  }
+  .table-container {
+    padding: 5px;
+    min-width: 80vw;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 4px 6px;
+    font-size: 0.87rem;
+    max-width: 88vw;
   }
 }

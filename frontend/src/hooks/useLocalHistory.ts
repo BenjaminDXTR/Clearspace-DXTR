@@ -43,13 +43,14 @@ export default function useLocalHistory({
   const [localPage, setLocalPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const prevHistoryFileRef = useRef<string | null>(null);
   const prevRefreshTrigger = usePrevious(refreshTrigger);
 
   const log = (...args: any[]) => debug && console.log("[useLocalHistory]", ...args);
 
-  // Chargement du fichier historique à la sélection et mise à jour
+  // Chargement du fichier historique à la sélection et mise à jour, ou à refreshCounter change
   useEffect(() => {
     if (!currentHistoryFile) {
       if (prevHistoryFileRef.current !== null) {
@@ -63,8 +64,8 @@ export default function useLocalHistory({
       return;
     }
 
-    if (prevHistoryFileRef.current === currentHistoryFile) {
-      log(`Same currentHistoryFile ${currentHistoryFile}, skip fetch`);
+    if (prevHistoryFileRef.current === currentHistoryFile && refreshCounter === 0) {
+      log(`Same currentHistoryFile ${currentHistoryFile}, no refresh, skip fetch`);
       return;
     }
 
@@ -90,7 +91,7 @@ export default function useLocalHistory({
         setLoading(false);
       }
     })();
-  }, [currentHistoryFile, fetchHistory, onUserError]);
+  }, [currentHistoryFile, fetchHistory, onUserError, refreshCounter]);
 
   // Rafraîchissement forcé si backend notifie modification du fichier courant
   useEffect(() => {
@@ -100,8 +101,7 @@ export default function useLocalHistory({
       prevRefreshTrigger !== refreshTrigger
     ) {
       log(`Refresh triggered for currentHistoryFile ${currentHistoryFile}, refreshing`);
-      setCurrentHistoryFile(null);
-      setTimeout(() => setCurrentHistoryFile(currentHistoryFile), 200);
+      setRefreshCounter((v) => v + 1);
     }
   }, [refreshTrigger, currentHistoryFile, prevRefreshTrigger]);
 
