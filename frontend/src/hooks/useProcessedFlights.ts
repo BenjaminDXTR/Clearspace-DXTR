@@ -1,19 +1,20 @@
 // src/hooks/useProcessedFlights.ts
 import { useEffect, useMemo, useCallback } from "react";
 import type { Flight } from "../types/models";
-import useLocalHistory from "./useLocalHistory"; // Import par défaut corrigé
+import useLocalHistory from "./useLocalHistory"; 
 
 interface UseProcessedFlightsOptions {
-    debug?: boolean;
+  debug?: boolean;
+  onUserError?: (message: string) => void;
 }
 
 interface UseProcessedFlightsResult {
-    liveFlights: Flight[];         // Vols live filtrés et enrichis
-    localFlights: Flight[];        // Vols locaux paginés et filtrés avec flag isAnchored
-    localPage: number;
-    setLocalPage: (page: number) => void;
-    localMaxPage: number;
-    localPageData: Flight[];
+  liveFlights: Flight[];         // Vols live filtrés et enrichis
+  localFlights: Flight[];        // Vols locaux paginés et filtrés avec flag isAnchored
+  localPage: number;
+  setLocalPage: (page: number) => void;
+  localMaxPage: number;
+  localPageData: Flight[];
 }
 
 /**
@@ -23,60 +24,63 @@ interface UseProcessedFlightsResult {
  * - Gère pagination locale, passe isAnchored tel que fourni par backend
  */
 export function useProcessedFlights(
-    rawLiveFlights: Flight[],
-    rawLocalFlights: Flight[],
-    options: UseProcessedFlightsOptions = {},
-    fetchHistory: (filename: string) => Promise<Flight[]>,
-    historyFiles: string[],
+  rawLiveFlights: Flight[],
+  rawLocalFlights: Flight[],
+  options: UseProcessedFlightsOptions = {},
+  fetchHistory: (filename: string) => Promise<Flight[]>,
+  historyFiles: string[]
 ): UseProcessedFlightsResult {
-    const { debug = false } = options;
+  const { debug = false, onUserError } = options;
 
-    const debugLog = useCallback((...args: unknown[]) => {
-        if (debug) {
-            console.log("[useProcessedFlights]", ...args);
-        }
-    }, [debug]);
+  const debugLog = useCallback((...args: unknown[]) => {
+    if (debug) {
+      console.log("[useProcessedFlights]", ...args);
+    }
+  }, [debug]);
 
-    // Utilisation hook pagination localHistory (gère l’état interne)
-    const {
-        setLocalHistory,
-        localPage,
-        setLocalPage,
-        localMaxPage,
-        localPageData,
-    } = useLocalHistory({ fetchHistory, historyFiles, debug });
+  const {
+    setLocalHistory,
+    localPage,
+    setLocalPage,
+    localMaxPage,
+    localPageData,
+    error: localHistoryError,
+  } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
-    // Synchroniser localHistory avec rawLocalFlights
-    useEffect(() => {
-        debugLog(`Mise à jour vols locaux (rawLocalFlights), count: ${rawLocalFlights.length}`);
-        // Conserver le flag isAnchored provenant du backend dans chaque vol local
-        setLocalHistory(rawLocalFlights);
-    }, [rawLocalFlights, setLocalHistory, debugLog]);
+  // Surveiller l'erreur locale et remonter une erreur si besoin
+  useEffect(() => {
+    if (localHistoryError && onUserError) {
+      onUserError(`Erreur historique local : ${localHistoryError}`);
+    }
+  }, [localHistoryError, onUserError]);
 
-    // Filtrage vols live valides avec ajout _type = "live"
-    const liveFlights = useMemo(() => {
-        const filtered: Flight[] = rawLiveFlights
-            .filter((f: Flight) => f.latitude !== 0 && f.longitude !== 0 && !!f.id)
-            .map((f: Flight) => ({ ...f, _type: "live" }));
-        debugLog(`Vols live filtrés: ${filtered.length}`);
-        return filtered;
-    }, [rawLiveFlights, debugLog]);
+  useEffect(() => {
+    debugLog(`Mise à jour vols locaux (rawLocalFlights), count: ${rawLocalFlights.length}`);
+    setLocalHistory(rawLocalFlights);
+  }, [rawLocalFlights, setLocalHistory, debugLog]);
 
-    // Filtrage locaux paginés valides avec _type = "local" et isAnchored passé tel quel
-    const localFlights = useMemo(() => {
-        const filtered: Flight[] = localPageData
-            .filter((f: Flight) => f && f.latitude !== 0 && f.longitude !== 0 && !!f.id)
-            .map((f: Flight) => ({ ...f, _type: "local" }));
-        debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
-        return filtered;
-    }, [localPageData, localPage, debugLog]);
+  const liveFlights = useMemo(() => {
+    const filtered: Flight[] = rawLiveFlights
+      .filter((f: Flight) => f.latitude !== 0 && f.longitude !== 0 && !!f.id)
+      .map((f: Flight) => ({ ...f, _type: "live" }));
+    debugLog(`Vols live filtrés: ${filtered.length}`);
+    return filtered;
+  }, [rawLiveFlights, debugLog]);
 
-    return {
-        liveFlights,
-        localFlights,
-        localPage,
-        setLocalPage,
-        localMaxPage,
-        localPageData,
-    };
+  const localFlights = useMemo(() => {
+    const filtered: Flight[] = localPageData
+      .filter((f: Flight) => f && f.latitude !== 0 && f.longitude !== 0 && !!f.id)
+      .map((f: Flight) => ({ ...f, _type: "local" }));
+    debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
+    return filtered;
+  }, [localPageData, localPage, debugLog]);
+
+  return {
+    liveFlights,
+    localFlights,
+    localPage,
+    setLocalPage,
+    localMaxPage,
+    localPageData,
+  };
 }

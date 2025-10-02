@@ -45,31 +45,32 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
 
   const fetchHistory = async (filename: string): Promise<Flight[]> => {
     if (!filename) {
-      const msg = "Filename is missing for fetching history";
+      const msg = "Nom de fichier manquant pour l'historique";
       setError(msg);
-      console.error("[DronesContext] Erreur fetchHistory sans filename");
+      console.error("[DronesContext] " + msg);
       return [];
     }
     try {
       const res = await fetch(`${window.origin}/history/${filename}`);
       if (!res.ok) {
-        const msg = `HTTP error ${res.status} while fetching history file`;
+        const msg = `Erreur HTTP ${res.status} lors du chargement de l'historique`;
         setError(msg);
         console.error("[DronesContext] " + msg);
         return [];
       }
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) {
-        const msg = `Invalid content type: expected JSON but got ${contentType}`;
+        const msg = `Type de contenu invalide : JSON attendu mais reçu ${contentType}`;
         setError(msg);
         console.error("[DronesContext] " + msg);
         return [];
       }
       const data: Flight[] = await res.json();
       setError(null);
+      console.log(`[DronesContext] Historique chargé, ${data.length} vols reçus`);
       return data;
     } catch (err) {
-      const msg = `Error loading history: ${(err as Error).message}`;
+      const msg = `Erreur lors du chargement de l'historique : ${(err as Error).message}`;
       setError(msg);
       console.error("[DronesContext] " + msg);
       return [];

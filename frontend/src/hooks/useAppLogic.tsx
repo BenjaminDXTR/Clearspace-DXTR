@@ -19,6 +19,24 @@ export default function useAppLogic() {
 
   const { drones: rawLiveDrones, historyFiles, fetchHistory, error: dronesError } = useDrones();
 
+  // Gestion globale des erreurs avec useErrorManager
+  const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
+
+  // Gestion des erreurs utilisateurs en provenance des hooks enfants
+  const onUserError = useCallback((msg: string) => {
+    const id = `user-error-${msg}`;
+    if (!errors.some(e => e.id === id)) {
+      addError({
+        id,
+        title: "Erreur",
+        message: msg,
+        severity: "error",
+        dismissible: true,
+      });
+    }
+  }, [addError, errors]);
+
+  // Hook localHistory utilise onUserError pour remonter ses erreurs
   const {
     currentHistoryFile,
     setCurrentHistoryFile,
@@ -28,10 +46,39 @@ export default function useAppLogic() {
     setLocalPage,
     localMaxPage,
     localPageData,
-  } = useLocalHistory({ fetchHistory, historyFiles, debug });
+  } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
-  const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
+  // Surveiller erreurs locales explicites non capturées par onUserError
+  useEffect(() => {
+    if (localHistoryError && !errors.some(e => e.id === "local-history-error")) {
+      addError({
+        id: "local-history-error",
+        title: "Erreur chargement historique local",
+        message: localHistoryError,
+        severity: "error",
+        dismissible: false,
+      });
+    }
+    if (!localHistoryError) {
+      dismissError("local-history-error");
+    }
+  }, [localHistoryError, addError, dismissError, errors]);
 
+  // Hook useProcessedFlights avec remontée erreur ou warning via onUserError
+  const { liveFlights, localFlights } = useProcessedFlights(
+    rawLiveDrones,
+    rawLocalFlights,
+    { debug, onUserError },
+    fetchHistory,
+    historyFiles
+  );
+
+  const { liveTraces } = useLiveTraces(liveFlights, {
+    debug,
+    onUserError,
+  });
+
+  // Gestion des erreurs dronesError via addError
   useEffect(() => {
     if (dronesError && !errors.some((e) => e.id === "drones-error")) {
       addError({
@@ -46,31 +93,6 @@ export default function useAppLogic() {
       dismissError("drones-error");
     }
   }, [dronesError, addError, dismissError, errors]);
-
-  useEffect(() => {
-    if (localHistoryError && !errors.some((e) => e.id === "local-history-error")) {
-      addError({
-        id: "local-history-error",
-        title: "Erreur chargement historique local",
-        message: localHistoryError,
-        severity: "error",
-        dismissible: false,
-      });
-    }
-    if (!localHistoryError) {
-      dismissError("local-history-error");
-    }
-  }, [localHistoryError, addError, dismissError, errors]);
-
-  const { liveFlights, localFlights } = useProcessedFlights(
-    rawLiveDrones,
-    rawLocalFlights,
-    { debug },
-    fetchHistory,
-    historyFiles
-  );
-
-  const { liveTraces } = useLiveTraces(liveFlights, { debug });
 
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
@@ -93,7 +115,8 @@ export default function useAppLogic() {
       if (flight._type === "local") {
         const trace = (flight as any).trace ?? [];
         if (trace.length > 0 && trace[0].length === 3) return trace as LatLngTimestamp[];
-        if (trace.length > 0 && trace[0].length === 2) return trace.map(([lat, lng]: [number, number]) => [lat, lng, 0]);
+        if (trace.length > 0 && trace[0].length === 2)
+          return trace.map(([lat, lng]: [number, number]) => [lat, lng, 0]);
         return [];
       }
       return [];

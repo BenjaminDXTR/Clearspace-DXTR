@@ -34,7 +34,7 @@ export default function useLiveTraces(
         drones.forEach((drone) => {
           if (!drone.id) {
             dlog("Ignored drone without id");
-            if (onUserError) onUserError("Received drone without ID - ignored.");
+            if (onUserError) onUserError("Drones détectés sans ID - ignorés.");
             return;
           }
           const newTrace = Array.isArray(drone.trace) ? drone.trace : [];

@@ -59,15 +59,16 @@ export default function useLocalHistory({
       } catch (e) {
         const msg = `Error loading history: ${(e as Error).message}`;
         setError(msg);
+        if (onUserError) onUserError(msg);
         setLocalHistoryState([]);
         setLocalPage(1);
         dlog(msg);
-        if (onUserError) onUserError(msg);
       } finally {
         setLoading(false);
       }
     })();
   }, [currentHistoryFile, fetchHistory, dlog, onUserError]);
+
 
   useEffect(() => {
     if (historyFiles.length === 0) {
