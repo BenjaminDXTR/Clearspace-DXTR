@@ -13,7 +13,7 @@ import "./TablesLayout.css";
 
 interface TablesLayoutProps {
   drones: Flight[];
-  error: string | null;
+  // NOTE: la prop error est retirée
   LIVE_FIELDS: string[];
   localPage: number;
   setLocalPage: (page: number) => void;
@@ -29,13 +29,16 @@ const DEBUG = config.debug || config.environment === "development";
 
 function dlog(...args: unknown[]) {
   if (DEBUG) {
-    // Limitation simple : ne log que si message ne contient pas "Nombre drones live filtrés" ou "Nombre drones archivés filtrés"
     const skipPatterns = [
       "Nombre drones live filtrés",
       "Nombre drones archivés filtrés",
-      "Rendu tableau"
+      "Rendu tableau",
     ];
-    if (!skipPatterns.some(pat => args.some(arg => typeof arg === "string" && arg.includes(pat)))) {
+    if (
+      !skipPatterns.some((pat) =>
+        args.some((arg) => typeof arg === "string" && arg.includes(pat))
+      )
+    ) {
       console.log(...args);
     }
   }
@@ -43,7 +46,6 @@ function dlog(...args: unknown[]) {
 
 export default function TablesLayout({
   drones,
-  error,
   LIVE_FIELDS,
   localPage,
   setLocalPage,
@@ -62,12 +64,14 @@ export default function TablesLayout({
     [handleSelect]
   );
 
-  const genKey = (item: { id?: string | number; created_time?: string | number }, idx: number): string =>
-    `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
+  const genKey = (
+    item: { id?: string | number; created_time?: string | number },
+    idx: number
+  ): string => `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
   const liveDrones = useMemo(() => {
     const filtered = drones.filter(
-      d => d._type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d._type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     dlog(`Nombre drones live filtrés: ${filtered.length}`);
     return filtered;
@@ -75,7 +79,7 @@ export default function TablesLayout({
 
   const archivedDrones = useMemo(() => {
     const filtered = localPageData.filter(
-      d => d._type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d._type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     dlog(`Nombre drones archivés filtrés: ${filtered.length}`);
     return filtered;
@@ -147,11 +151,7 @@ export default function TablesLayout({
 
   return (
     <div className="tables-layout">
-      {error && (
-        <div role="alert" className="error">
-          {error}
-        </div>
-      )}
+      {/* NOTE: Suppression complète du rendu d'erreur "error" ici */}
 
       {renderTable("Détection en direct", LIVE_FIELDS, liveDrones, true)}
 

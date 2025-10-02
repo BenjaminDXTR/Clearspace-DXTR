@@ -24,10 +24,13 @@ export default function ErrorPanel({
   showHistoryToggle = true,
   errorHistory = [],
 }: ErrorPanelProps) {
-  // État local indiquant si l'historique est visible
   const [showHistory, setShowHistory] = useState(false);
 
-  // Dismiss automatique des erreurs info/warning après 10 secondes si dismissible
+  // Filtrer erreurs générales pour exclure les erreurs critiques déjà affichées
+  const nonCriticalErrors = errors.filter(
+    (err) => !criticalErrors.some(critErr => critErr.id === err.id)
+  );
+
   useEffect(() => {
     if (!onDismiss) return;
     const timeouts: NodeJS.Timeout[] = [];
@@ -41,18 +44,15 @@ export default function ErrorPanel({
       }
     });
 
-    // Nettoyage des timers lors du démontage ou changement d'erreurs
     return () => {
       timeouts.forEach(clearTimeout);
     };
   }, [errors, onDismiss]);
 
-  // Ne rien afficher si pas d’erreurs visibles ou d’historique à voir
   if (errors.length === 0 && (!showHistory || errorHistory.length === 0)) return null;
 
   return (
     <div className="error-panel" role="alert" aria-live="assertive" aria-atomic="true">
-      {/* Section erreurs critiques distinctes */}
       {criticalErrors.length > 0 && (
         <div className="error-critical-section">
           <strong>Erreurs critiques :</strong>
@@ -76,10 +76,9 @@ export default function ErrorPanel({
         </div>
       )}
 
-      {/* Section erreurs restantes (info, warning, error) */}
-      {errors.length > 0 && (
+      {nonCriticalErrors.length > 0 && (
         <div className="error-general-section">
-          {errors.map((err) => (
+          {nonCriticalErrors.map((err) => (
             <div
               key={err.id}
               className={`error-item error-${err.severity ?? "error"}`}
@@ -101,7 +100,6 @@ export default function ErrorPanel({
         </div>
       )}
 
-      {/* Bouton pour basculer l’affichage de l’historique */}
       {showHistoryToggle && errorHistory.length > 0 && (
         <button
           className="error-history-toggle"
@@ -113,7 +111,6 @@ export default function ErrorPanel({
         </button>
       )}
 
-      {/* Affichage de l’historique des anciennes erreurs */}
       {showHistory && errorHistory.length > 0 && (
         <div id="error-history-list" className="error-history" aria-live="polite">
           <strong>Historique des erreurs :</strong>
