@@ -23,7 +23,6 @@ interface UseLocalHistoryResult {
   loading: boolean;
 }
 
-// Permet d’obtenir la valeur précédente d’une prop/state
 function usePrevious<T>(value: T): T | undefined {
   const ref = useRef<T>();
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function useLocalHistory({
 
   const log = (...args: any[]) => debug && console.log("[useLocalHistory]", ...args);
 
-  // Chargement du fichier historique
+  // Chargement du fichier historique à la sélection et mise à jour
   useEffect(() => {
     if (!currentHistoryFile) {
       if (prevHistoryFileRef.current !== null) {
@@ -93,7 +92,7 @@ export default function useLocalHistory({
     })();
   }, [currentHistoryFile, fetchHistory, onUserError]);
 
-  // Rafraîchissement sur notification backend
+  // Rafraîchissement forcé si backend notifie modification du fichier courant
   useEffect(() => {
     if (
       refreshTrigger &&
@@ -102,11 +101,11 @@ export default function useLocalHistory({
     ) {
       log(`Refresh triggered for currentHistoryFile ${currentHistoryFile}, refreshing`);
       setCurrentHistoryFile(null);
-      setTimeout(() => setCurrentHistoryFile(currentHistoryFile), 0);
+      setTimeout(() => setCurrentHistoryFile(currentHistoryFile), 200);
     }
   }, [refreshTrigger, currentHistoryFile, prevRefreshTrigger]);
 
-  // Mise à jour automatique du fichier courant à partir de la liste
+  // Mise à jour automatique du fichier courant vers le dernier fichier disponible
   useEffect(() => {
     if (historyFiles.length === 0) {
       if (currentHistoryFile !== null) {
@@ -119,8 +118,8 @@ export default function useLocalHistory({
     } else {
       const latest = historyFiles[historyFiles.length - 1];
       if (currentHistoryFile !== latest) {
-        setCurrentHistoryFile(latest);
         log(`Set currentHistoryFile to latest: ${latest}`);
+        setCurrentHistoryFile(latest);
       }
     }
   }, [historyFiles, currentHistoryFile]);

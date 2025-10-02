@@ -80,12 +80,12 @@ export const DronesProvider: React.FC<{children: ReactNode}> = ({ children }) =>
     ws.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("[DronesContext] WS message: ", data.type || "live drones");
+        console.log("[DronesContext] WS message received:", data);
 
         if (Array.isArray(data)) {
           if (data.length > 0) {
             setDrones(data);
-            console.log(`[DronesContext] Mise à jour drones live, count: ${data.length}`);
+            console.log(`[DronesContext] Drones updated, count: ${data.length}`);
           }
           return;
         }
@@ -94,42 +94,42 @@ export const DronesProvider: React.FC<{children: ReactNode}> = ({ children }) =>
           switch (data.type) {
             case "historySummaries":
               if (Array.isArray(data.data)) {
+                console.log("[DronesContext] historySummaries data:", data.data);
                 const files = data.data.map((item: { filename: string }) => item.filename);
                 setHistoryFiles(files);
-                console.log(`[DronesContext] Mise à jour fichiers historiques : ${files.join(", ")}`);
+                console.log("[DronesContext] Updated historyFiles:", files);
               } else {
-                console.warn("[DronesContext] Données historiques invalides reçues");
+                console.warn("[DronesContext] Invalid historySummaries data:", data.data);
               }
               break;
+
             case "refresh":
               if (data.data?.filename) {
                 setRefreshFilename(data.data.filename);
-                console.log("[DronesContext] Notification refresh reçue pour", data.data.filename);
+                console.log("[DronesContext] Notification refresh received for file:", data.data.filename);
               } else {
-                console.warn("[DronesContext] Notification refresh reçue sans filename");
+                console.warn("[DronesContext] Refresh notification received without filename");
               }
               break;
+
             default:
-              console.warn("[DronesContext] Type WS inconnu", data.type);
+              console.warn("[DronesContext] Unrecognized WS message type:", data.type);
           }
         }
       } catch (e) {
-        setWebsocketError("Erreur parse données WS");
+        setWebsocketError("Error parsing WS message");
       }
     };
 
     ws.current.onerror = (evt) => {
-      setWebsocketError("Erreur WebSocket");
+      setWebsocketError("WebSocket error occurred");
       setLoading(true);
       console.error("[DronesContext] WebSocket error:", evt);
     };
 
     ws.current.onclose = (evt) => {
       setLoading(true);
-      const msg =
-        evt.code === 1000
-          ? "WebSocket closed normally"
-          : `WebSocket disconnected, code=${evt.code}, reconnecting...`;
+      const msg = evt.code === 1000 ? "WebSocket closed normally" : `WebSocket disconnected, code=${evt.code}, reconnecting...`;
       setWebsocketError(msg);
       if (!reconnectTimeout.current) {
         reconnectTimeout.current = setTimeout(() => {
@@ -137,12 +137,13 @@ export const DronesProvider: React.FC<{children: ReactNode}> = ({ children }) =>
           connect();
         }, 2000);
       }
-      console.warn("[DronesContext]", msg);
+      console.warn("[DronesContext] ", msg);
     };
   }
 
   useEffect(() => {
     connect();
+
     return () => {
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
