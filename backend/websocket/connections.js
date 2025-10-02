@@ -1,6 +1,6 @@
 const log = require('../utils/logger');
 const broadcast = require('./broadcast');
-const { saveFlight, notifyUpdate } = require('../flightsManager');
+const { saveFlight } = require('../flightsManager');
 const flightTraces = require('../flightsManager/state').flightTraces;
 const clients = require('./clients'); // Import singleton clients
 
@@ -15,7 +15,7 @@ function isValidTrace(trace) {
   );
 }
 
-function setupConnection(ws, broadcastFn, notifyUpdateFn) {
+function setupConnection(ws, broadcastFn) {
   clients.add(ws);
   log.info(`[connections] New client connected. Total clients: ${clients.size}`);
 
@@ -34,7 +34,6 @@ function setupConnection(ws, broadcastFn, notifyUpdateFn) {
         flightTraces.set(data.id, data.trace);
         try {
           const filename = await saveFlight(data);
-          notifyUpdateFn(filename);
           broadcastFn([data], clients);
           log.info(`[connections] Broadcasted updated flight: ${data.id}`);
         } catch (e) {

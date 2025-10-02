@@ -48,7 +48,7 @@ function startIntervals() {
 
   archiveIntervalId = setInterval(async () => {
     try {
-      await archiveInactiveFlights(notifyUpdate);
+      await archiveInactiveFlights();
       log.info('[interval] Archivage automatique vols inactifs OK');
     } catch (e) {
       log.error(`[interval] Erreur archivage vols : ${e.message}`);

@@ -113,3 +113,68 @@ Ajouter des tests des hooks métier et composants cruciaux pour améliorer la fi
 
 
 L'objectif est le suivant, le backend envoie la liste des noms de fichiers d'historique. Ensuite le front end récupère la liste afin d'envoyer la requête de récupération des données du fichier le plus récent. ainsi le frontend récupère la listedes vols enregistrés et affiche dans le tableau. coté backend, dès qu'un vol n'est plus détecté pendant plus d'un certaintemp, il est passé en "type" = local et envoie l'information "refresh au frontend" accompagné du nom du dossier concerné, ce qui permet au frontend de savoir quand mettre à jour sa liste si le fichier modifié est le fichier actuellement consulté.
+
+
+
+
+
+Projet Clearspace – Gestion des vols de drones et historique
+Contexte général
+Le projet Clearspace est une application permettant la détection, le suivi et l'archivage des vols de drones. Le système comprend deux parties centrales : un backend dédié à la collecte et au stockage des données, et un frontend pour la visualisation en temps réel et la consultation des historiques.
+
+Fonctionnement du backend
+Le backend est développé en Node.js et s'appuie sur plusieurs modules orchestrés :
+
+Collecte et traitement des vols : Les vols sont reçus en direct avec un identifiant unique (id), un type (live par défaut), une trace GPS, et d'autres métadonnées.
+
+Gestion du timeout des vols : Un mécanisme de temporisation détecte les vols inactifs. Dès que le drone n'est plus détecté depuis un délai configuré (inactiveTimeout), il est « limogé » de l'état live pour être archivé en local.
+
+Archivage en fichiers JSON : Les vols (live & archivés) sont stockés dans des fichiers JSON organisés par période hebdomadaire (ex : history-YYYY-MM-DD_to_YYYY-MM-DD.json). Le backend maintient un cache en mémoire de ces fichiers via historyCache.
+
+Mise à jour & fusion des données : Lorsqu'un vol évolue, il est soit ajouté, soit fusionné aux données archivées avec des règles précises sur la gestion des traces.
+
+Notification des clients : À chaque modification d'un fichier historique, notamment lorsqu'un vol devient local (archivé), le backend notifie tous les clients connectés via une notification WebSocket de type refresh avec le nom du fichier modifié.
+
+Fonctionnement du frontend
+Le frontend, construit avec React, s'organise autour de plusieurs couches :
+
+Context DronesContext : Gère la connexion WebSocket, reçoit les mises à jour des vols en direct, la liste des fichiers d'historique disponibles, et les notifications refresh.
+
+Hook métier useAppLogic : Coordonne les sources de données
+
+Réception temps réel via WebSocket (vols live),
+
+Chargement & pagination des historiques via fetch HTTP des fichiers JSON,
+
+Gestion de la sélection, détails, export JSON, et intégration de la géolocalisation pour les traces.
+
+Hook useLocalHistory : Chargement du fichier historique courant, rafraîchissement déclenché sur réception de notification, pagination.
+
+Affichage :
+
+HistorySelector (à intégrer) : permet à l'utilisateur de choisir le fichier historique à consulter.
+
+TablesLayout : affiche les vols live et archivés dans des tableaux, avec filtres basés sur le champ type.
+
+MapLayout : visualisation spatiale des traces des vols.
+
+Problème actuel
+Contexte :
+
+Les vols passent bien du statut live à local côté backend à l’expiration du timeout.
+
+Le backend modifie la donnée, met à jour le fichier JSON et envoie une notification WebSocket refresh indiquant le nom du fichier modifié.
+
+Problème :
+
+Le frontend reçoit bien ces notifications, mais la mise à jour du fichier d'historique n'a pas l'air de se faire car aucun nouveau vol affiché, sauf quand on refresh la page.
+
+De plus on remarque une reception du refresh très fréqunte alors qu'aucun vol n'est passé de live à local dnas le backend.
+
+
+Analyse possible :
+
+Le backend peut générer plusieurs notifications refresh très rapprochées, peut-être suite à des modifications successives de vols et un appel mal placé du notify avec resh ou mauvaise conditions d'activation.
+
+Le frontend reçoit bien refresh mais ne le gère pas correctement. il faut revoir la chaine de refresh.
+

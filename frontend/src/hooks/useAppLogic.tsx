@@ -50,6 +50,7 @@ export default function useAppLogic() {
 
   const lastRefreshRef = useRef<string | null>(null);
 
+  // Effet pour rafraîchir automatiquement la vue quand le backend notifie la mise à jour du fichier affiché
   useEffect(() => {
     if (
       refreshFilename &&
@@ -59,10 +60,12 @@ export default function useAppLogic() {
       dlog(`[useAppLogic] Refresh notification for current history file ${refreshFilename}, forcing reload`);
       lastRefreshRef.current = refreshFilename;
       setCurrentHistoryFile(null);
+      // Délai de 200ms pour forcer remount et éviter conflits React (reset + set)
       setTimeout(() => setCurrentHistoryFile(refreshFilename), 200);
     }
   }, [refreshFilename, currentHistoryFile, setCurrentHistoryFile, dlog]);
 
+  // Gestion d'erreur locale sur chargement d'historique
   useEffect(() => {
     if (localHistoryError && !errors.some((e) => e.id === "local-history-error")) {
       addError({
@@ -78,6 +81,7 @@ export default function useAppLogic() {
     }
   }, [localHistoryError, addError, dismissError, errors]);
 
+  // Traitement et fusion des vols live et locaux
   const { liveFlights, localFlights } = useProcessedFlights(
     rawLiveDrones,
     rawLocalFlights,
@@ -226,6 +230,7 @@ export default function useAppLogic() {
     dismissError,
     currentHistoryFile,
     setCurrentHistoryFile,
+    historyFiles,
     localHistory: rawLocalFlights,
     localPage,
     setLocalPage,
@@ -245,7 +250,6 @@ export default function useAppLogic() {
     setAnchorDescription,
     handleAnchorValidate,
     handleAnchorCancel,
-		historyFiles,
     openModal,
     anchorDataPreview,
     exportSelectedAsAnchorJson,

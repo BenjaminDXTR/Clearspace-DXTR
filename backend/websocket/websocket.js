@@ -3,7 +3,7 @@ const log = require('../utils/logger');
 const { setupConnection } = require('./connections');
 const clients = require('./clients'); // Import singleton clients
 const poller = require('./poller');
-const { archiveInactiveFlights, notifyUpdate } = require('../flightsManager');
+const { archiveInactiveFlights } = require('../flightsManager');
 const { config } = require('../config');
 const fs = require('fs').promises;
 const path = require('path');
@@ -52,7 +52,7 @@ function setup(server) {
   wss.on('connection', async ws => {
     clients.add(ws);
     log.info(`[websocket] New client connected. Total clients: ${clients.size}`);
-    setupConnection(ws, broadcast, notifyUpdate);
+    setupConnection(ws, broadcast);
 
     try {
       const historyDir = path.resolve(__dirname, '../history');
@@ -76,12 +76,7 @@ function setup(server) {
 
   setInterval(async () => {
     try {
-      const updatedFiles = await archiveInactiveFlights(filename => {
-        if (filename) {
-          notifyUpdate(filename);
-          log.info(`[websocket] Notified update for archived file: ${filename}`);
-        }
-      });
+      const updatedFiles = await archiveInactiveFlights();
       if (updatedFiles && updatedFiles.length > 0) {
         log.info(`[websocket] Automatic archiving completed for files: ${updatedFiles.join(', ')}`);
       } else {
@@ -108,5 +103,4 @@ module.exports = {
   setup,
   stopPolling,
   broadcast,
-  notifyUpdate,
 };

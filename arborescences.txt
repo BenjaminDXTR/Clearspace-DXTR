@@ -8,6 +8,8 @@ backend
     notification.js
     state.js
     utils.js
+  history
+    history-2025-09-28_to_2025-10-04.json
   middleware
     errorHandler.js
     notFoundHandler.js
@@ -37,6 +39,8 @@ frontend
   public
     favicon.ico
   src
+    api
+      history.ts
     components
       common
         ErrorPanel.css
@@ -44,6 +48,7 @@ frontend
         FlightMap.css
         FlightMap.tsx
         FlyToPosition.tsx
+        HistoryFileSelector.tsx
         Pagination.css
         Pagination.tsx
       flights
@@ -98,9 +103,9 @@ frontend
   vite.config.ts
 .env
 arborescence.txt
+arborescences.txt
 env.exemple
 env.prod
-infosgeneral.txt
 notePlan.txt
 package-lock.json
 README.md
@@ -108,4 +113,3 @@ start-servers.bat
 start-servers.sh
 stop-servers.bat
 stop-servers.sh
-tree.txt

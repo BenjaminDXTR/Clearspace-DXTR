@@ -1,7 +1,7 @@
 const log = require('../utils/logger');
 const broadcast = require('./broadcast');
 const { fetchDroneData } = require('../graphqlClient');
-const { saveFlightToHistory, notifyUpdate } = require('../flightsManager');
+const { saveFlightToHistory } = require('../flightsManager');
 const { flightTraces } = require('../flightsManager/state');
 const { clients } = require('./connections');
 const updateTrace = require('./updateTrace');
@@ -81,18 +81,12 @@ async function poller() {
             log.debug(`[poller] Drone ${drone.id} fullDroneData trace sample before save: ${JSON.stringify(fullDroneData.trace.slice(0, 5))}`);
 
             log.info(`[poller] Saving flight to history for drone ${drone.id}`);
-            const filename = await saveFlightToHistory(fullDroneData);
-            if (filename) {
-                log.info(`[poller] Saved flight to file: ${filename}`);
-            } else {
-                log.error(`[poller] Failed to save flight for drone ${drone.id}`);
-            }
-            notifyUpdate(filename);
+            await saveFlightToHistory(fullDroneData);
         }
 
         // Filtrer les drones locaux pour ne pas les renvoyer en live
         const filteredFullDrones = fullDrones.filter(flight => flight.type !== 'local');
-        log.info(`[POOOOOOOLLER]Broadcasting ${filteredFullDrones.length} drones after filtering local`);
+        log.info(`[POOOOOOOLLER] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
         broadcast(filteredFullDrones, clients, true);
         log.info('[poller] Broadcast to clients complete');
 
