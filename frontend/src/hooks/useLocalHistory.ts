@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Flight } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
 
@@ -38,57 +38,73 @@ export default function useLocalHistory({
     if (debug) console.log("[useLocalHistory]", ...args);
   }, [debug]);
 
+  const prevHistoryFileRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!currentHistoryFile) {
-      setLocalHistoryState([]);
-      setLocalPage(1);
-      setError(null);
-      setLoading(false);
-      dlog("No current history file selected");
+      if (prevHistoryFileRef.current !== null) {
+        setLocalHistoryState([]);
+        setLocalPage(1);
+        setError(null);
+        setLoading(false);
+        if (debug) dlog("No current history file selected");
+      }
+      prevHistoryFileRef.current = null;
       return;
     }
+
+    if (prevHistoryFileRef.current === currentHistoryFile) {
+      // Même fichier courant, ne rien faire
+      return;
+    }
+
+    prevHistoryFileRef.current = currentHistoryFile;
+
     (async () => {
       try {
         setLoading(true);
-        dlog(`Loading history file: ${currentHistoryFile}`);
+        if (debug) dlog(`Loading history file: ${currentHistoryFile}`);
         const flights = await fetchHistory(currentHistoryFile);
         setLocalHistoryState(flights);
         setLocalPage(1);
         setError(null);
-        dlog(`Loaded ${flights.length} flights from history`);
+        if (debug) dlog(`Loaded ${flights.length} flights from history`);
       } catch (e) {
         const msg = `Error loading history: ${(e as Error).message}`;
         setError(msg);
         if (onUserError) onUserError(msg);
         setLocalHistoryState([]);
         setLocalPage(1);
-        dlog(msg);
+        if (debug) dlog(msg);
       } finally {
         setLoading(false);
       }
     })();
-  }, [currentHistoryFile, fetchHistory, dlog, onUserError]);
-
+  }, [currentHistoryFile, fetchHistory, dlog, onUserError, debug]);
 
   useEffect(() => {
     if (historyFiles.length === 0) {
-      setCurrentHistoryFile(null);
-      setLocalHistoryState([]);
-      setLocalPage(1);
-      setError(null);
-      dlog("No history files available");
-    } else if (!currentHistoryFile || !historyFiles.includes(currentHistoryFile)) {
+      if (currentHistoryFile !== null) {
+        setCurrentHistoryFile(null);
+        setLocalHistoryState([]);
+        setLocalPage(1);
+        setError(null);
+        if (debug) dlog("No history files available");
+      }
+    } else {
       const latestFile = historyFiles[historyFiles.length - 1];
-      setCurrentHistoryFile(latestFile);
-      dlog(`Initial currentHistoryFile set to ${latestFile}`);
+      if (currentHistoryFile !== latestFile) {
+        setCurrentHistoryFile(latestFile);
+        if (debug) dlog(`Initial currentHistoryFile set to ${latestFile}`);
+      }
     }
-  }, [historyFiles, currentHistoryFile, dlog]);
+  }, [historyFiles, currentHistoryFile, dlog, debug]);
 
   const setLocalHistory = useCallback((flights: Flight[]) => {
     setLocalHistoryState(flights);
     setLocalPage(1);
-    dlog(`Local history manually set, count: ${flights.length}`);
-  }, [dlog]);
+    if (debug) dlog(`Local history manually set, count: ${flights.length}`);
+  }, [dlog, debug]);
 
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)), [localHistory]);
   const localPageData = useMemo(() => localHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [localHistory, localPage]);

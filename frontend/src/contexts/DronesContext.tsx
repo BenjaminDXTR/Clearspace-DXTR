@@ -30,62 +30,92 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<number | null>(null);
   const lastError = useRef<string | null>(null);
+  const lastErrorTime = useRef<number>(0);
+  const errorRef = useRef<string | null>(null);
 
   const websocketUrl = `ws://${window.location.hostname}:3200`;
+  const errorThrottleDelay = 5000; // ms
+  const reconnectDelay = 2000; // ms
 
   const setWebSocketError = (msg: string) => {
-    if (lastError.current === msg) {
-      console.log("[DronesContext] Même erreur déjà émise, suppression de la duplication :", msg);
-      return;
+    const now = Date.now();
+    // Des messages adaptés pour l'erreur de connexion réseau
+    const friendlyMsg =
+      msg.includes("connection failed") || msg.includes("disconnected")
+        ? "Impossible de se connecter au backend : assurez-vous que le serveur est lancé et accessible."
+        : msg;
+
+    if (
+      lastError.current === friendlyMsg &&
+      now - lastErrorTime.current < errorThrottleDelay
+      ||
+      errorRef.current === friendlyMsg
+    ) {
+      return; // Evite répétition rapide identique
     }
-    lastError.current = msg;
-    setError(msg);
-    console.error("[DronesContext] ERREUR WEBSOCKET :", msg);
+    lastError.current = friendlyMsg;
+    lastErrorTime.current = now;
+    errorRef.current = friendlyMsg;
+    setError(friendlyMsg);
+    console.error("[DronesContext] WEBSOCKET ERROR:", friendlyMsg);
   };
+
+  useEffect(() => {
+    errorRef.current = error;
+  }, [error]);
 
   const fetchHistory = async (filename: string): Promise<Flight[]> => {
     if (!filename) {
-      const msg = "Nom de fichier manquant pour l'historique";
-      setError(msg);
-      console.error("[DronesContext] " + msg);
+      const msg = "Missing filename for history";
+      if (errorRef.current !== msg) setError(msg);
+      console.error("[DronesContext]", msg);
       return [];
     }
     try {
-      const res = await fetch(`${window.origin}/history/${filename}`);
+      const res = await fetch(`${window.location.origin}/history/${filename}`);
       if (!res.ok) {
-        const msg = `Erreur HTTP ${res.status} lors du chargement de l'historique`;
-        setError(msg);
-        console.error("[DronesContext] " + msg);
+        const msg = `HTTP error ${res.status} on history fetch`;
+        if (errorRef.current !== msg) setError(msg);
+        console.error("[DronesContext]", msg);
         return [];
       }
-      const contentType = res.headers.get("content-type") ?? "";
-      if (!contentType.includes("application/json")) {
-        const msg = `Type de contenu invalide : JSON attendu mais reçu ${contentType}`;
-        setError(msg);
-        console.error("[DronesContext] " + msg);
+      const contentType = res.headers.get("content-type") || '';
+      if (!contentType.includes('application/json')) {
+        const msg = `Invalid content-type for history: expected JSON but got ${contentType}`;
+        if (errorRef.current !== msg) setError(msg);
+        console.error("[DronesContext]", msg);
         return [];
       }
-      const data: Flight[] = await res.json();
-      setError(null);
-      console.log(`[DronesContext] Historique chargé, ${data.length} vols reçus`);
+      const data = await res.json() as Flight[];
+      if (errorRef.current !== null) setError(null);
+      console.log(`[DronesContext] Loaded history file with ${data.length} flights`);
       return data;
-    } catch (err) {
-      const msg = `Erreur lors du chargement de l'historique : ${(err as Error).message}`;
-      setError(msg);
-      console.error("[DronesContext] " + msg);
+    } catch (e) {
+      const msg = `Failed to load history: ${(e as Error).message}`;
+      if (errorRef.current !== msg) setError(msg);
+      console.error("[DronesContext]", msg);
       return [];
     }
   };
 
   const connectWebSocket = () => {
-    console.log("[DronesContext] Tentative de connexion WebSocket à", websocketUrl);
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)
+    ) {
+      return; // Déjà connecté ou connexion en cours
+    }
+
+    console.log("[DronesContext] Connecting to websocket:", websocketUrl);
+
     wsRef.current = new WebSocket(websocketUrl);
 
     wsRef.current.onopen = () => {
-      console.log("[DronesContext] WebSocket connectée");
-      setError(null);
+      console.log("[DronesContext] WebSocket connected");
+      if (errorRef.current !== null) setError(null);
       setLoading(false);
       lastError.current = null;
+      lastErrorTime.current = 0;
     };
 
     wsRef.current.onmessage = (event) => {
@@ -93,34 +123,33 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
         const data = JSON.parse(event.data);
         if (Array.isArray(data)) {
           setDrones(data);
-          console.log(`[DronesContext] Données drones reçues, count: ${data.length}`);
-        } else if (data.type === "historySummaries") {
+        } else if (data.type === 'historySummaries') {
           const files = data.data?.map((f: { filename: string }) => f.filename) ?? [];
           setHistoryFiles(files);
-          console.log(`[DronesContext] Fichiers historiques reçus: ${files.join(", ")}`);
+          console.log("[DronesContext] Received history files:", files.join(", "));
         }
       } catch {
-        setWebSocketError("Erreur lors du traitement des données reçues du backend.");
+        setWebSocketError("Error parsing backend data");
       }
     };
 
     wsRef.current.onerror = () => {
-      setWebSocketError(
-        "Connexion WebSocket impossible : le backend n'est pas lancé ou la connexion réseau a échoué."
-      );
+      setWebSocketError("WebSocket connection failed or backend unavailable");
       setLoading(false);
     };
 
     wsRef.current.onclose = (event) => {
       setLoading(true);
-      if (event.code === 1006 || event.code === 1001) {
-        setWebSocketError(
-          "Connexion WebSocket impossible : le backend n'est pas lancé ou la connexion réseau a échoué."
-        );
+      if ([1006, 1001].includes(event.code)) {
+        setWebSocketError("WebSocket disconnected, reconnecting...");
       }
-      console.log("[DronesContext] WebSocket fermée, reconnexion dans 2 secondes...");
+
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-      reconnectTimeout.current = window.setTimeout(connectWebSocket, 2000);
+      reconnectTimeout.current = window.setTimeout(() => {
+        connectWebSocket();
+      }, reconnectDelay);
+
+      console.log(`[DronesContext] WebSocket disconnected, reconnecting after ${reconnectDelay} ms`);
     };
   };
 
@@ -128,7 +157,7 @@ export const DronesProvider = ({ children }: DronesProviderProps) => {
     connectWebSocket();
     return () => {
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-      wsRef.current?.close();
+      if (wsRef.current) wsRef.current.close();
     };
   }, []);
 

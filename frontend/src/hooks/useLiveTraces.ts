@@ -33,7 +33,8 @@ export default function useLiveTraces(
         const updated = { ...prev };
         drones.forEach((drone) => {
           if (!drone.id) {
-            dlog("Ignored drone without id");
+            // Log d'erreur seulement, pas de log répétitif
+            if (debug) dlog("Ignored drone without id");
             if (onUserError) onUserError("Drones détectés sans ID - ignorés.");
             return;
           }
@@ -45,7 +46,8 @@ export default function useLiveTraces(
           ) {
             updated[drone.id] = { flight: drone, trace: newTrace };
             changed = true;
-            dlog(`Updated drone ${drone.id} with new trace length ${newTrace.length}`);
+            // Suppression du log fréquent de chaque mise à jour drone
+            // dlog(`Updated drone ${drone.id} with new trace length ${newTrace.length}`);
             if (changed && onUpdate) {
               onUpdate(drone, newTrace);
             }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useDrones } from "../contexts/DronesContext";
 import { useProcessedFlights } from "./useProcessedFlights";
 import useLocalHistory from "./useLocalHistory";
@@ -19,10 +19,8 @@ export default function useAppLogic() {
 
   const { drones: rawLiveDrones, historyFiles, fetchHistory, error: dronesError } = useDrones();
 
-  // Gestion globale des erreurs avec useErrorManager
   const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
 
-  // Gestion des erreurs utilisateurs en provenance des hooks enfants
   const onUserError = useCallback((msg: string) => {
     const id = `user-error-${msg}`;
     if (!errors.some(e => e.id === id)) {
@@ -36,7 +34,6 @@ export default function useAppLogic() {
     }
   }, [addError, errors]);
 
-  // Hook localHistory utilise onUserError pour remonter ses erreurs
   const {
     currentHistoryFile,
     setCurrentHistoryFile,
@@ -48,7 +45,6 @@ export default function useAppLogic() {
     localPageData,
   } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
-  // Surveiller erreurs locales explicites non capturées par onUserError
   useEffect(() => {
     if (localHistoryError && !errors.some(e => e.id === "local-history-error")) {
       addError({
@@ -64,7 +60,6 @@ export default function useAppLogic() {
     }
   }, [localHistoryError, addError, dismissError, errors]);
 
-  // Hook useProcessedFlights avec remontée erreur ou warning via onUserError
   const { liveFlights, localFlights } = useProcessedFlights(
     rawLiveDrones,
     rawLocalFlights,
@@ -78,9 +73,12 @@ export default function useAppLogic() {
     onUserError,
   });
 
-  // Gestion des erreurs dronesError via addError
+  // Utilisation de useRef pour éviter boucle sur errors
+  const dronesErrorRef = useRef(false);
+
   useEffect(() => {
-    if (dronesError && !errors.some((e) => e.id === "drones-error")) {
+    const hasDronesError = errors.some(e => e.id === "drones-error");
+    if (dronesError && !dronesErrorRef.current) {
       addError({
         id: "drones-error",
         title: "Problème de connexion au backend",
@@ -88,11 +86,12 @@ export default function useAppLogic() {
         severity: "error",
         dismissible: false,
       });
-    }
-    if (!dronesError) {
+      dronesErrorRef.current = true;
+    } else if (!dronesError && dronesErrorRef.current) {
       dismissError("drones-error");
+      dronesErrorRef.current = false;
     }
-  }, [dronesError, addError, dismissError, errors]);
+  }, [dronesError, addError, dismissError]);
 
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyToTrigger, setFlyToTrigger] = useState(0);
@@ -169,7 +168,8 @@ export default function useAppLogic() {
   }, [selected]);
 
   const isAnchoredFn = useCallback(
-    (id: string, created_time: string): boolean => localFlights.some((f) => f.id === id && f.created_time === created_time && !!f.isAnchored),
+    (id: string, created_time: string): boolean =>
+      localFlights.some((f) => f.id === id && f.created_time === created_time && !!f.isAnchored),
     [localFlights]
   );
 

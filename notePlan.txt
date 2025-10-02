@@ -71,6 +71,16 @@ lui meme l'historique et l'accès à la blockchain api, faut il toujour effectue
 au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain
 
 
+Clearspace est un projet d'application web qui permet de visualiser les détection de drone 
+et de les ancrer dans une blockchain. Pour cela le projet est composé d'un backend qui va
+ interroger la machine de détection qui elle renvoi le donnée des drones détecté en vol.
+  Le frontend reçoit les informations données par le backend et peut également permettre 
+  d'aficher un historique des vols enregistré dans un fichier json (coté backend) et permet 
+  de lancer un ancrage d'un vol, en donnant une description ainsi qu'en sélectionnant la
+   zone de la carte à mettre en capture d'écran accompagnant le json d'information du vol.
+
+
+le but est d'applique rcette liste d'amélioration à apporter au frontend:
 
 
 Optimisation des dépendances des hooks
@@ -106,3 +116,5 @@ Ajouter des messages de confirmation visuelle lors des actions sensibles (ex : e
 
 Tests unitaires et d’intégration
 Ajouter des tests des hooks métier et composants cruciaux pour améliorer la fiabilité et faciliter les évolutions.
+
+

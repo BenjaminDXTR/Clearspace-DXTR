@@ -1,7 +1,6 @@
-// src/hooks/useProcessedFlights.ts
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useRef } from "react";
 import type { Flight } from "../types/models";
-import useLocalHistory from "./useLocalHistory"; 
+import useLocalHistory from "./useLocalHistory";
 
 interface UseProcessedFlightsOptions {
   debug?: boolean;
@@ -9,20 +8,14 @@ interface UseProcessedFlightsOptions {
 }
 
 interface UseProcessedFlightsResult {
-  liveFlights: Flight[];         // Vols live filtrés et enrichis
-  localFlights: Flight[];        // Vols locaux paginés et filtrés avec flag isAnchored
+  liveFlights: Flight[];
+  localFlights: Flight[];
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
   localPageData: Flight[];
 }
 
-/**
- * Hook métier pour fusionner, filtrer, enrichir les vols live et locaux
- * - Reçoit en entrée : listes brutes du contexte DronesContext (hors du hook)
- * - Applique filtre coordonnées valides, enrichissement champ _type
- * - Gère pagination locale, passe isAnchored tel que fourni par backend
- */
 export function useProcessedFlights(
   rawLiveFlights: Flight[],
   rawLocalFlights: Flight[],
@@ -47,17 +40,28 @@ export function useProcessedFlights(
     error: localHistoryError,
   } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
-  // Surveiller l'erreur locale et remonter une erreur si besoin
+  const prevRawLocalFlightsRef = useRef<Flight[] | null>(null);
+
+  useEffect(() => {
+    if (
+      rawLocalFlights.length === 0 &&
+      prevRawLocalFlightsRef.current &&
+      prevRawLocalFlightsRef.current.length === 0
+    ) {
+      return;
+    }
+
+    // Stockage de la référence courante
+    prevRawLocalFlightsRef.current = rawLocalFlights;
+    debugLog(`Mise à jour vols locaux (rawLocalFlights), count: ${rawLocalFlights.length}`);
+    setLocalHistory(rawLocalFlights);
+  }, [rawLocalFlights, setLocalHistory, debugLog]);
+
   useEffect(() => {
     if (localHistoryError && onUserError) {
       onUserError(`Erreur historique local : ${localHistoryError}`);
     }
   }, [localHistoryError, onUserError]);
-
-  useEffect(() => {
-    debugLog(`Mise à jour vols locaux (rawLocalFlights), count: ${rawLocalFlights.length}`);
-    setLocalHistory(rawLocalFlights);
-  }, [rawLocalFlights, setLocalHistory, debugLog]);
 
   const liveFlights = useMemo(() => {
     const filtered: Flight[] = rawLiveFlights
