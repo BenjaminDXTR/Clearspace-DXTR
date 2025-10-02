@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Flight, LatLng, LatLngTimestamp } from "../types/models";
 import { config } from "../config";
+import { isEqual } from "lodash";
 
 interface UseLivetraceOptions {
   onUpdate?: (flight: Flight, trace: LatLng[] | LatLngTimestamp[]) => void;
@@ -19,6 +20,7 @@ export default function useLiveTraces(
 ) {
   const [liveTraces, setLiveTraces] = useState<Record<string, DroneTraceState>>({});
 
+  // Log helper
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useLiveTraces]", ...args);
   }, [debug]);
@@ -27,30 +29,34 @@ export default function useLiveTraces(
     if (drones.length && debug) {
       dlog(`Update with ${drones.length} drones`);
     }
+
     try {
       setLiveTraces((prev) => {
         let changed = false;
         const updated = { ...prev };
+
         drones.forEach((drone) => {
           if (!drone.id) {
-            // Log d'erreur seulement, pas de log répétitif
             if (debug) dlog("Ignored drone without id");
             if (onUserError) onUserError("Drones détectés sans ID - ignorés.");
             return;
           }
+
+          // Normaliser la trace, doit être tableau, sinon tableau vide
           const newTrace = Array.isArray(drone.trace) ? drone.trace : [];
-          if (
-            !updated[drone.id] ||
-            JSON.stringify(newTrace) !== JSON.stringify(updated[drone.id].trace) ||
-            JSON.stringify(drone) !== JSON.stringify(updated[drone.id].flight)
-          ) {
+
+          // Précédentes traces stockées et vol pour comparaison
+          const prevTrace = updated[drone.id]?.trace ?? [];
+          const prevFlight = updated[drone.id]?.flight ?? {};
+
+          // Comparaison profonde pour éviter mise à jour inutile
+          if (!isEqual(newTrace, prevTrace) || !isEqual(drone, prevFlight)) {
             updated[drone.id] = { flight: drone, trace: newTrace };
             changed = true;
-            // Suppression du log fréquent de chaque mise à jour drone
-            // dlog(`Updated drone ${drone.id} with new trace length ${newTrace.length}`);
-            if (changed && onUpdate) {
-              onUpdate(drone, newTrace);
-            }
+            dlog(`[useLiveTraces] Updated drone id=${drone.id} with trace points=${newTrace.length}`);
+            if (onUpdate) onUpdate(drone, newTrace);
+          } else {
+            dlog(`[useLiveTraces] No update needed for drone id=${drone.id}`);
           }
         });
         return changed ? updated : prev;

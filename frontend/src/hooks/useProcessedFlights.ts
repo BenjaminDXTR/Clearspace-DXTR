@@ -8,14 +8,24 @@ interface UseProcessedFlightsOptions {
 }
 
 interface UseProcessedFlightsResult {
-  liveFlights: Flight[];
-  localFlights: Flight[];
+  liveFlights: (Flight & { _type: "live" })[];
+  localFlights: (Flight & { _type: "local" })[];
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
   localPageData: Flight[];
 }
 
+/**
+ * Hook métier pour traiter, filtrer et fusionner les vols live et locaux (historique).
+ * 
+ * @param rawLiveFlights Vols bruts en live reçus du backend via WebSocket.
+ * @param rawLocalFlights Vols bruts locaux paginés chargés via useLocalHistory.
+ * @param options Options debug et callback d’erreur utilisateur.
+ * @param fetchHistory Fonction permettant de récupérer un historique par fichier.
+ * @param historyFiles Liste des fichiers d’historique disponibles.
+ * @returns Données traitées prêtes à être consommées par l’UI.
+ */
 export function useProcessedFlights(
   rawLiveFlights: Flight[],
   rawLocalFlights: Flight[],
@@ -31,6 +41,7 @@ export function useProcessedFlights(
     }
   }, [debug]);
 
+  // Utilisation du hook localHistory pour gestion des vols locaux paginés
   const {
     setLocalHistory,
     localPage,
@@ -40,9 +51,12 @@ export function useProcessedFlights(
     error: localHistoryError,
   } = useLocalHistory({ fetchHistory, historyFiles, debug, onUserError });
 
+  // Mémo de la référence précédente des vols locaux bruts pour éviter traitements inutiles
   const prevRawLocalFlightsRef = useRef<Flight[] | null>(null);
 
+  // Quand les données brutes locales évoluent, on met à jour l’historique local dans useLocalHistory
   useEffect(() => {
+    // Optimisation rapide : si tableau vide et précédent aussi vide, pas de traitement
     if (
       rawLocalFlights.length === 0 &&
       prevRawLocalFlightsRef.current &&
@@ -51,30 +65,46 @@ export function useProcessedFlights(
       return;
     }
 
-    // Stockage de la référence courante
+    // Mise à jour de la référence précédente et mise à jour de l’historique local
     prevRawLocalFlightsRef.current = rawLocalFlights;
-    debugLog(`Mise à jour vols locaux (rawLocalFlights), count: ${rawLocalFlights.length}`);
+    debugLog(`Mise à jour des vols locaux reçus, count: ${rawLocalFlights.length}`);
     setLocalHistory(rawLocalFlights);
   }, [rawLocalFlights, setLocalHistory, debugLog]);
 
+  // Gestion des erreurs liées à l’historique local
   useEffect(() => {
     if (localHistoryError && onUserError) {
       onUserError(`Erreur historique local : ${localHistoryError}`);
     }
   }, [localHistoryError, onUserError]);
 
+  // Filtrage et enrichissement des vols live
   const liveFlights = useMemo(() => {
-    const filtered: Flight[] = rawLiveFlights
-      .filter((f: Flight) => f.latitude !== 0 && f.longitude !== 0 && !!f.id)
-      .map((f: Flight) => ({ ...f, _type: "live" }));
+    const filtered: (Flight & { _type: "live" })[] = rawLiveFlights
+      .filter((flight: Flight) =>
+        typeof flight.latitude === "number"
+        && typeof flight.longitude === "number"
+        && flight.latitude !== 0
+        && flight.longitude !== 0
+        && !!flight.id
+      )
+      .map((flight: Flight) => ({ ...flight, _type: "live" }));
     debugLog(`Vols live filtrés: ${filtered.length}`);
     return filtered;
   }, [rawLiveFlights, debugLog]);
 
+  // Filtrage et enrichissement des vols locaux paginés
   const localFlights = useMemo(() => {
-    const filtered: Flight[] = localPageData
-      .filter((f: Flight) => f && f.latitude !== 0 && f.longitude !== 0 && !!f.id)
-      .map((f: Flight) => ({ ...f, _type: "local" }));
+    const filtered: (Flight & { _type: "local" })[] = localPageData
+      .filter((flight: Flight) =>
+        flight !== null
+        && typeof flight.latitude === "number"
+        && typeof flight.longitude === "number"
+        && flight.latitude !== 0
+        && flight.longitude !== 0
+        && !!flight.id
+      )
+      .map((flight: Flight) => ({ ...flight, _type: "local" }));
     debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
     return filtered;
   }, [localPageData, localPage, debugLog]);
