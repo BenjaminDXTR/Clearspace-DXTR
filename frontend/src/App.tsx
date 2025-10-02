@@ -11,6 +11,8 @@ import TablesLayout from "./components/layout/TablesLayout";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 import ErrorPanel from "./components/common/ErrorPanel";
 
+import HistoryFileSelector from "./components/common/HistoryFileSelector";
+
 import { LIVE_FIELDS, LIVE_DETAILS } from "./utils/constants";
 import useAppLogic from "./hooks/useAppLogic";
 
@@ -28,6 +30,14 @@ function AppContent() {
         showHistoryToggle={true}
         errorHistory={logic.errorHistory}
       />
+
+      <div style={{ maxWidth: '1200px', margin: '16px auto' }}>
+        <HistoryFileSelector
+          historyFiles={logic.historyFiles}
+          currentFile={logic.currentHistoryFile}
+          onSelectFile={logic.setCurrentHistoryFile}
+        />
+      </div>
 
       <div className="container-detections">
         <MapLayout
@@ -51,7 +61,6 @@ function AppContent() {
           handleSelect={logic.handleSelect}
           debug={logic.debug}
         />
-
       </div>
 
       {logic.anchorModal && (
@@ -72,7 +81,7 @@ function AppContent() {
   );
 }
 
-// enroule AppContent dans DronesProvider
+// Enroule AppContent dans DronesProvider
 export default function App() {
   return (
     <React.StrictMode>
@@ -82,4 +91,3 @@ export default function App() {
     </React.StrictMode>
   );
 }
-

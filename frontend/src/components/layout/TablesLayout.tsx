@@ -1,5 +1,4 @@
-// src/components/layout/TablesLayout.tsx
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import type {
   Flight,
   IsAnchoredFn,
@@ -13,7 +12,6 @@ import "./TablesLayout.css";
 
 interface TablesLayoutProps {
   drones: Flight[];
-  // NOTE: la prop error est retirée
   LIVE_FIELDS: string[];
   localPage: number;
   setLocalPage: (page: number) => void;
@@ -56,6 +54,10 @@ export default function TablesLayout({
   handleSelect,
   debug = config.debug || config.environment === "development",
 }: TablesLayoutProps) {
+  useEffect(() => {
+    console.log("TablesLayout drones prop:", drones);
+  }, [drones]);
+
   const onSelect = useCallback(
     (flight: Flight) => {
       dlog(`Vol sélectionné id=${flight.id ?? "?"}`);
@@ -71,7 +73,7 @@ export default function TablesLayout({
 
   const liveDrones = useMemo(() => {
     const filtered = drones.filter(
-      (d) => d._type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d.type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     dlog(`Nombre drones live filtrés: ${filtered.length}`);
     return filtered;
@@ -79,7 +81,7 @@ export default function TablesLayout({
 
   const archivedDrones = useMemo(() => {
     const filtered = localPageData.filter(
-      (d) => d._type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d.type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     dlog(`Nombre drones archivés filtrés: ${filtered.length}`);
     return filtered;
@@ -129,14 +131,14 @@ export default function TablesLayout({
                           : renderAnchorCell
                           ? renderAnchorCell(item)
                           : (
-                              <button
-                                onClick={e => e.stopPropagation()}
-                                disabled={anchored}
-                                aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
-                              >
-                                Ancrer
-                              </button>
-                            )}
+                            <button
+                              onClick={e => e.stopPropagation()}
+                              disabled={anchored}
+                              aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
+                            >
+                              Ancrer
+                            </button>
+                          )}
                       </td>
                     )}
                   </tr>
@@ -151,12 +153,8 @@ export default function TablesLayout({
 
   return (
     <div className="tables-layout">
-      {/* NOTE: Suppression complète du rendu d'erreur "error" ici */}
-
       {renderTable("Détection en direct", LIVE_FIELDS, liveDrones, true)}
-
       {renderTable("Vols archivés (local)", LIVE_FIELDS, archivedDrones, true)}
-
       <Pagination
         page={localPage}
         maxPage={localMaxPage}

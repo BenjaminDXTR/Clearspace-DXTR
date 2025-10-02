@@ -50,7 +50,6 @@ export default function useAppLogic() {
 
   const lastRefreshRef = useRef<string | null>(null);
 
-  // Surveille la notification de refresh et force refetch si fichier courant est rafraîchi
   useEffect(() => {
     if (
       refreshFilename &&
@@ -87,6 +86,11 @@ export default function useAppLogic() {
     historyFiles
   );
 
+  useEffect(() => {
+    console.log("[useAppLogic] Drones live actuellement:", liveFlights);
+    console.log("[useAppLogic] Vols locaux actuellement:", localFlights);
+  }, [liveFlights, localFlights]);
+
   const { liveTraces } = useLiveTraces(liveFlights, {
     debug,
     onUserError,
@@ -117,7 +121,7 @@ export default function useAppLogic() {
   const handleSelect: HandleSelectFn = useCallback(
     (flight) => {
       if (!flight?.id) return;
-      setSelected({ ...flight, _type: flight._type ?? "live" });
+      setSelected({ ...flight });
       setFlyToTrigger((prev) => prev + 1);
       dlog(`[useAppLogic] Vol sélectionné id=${flight.id}`);
     },
@@ -127,10 +131,10 @@ export default function useAppLogic() {
   const getTraceForFlight = useCallback(
     (flight: Flight): LatLngTimestamp[] => {
       let trace: LatLngTimestamp[] = [];
-      if (flight._type === "live") {
+      if (flight.type === "live") {
         trace = (liveTraces[flight.id]?.trace as LatLngTimestamp[]) ?? [];
         dlog(`[useAppLogic] getTraceForFlight live id=${flight.id} avec trace points=${trace.length}`);
-      } else if (flight._type === "local") {
+      } else if (flight.type === "local") {
         const ft = (flight as any).trace ?? [];
         if (ft.length > 0 && ft[0].length === 3) {
           trace = ft as LatLngTimestamp[];
@@ -139,7 +143,7 @@ export default function useAppLogic() {
         }
         dlog(`[useAppLogic] getTraceForFlight local id=${flight.id} avec trace points=${trace.length}`);
       } else {
-        dlog(`[useAppLogic] getTraceForFlight vol id=${flight.id} inconnu type: ${flight._type}`);
+        dlog(`[useAppLogic] getTraceForFlight vol id=${flight.id} inconnu type: ${flight.type}`);
       }
       return trace;
     },
@@ -178,8 +182,8 @@ export default function useAppLogic() {
 
   const selectedTracePoints = useMemo(() => {
     if (!selected) return [];
-    if (selected._type === "live") return liveTraces[selected.id]?.trace ?? [];
-    if (selected._type === "local") return (selected as any).trace ?? [];
+    if (selected.type === "live") return liveTraces[selected.id]?.trace ?? [];
+    if (selected.type === "local") return (selected as any).trace ?? [];
     return [];
   }, [selected, liveTraces]);
 
@@ -187,7 +191,7 @@ export default function useAppLogic() {
 
   const detailFields = useMemo(() => {
     if (!selected) return [];
-    return selected._type === "event" ? [] : LIVE_DETAILS;
+    return selected.type === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
   const isAnchoredFn = useCallback(
@@ -241,6 +245,7 @@ export default function useAppLogic() {
     setAnchorDescription,
     handleAnchorValidate,
     handleAnchorCancel,
+		historyFiles,
     openModal,
     anchorDataPreview,
     exportSelectedAsAnchorJson,
