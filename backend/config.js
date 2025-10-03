@@ -80,8 +80,6 @@ const config = {
     apiProtocol: process.env.API_PROTOCOL || 'http',
     apiHost: process.env.API_HOST || '192.168.1.100',
     apiPort: process.env.API_PORT || '3200',
-    anchoredDir: process.env.ANCHORED_DIR || 'anchored',
-    anchorFile: process.env.ANCHOR_FILE || 'anchored.json',
 
     // Constantes déplacées ici
     inactiveTimeoutMs: 10000,

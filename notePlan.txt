@@ -16,16 +16,14 @@
 - Garder uniquement responsabilité affichage, interactions UI pures.
 
 
+l'objectif est le suivant, gérer la fonctionnalité principale du frontend : la création des fichiers d'ancrage.
 les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
 (le backend s'occupe des requets et fournit les résulatt) et compare aux historiques locaux. mais comme le backend 
-aura lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans 
-le front ? au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain.
-les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
-(le backend s'occupe des requets et fournit les résulatt) et compare aux historiques locaux. mais comme le backend aura 
-lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans le front ? 
-au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain
+aura lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans le back et adapter l'historique en ajoutantle tag dans le json "isAnchored" .
+ au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain.
+Coté frontend, les composentes anchor, useAnchorModal etc... doivent se charger de permettre à l'utilisateur, une fois un vol slectionné dans l'historique, de choisi d'ancrer, c'est à dire crééer les fichier qui seront envoyés dans la blockchain. l'utilisateur pourra visualisé le json qui sera enregisré (le json contien des champs définits spécialment pour l'ancrage afin de correspondre à la frome attendue dans l'api blockchain) et pouur ajouter un commentair. coté carte, il pourra visualiser le tracé et ajouter des capture de la carte via un bouton qui capturera le rendu actuellement consulté et stockera une fois l'ancrage valde les images dans un dosier zippé. ce dossier zipé continet toutes les pruves, images captures mais aussi la litse complete des trace avec la date de départ et leur valeur de temps associé.
 
-
+Pour commencer nous analyserons les anciens fichier obselets afin de faire le tri et de refactoriser le tout pour correspondre à la logique attendue
 Clearspace est un projet d'application web qui permet de visualiser les détection de drone et de les ancrer dans une blockchain.
 Pour cela le projet est composé d'un backend qui va interroger la machine de détection qui elle renvoi le donnée des drones détecté en vol.
 Le frontend reçoit les informations données par le backend et peut également permettre d'aficher un historique des vols enregistré dans un fichier json (coté backend) et permet de lancer un ancrage d'un vol, en donnant une description ainsi qu'en sélectionnant la zone de la carte à mettre en capture d'écran accompagnant le json d'information du vol.
@@ -117,14 +115,6 @@ affiche les vols live et archivés dans des tableaux, avec filtres basés sur le
 MapLayout :
 visualisation spatiale des traces des vols.
 
-Problème actuel
-Contexte :
-Les vols passent bien du statut live à local côté backend à l’expiration du timeout.
-Le backend modifie la donnée, met à jour le fichier JSON et envoie une notification WebSocket refresh indiquant le nom du fichier modifié.
-Problème :
-Le frontend reçoit bien ces notifications,mais la mise à jour fonctionne uniquemnt sur le navigateur firefoc, en testant sur chrome la liste n'est pas mise à jour, aide moi à trouver le probleme pour faire ne sorte que cela fonctionne sur tous navigateur.
-
-
 autreeeee
 une fois que le drone est délectionneé, mettre en surbrillance, ne pas mettre à jour la position de vue à chauqe mise a jour 
 ajuster zone Details
@@ -134,3 +124,40 @@ ajuter Detection table et autres tables les memee ?
 ajuster fin de vol = ignorer (ou garder jusqua validation)
 ajutser les confis et constants
 _type à vérifier
+
+backend:
+1. Tests et couverture avec logs améliorés
+
+    Effectuer des tests fonctionnels complets (unitaires et intégration) pour vérifier le comportement des modules critiques (poller, flightsManager, historyCache).
+
+    Utiliser les logs enrichis pour identifier toute incohérence, lenteur, ou erreurs en conditions réelles/charge.
+
+2. Optimisation des performances
+
+    Regrouper/optimiser les flushs disques pour éviter surcharge IO, notamment dans poller et gestion cache.
+
+    Évaluer un mécanisme limiteur/pagination dans la gestion des traces pour éviter croissance mémoire et taille de fichiers trop grandes.
+
+3. Sécurisation backend
+
+    Auditer middleware pour protection contre injection, requêtes malformées, etc.
+
+    Envisager un contrôle d’accès (authentification, authorization) sur les API et WebSocket.
+
+4. Robustesse résilience
+
+    Ajouter mécanismes de retry ou fallback dans la communication avec la source des données drone (GraphQL).
+
+    Optimiser gestion des erreurs réseau WebSocket pour éviter pertes de déconnexion.
+
+5. Documentation & Monitoring
+
+    Documenter clairement chaque module backend avec exemples d’usage attendus.
+
+    Mettre en place monitoring/alerting sur erreurs backend critiques, performances, état du poller.
+
+6. Déploiement & maintenance
+
+    Préparer scripts/directions pour déploiement fiable (docker, CI/CD).
+
+    Automatiser nettoyage périodique des vieux fichiers historiques.
