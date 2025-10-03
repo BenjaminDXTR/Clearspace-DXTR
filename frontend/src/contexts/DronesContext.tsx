@@ -39,11 +39,10 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
-  const lastError = useRef<{ msg: string; time: number } | null>(null);
-  const errorThrottle = 5000;
-
   const pingTimeout = useRef<NodeJS.Timeout | null>(null);
   const pongTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastError = useRef<{ msg: string; time: number } | null>(null);
+  const errorThrottle = 5000;
 
   const websocketUrl = `ws://${window.location.hostname}:3200`;
 
@@ -59,9 +58,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }
 
   function sendPing() {
-    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) {
-      return;
-    }
+    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) return;
     try {
       ws.current.send(JSON.stringify({ type: 'ping' }));
       console.log(`[DronesContext][${new Date().toISOString()}] Ping sent`);
@@ -84,29 +81,24 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   function setWebsocketError(msg: string) {
     const now = Date.now();
-    if (lastError.current && lastError.current.msg === msg && now - lastError.current.time < errorThrottle) {
-      return;
-    }
+    if (lastError.current && lastError.current.msg === msg && now - lastError.current.time < errorThrottle) return;
     lastError.current = { msg, time: now };
     setError(msg);
     console.error(`[DronesContext][${new Date().toISOString()}] ${msg}`);
   }
 
   function connect() {
-    if (ws.current && (ws.current.readyState === WS_STATES.CONNECTING || ws.current.readyState === WS_STATES.OPEN)) {
-      console.log(`[DronesContext][${new Date().toISOString()}] WebSocket already connecting or open, skipping connect`);
-      return;
-    }
-    if (ws.current && ws.current.readyState === WS_STATES.CLOSING) {
-      if (!reconnectTimeout.current) {
-        console.log(`[DronesContext][${new Date().toISOString()}] WebSocket closing, scheduling reconnect in ${RECONNECT_DELAY}ms`);
-        reconnectTimeout.current = setTimeout(() => {
-          reconnectTimeout.current = null;
-          connect();
-        }, RECONNECT_DELAY);
+    if (ws.current) {
+      if (ws.current.readyState === WS_STATES.OPEN || ws.current.readyState === WS_STATES.CONNECTING) {
+        console.log(`[DronesContext][${new Date().toISOString()}] WebSocket already connecting or open, skipping connect`);
+        return;
       }
-      return;
+      try {
+        ws.current.close();
+      } catch {}
+      ws.current = null;
     }
+    if (reconnectTimeout.current) return;
 
     setLoading('connecting');
     console.log(`[DronesContext][${new Date().toISOString()}] Opening WebSocket connection to ${websocketUrl}`);
@@ -121,7 +113,6 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         reconnectTimeout.current = null;
       }
       console.log(`[DronesContext][${new Date().toISOString()}] WebSocket connected`);
-
       schedulePing();
     };
 
@@ -206,9 +197,14 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }
 
   useEffect(() => {
-    connect();
+    const startupDelay = 1000; // délai 1s pour laisser la page se stabiliser
+
+    const timeoutId = setTimeout(() => {
+      connect();
+    }, startupDelay);
 
     return () => {
+      clearTimeout(timeoutId);
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
         reconnectTimeout.current = null;

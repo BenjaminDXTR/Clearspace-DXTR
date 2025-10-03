@@ -34,7 +34,6 @@ const testDrone = {
   whitelisted: false,
 };
 
-
 const testDroneClone = {
   ...testDrone,
   id: "1748CLONEHMG924501040",
@@ -61,10 +60,11 @@ const simulatedPath = [
   [49.5308, 0.0939],
 ];
 
-let currentStep = 0;
-let cycleCount = 0;
+let cycleIndex = 0;
+let stepIndex = 0;
 let cycleCreatedTime = null;
 let currentSimDrones = [];
+let interruptionTimeout = null;
 
 function buildDrone(position, createdTime, now, base) {
   const d = JSON.parse(JSON.stringify(base));
@@ -72,62 +72,143 @@ function buildDrone(position, createdTime, now, base) {
   d.longitude = position[1];
   d.created_time = createdTime;
   d.lastseen_time = now;
-  // Trace on drone will be assembled separately
   return d;
 }
 
-async function generateSimulationStep() {
-  if (currentStep >= simulatedPath.length) {
-    currentStep = 0;
-    cycleCount++;
+function sendSimulationStep() {
+  const now = new Date().toISOString();
+
+  // Reset cycle and step if needed
+  if (stepIndex >= simulatedPath.length) {
+    stepIndex = 0;
+    cycleIndex = (cycleIndex + 1) % 4; // 4 cycles total
+    cycleCreatedTime = null;
     currentSimDrones = [];
 
-    // End of cycle: include empty detection
+    // Send empty detection to indicate end of cycle
     currentSimDrones.push({ data: { drone: [] } });
 
-    cycleCreatedTime = null;
-
-    if (cycleCount > 3) {
-      return; // stop
-    }
-
-    let delay = cycleCount === 1 ? 30000 : cycleCount === 2 ? 20000 : 10000;
-    setTimeout(generateSimulationStep, delay);
+    // Delay between cycles depends on cycle
+    let delayAfterCycle = cycleIndex === 0 ? 15000 : 10000;
+    setTimeout(sendSimulationStep, delayAfterCycle);
     return;
   }
 
   if (!cycleCreatedTime) {
     cycleCreatedTime = new Date().toISOString();
   }
-  const now = new Date().toISOString();
-  const pos = simulatedPath[currentStep++];
 
-  let drone = buildDrone(pos, cycleCreatedTime, now, testDrone);
+  const pos = simulatedPath[stepIndex];
 
-  if (cycleCount === 3) {
-    const clone = buildDrone([pos[0] + 0.0004, pos[1] + 0.0003], cycleCreatedTime, now, testDroneClone);
-    currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id && d.id !== clone.id);
-    currentSimDrones.push(drone);
-    currentSimDrones.push(clone);
-  } else {
-    currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id);
-    currentSimDrones.push(drone);
+  switch (cycleIndex) {
+    case 0:
+      // Cycle 1: un seul vol suivi, puis pause 15s (done above)
+      {
+        let drone = buildDrone(pos, cycleCreatedTime, now, testDrone);
+        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone.id);
+        currentSimDrones.push(drone);
+        stepIndex++;
+        setTimeout(sendSimulationStep, 2000);
+      }
+      break;
+
+    case 1:
+      // Cycle 2: vol coupé pendant 5 sec (envoie vide)
+      {
+        // Interruption simulée sur 2 steps (~ 4 sec)
+        if (stepIndex === 5) {
+          // Pause: send empty drone list
+          currentSimDrones = [{ data: { drone: [] } }];
+          stepIndex++; // Still increment to move past interruption
+          interruptionTimeout = setTimeout(() => {
+            interruptionTimeout = null;
+            sendSimulationStep();
+          }, 5000);
+          return;
+        } else if (stepIndex === 6 && interruptionTimeout) {
+          // waiting interruption time so do nothing
+          return;
+        }
+
+        let drone = buildDrone(pos, cycleCreatedTime, now, testDrone);
+        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone.id);
+        currentSimDrones.push(drone);
+        stepIndex++;
+        setTimeout(sendSimulationStep, 2000);
+      }
+      break;
+
+    case 2:
+      // Cycle 3: deux vols parallèles, départs/arrêts non synchronisés
+      {
+        let drone1 = buildDrone(pos, cycleCreatedTime, now, testDrone);
+        let clonePosIndex = (stepIndex + 3) % simulatedPath.length;
+        let posClone = simulatedPath[clonePosIndex];
+        let drone2 = buildDrone(posClone, cycleCreatedTime, now, testDroneClone);
+
+        // Simuler arrêt du drone 1 au step 7
+        if (stepIndex === 7) {
+          currentSimDrones = currentSimDrones.filter((d) => d.id !== drone1.id);
+        } else {
+          currentSimDrones = currentSimDrones.filter((d) => d.id !== drone1.id);
+          currentSimDrones.push(drone1);
+        }
+        // Drone 2 continue sans pause
+        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone2.id);
+        currentSimDrones.push(drone2);
+
+        stepIndex++;
+        setTimeout(sendSimulationStep, 2000);
+      }
+      break;
+
+    case 3:
+      // Cycle 4: plusieurs vols, l'un avec interruption 5s sur trajectoire
+      {
+        let drone1;
+        // Interruption pour drone1 entre step 4-6 (envoie vide)
+        if (stepIndex >= 4 && stepIndex <= 6) {
+          currentSimDrones = currentSimDrones.filter((d) => d.id !== testDrone.id);
+        } else {
+          drone1 = buildDrone(pos, cycleCreatedTime, now, testDrone);
+          currentSimDrones = currentSimDrones.filter((d) => d.id !== drone1.id);
+          if (drone1) currentSimDrones.push(drone1);
+        }
+
+        // Drone clone suit sans interruption
+        let clonePosIndex = (stepIndex + 2) % simulatedPath.length;
+        let posClone = simulatedPath[clonePosIndex];
+        let drone2 = buildDrone(posClone, cycleCreatedTime, now, testDroneClone);
+
+        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone2.id);
+        currentSimDrones.push(drone2);
+
+        stepIndex++;
+        setTimeout(sendSimulationStep, 2000);
+      }
+      break;
+
+    default:
+      stepIndex++;
+      setTimeout(sendSimulationStep, 2000);
+      break;
   }
-
-  setTimeout(generateSimulationStep, 2000);
 }
 
 function getCurrentSimulationData() {
-  // Return deep copy or fresh array of current state drones for poller
   return JSON.parse(JSON.stringify(currentSimDrones));
 }
 
 function startSimulation() {
-  currentStep = 0;
-  cycleCount = 0;
+  stepIndex = 0;
+  cycleIndex = 0;
   cycleCreatedTime = null;
   currentSimDrones = [];
-  generateSimulationStep();
+  if (interruptionTimeout) {
+    clearTimeout(interruptionTimeout);
+    interruptionTimeout = null;
+  }
+  sendSimulationStep();
 }
 
 module.exports = {
