@@ -32,19 +32,6 @@ export default function MapLayout({
     }
   }, [debug]);
 
-  const [zoom, setZoom] = useState(10);
-
-  useEffect(() => {
-    if (selected) {
-      dlog(`[MapLayout] Vol sélectionné id=${selected.id ?? "N/A"} avec ${selectedTracePoints?.length ?? 0} point(s)`);
-      if (selectedTraceRaw) {
-        dlog("[MapLayout] Trace brute (selectedTraceRaw) présente");
-      }
-    } else {
-      dlog("[MapLayout] Aucun vol sélectionné");
-    }
-  }, [selected, selectedTracePoints, selectedTraceRaw, dlog]);
-
   const points = useMemo(() => {
     if (selectedTracePoints && selectedTracePoints.length >= 2) {
       const filtered = stripTimestampFromTrace(selectedTracePoints);
@@ -60,11 +47,15 @@ export default function MapLayout({
   const livePosition = hasValidPoints ? points[points.length - 1] : null;
 
   useEffect(() => {
-    if (selected && hasValidPoints) {
-      setZoom(18);
-      dlog(`Zoom augmenté à 18 pour vol id=${selected.id}`);
+    if (selected) {
+      dlog(`[MapLayout] Vol sélectionné id=${selected.id ?? "N/A"} avec ${selectedTracePoints?.length ?? 0} point(s)`);
+      if (selectedTraceRaw) {
+        dlog("[MapLayout] Trace brute (selectedTraceRaw) présente");
+      }
+    } else {
+      dlog("[MapLayout] Aucun vol sélectionné");
     }
-  }, [selected, hasValidPoints, dlog]);
+  }, [selected, selectedTracePoints, selectedTraceRaw, dlog]);
 
   return (
     <div className="map-layout">
@@ -73,8 +64,9 @@ export default function MapLayout({
         trace={points}
         livePosition={livePosition}
         startPosition={startPosition}
-        zoom={zoom}
+        zoom={13}              // Laisse zoom par défaut, on fait fit via fitToTrace
         showMarkers={false}
+        fitToTrace={true}      // Activation du zoom auto/centrage sur trace
         className="map-layout__leaflet"
         aria-label={`Carte ${hasValidPoints ? "avec" : "sans"} trace sélectionnée`}
         flyToTrigger={flyToTrigger}

@@ -53,7 +53,7 @@ export default function useAppLogic() {
 
   const lastRefreshRef = useRef<string | null>(null);
 
-  // Effet pour rafraîchir automatiquement la vue quand le backend notifie la mise à jour du fichier affiché
+  // Effet pour refresh à réception notification backend mise à jour
   useEffect(() => {
     if (
       refreshFilename &&
@@ -66,7 +66,7 @@ export default function useAppLogic() {
     }
   }, [refreshFilename, currentHistoryFile, setCurrentHistoryFile, dlog]);
 
-  // Gestion d'erreur locale sur chargement d'historique
+  // Gestion erreur historique local
   useEffect(() => {
     if (localHistoryError && !errors.some((e) => e.id === "local-history-error")) {
       addError({
@@ -84,7 +84,7 @@ export default function useAppLogic() {
     }
   }, [localHistoryError, addError, dismissError, errors, dlog]);
 
-  // Traitement et fusion des vols live et locaux (localHistory utilisé ici au lieu de rawLocalFlights)
+  // Fusion vols live et locaux (localHistory utilisé)
   const { liveFlights, localFlights } = useProcessedFlights(
     rawLiveDrones,
     localHistory,
@@ -98,10 +98,7 @@ export default function useAppLogic() {
     console.log("[useAppLogic] Vols locaux actuellement:", localFlights);
   }, [liveFlights, localFlights]);
 
-  const { liveTraces } = useLiveTraces(liveFlights, {
-    debug,
-    onUserError,
-  });
+  const { liveTraces } = useLiveTraces(liveFlights, { debug, onUserError });
 
   const dronesErrorRef = useRef(false);
 

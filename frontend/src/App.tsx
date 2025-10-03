@@ -9,7 +9,7 @@ import TablesLocal from "./components/layout/TablesLocal";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 import ErrorPanel from "./components/common/ErrorPanel";
 import HistoryFileSelector from "./components/common/HistoryFileSelector";
-import DetailsPanel from "./components/flights/DetailsPanel"; // ← Assure-toi de ce chemin selon ton projet
+import DetailsPanel from "./components/flights/DetailsPanel";
 
 import { LIVE_FIELDS, LOCAL_FIELDS, LIVE_DETAILS } from "./utils/constants";
 import useAppLogic from "./hooks/useAppLogic";
@@ -53,7 +53,7 @@ function AppContent() {
               errorHistory={logic.errorHistory}
             />
           </div>
-          
+
           <TablesLive
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
@@ -96,7 +96,6 @@ function AppContent() {
           onValidate={logic.handleAnchorValidate}
           onCancel={logic.handleAnchorCancel}
         >
-          <div className="modal-map-capture" />
         </AnchorModalLayout>
       )}
     </div>

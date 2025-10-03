@@ -95,15 +95,19 @@ export default function TablesLocal({
                       <td key={field}>{prettyValue(field, (item as any)[field])}</td>
                     ))}
                     <td className="anchor-cell">
-                      {anchored
-                        ? "✔️"
-                        : renderAnchorCell
-                          ? renderAnchorCell(item)
-                          : (
-                            <button onClick={(e) => e.stopPropagation()} disabled={anchored} aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}>
-                              Ancrer
-                            </button>
-                          )}
+                      {anchored ? (
+                        "✔️"
+                      ) : renderAnchorCell ? (
+                        renderAnchorCell(item)
+                      ) : (
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={anchored}
+                          aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
+                        >
+                          Ancrer
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

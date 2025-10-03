@@ -1,5 +1,4 @@
-// src/components/common/FlightMap.tsx
-import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties } from "react";
+import { useRef, useEffect, forwardRef, useImperativeHandle, useState, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -13,9 +12,9 @@ import L, { Icon, Map as LeafletMap, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
+import { getFitForTrace } from "../../utils/mapFit";
 import "./FlightMap.css";
 
-/** Hook qui force Leaflet à recalculer la taille de la carte */
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
@@ -25,10 +24,6 @@ function InvalidateMapSize() {
   return null;
 }
 
-/**
- * Composant utilitaire qui centre et anime la carte Leaflet vers une position
- * uniquement lors d’un changement du trigger flyToTrigger.
- */
 function FlyToPosition({
   position,
   zoom,
@@ -62,6 +57,7 @@ interface FlightMapProps {
   livePosition?: LatLngExpression | null;
   startPosition?: LatLngExpression | null;
   flyToTrigger?: number;
+  fitToTrace?: boolean;
 }
 
 const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
@@ -77,29 +73,44 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   livePosition = null,
   startPosition = null,
   flyToTrigger,
+  fitToTrace = false,
 }, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Expose via ref the Leaflet container div for capture
   useImperativeHandle(ref, () => containerRef.current as HTMLElement, []);
 
-  // Filtrage des points valides
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  // Centre initial : props center > milieu trace > Paris par défaut
+  const [autoCenter, setAutoCenter] = useState<[number, number] | null>(null);
+  const [autoZoom, setAutoZoom] = useState<number>(zoom);
+
+  useEffect(() => {
+    if (fitToTrace && validTrace.length > 0) {
+      const timer = setTimeout(() => {
+        const fit = getFitForTrace(validTrace);
+        setAutoCenter(fit.center);
+        setAutoZoom(fit.zoom);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [fitToTrace, validTrace]);
+
   const computedCenter: [number, number] =
-    center ??
-    (hasTrace
-      ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
-      : [48.8584, 2.2945]);
+    (fitToTrace && autoCenter)
+      ? autoCenter
+      : (center ?? (hasTrace
+          ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
+          : [48.8584, 2.2945]));
+
+  const computedZoom = fitToTrace ? autoZoom : zoom;
 
   return (
     <MapContainer
       ref={mapRef}
       center={computedCenter}
-      zoom={zoom}
+      zoom={computedZoom}
       scrollWheelZoom
       style={style}
       className={`flight-map ${className}`}
@@ -149,7 +160,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
 
       <FlyToPosition
         position={livePosition ?? startPosition}
-        zoom={zoom}
+        zoom={computedZoom}
         flyToTrigger={flyToTrigger}
       />
     </MapContainer>

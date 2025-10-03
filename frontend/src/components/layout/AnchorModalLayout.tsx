@@ -1,9 +1,20 @@
 // src/components/layout/AnchorModalLayout.tsx
-import { useEffect, ChangeEvent, useCallback, useRef } from "react";
+import {
+  useEffect,
+  ChangeEvent,
+  useCallback,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
-import { getFlightTrace, stripTimestampFromTrace, isLatLng } from "../../utils/coords";
+import {
+  getFlightTrace,
+  stripTimestampFromTrace,
+  isLatLng,
+} from "../../utils/coords";
 import { config } from "../../config";
 import "./AnchorModalLayout.css";
 
@@ -16,8 +27,8 @@ interface AnchorModalLayoutProps {
   onValidate: () => void | Promise<void>;
   onCancel: () => void;
   anchorDataPreview: unknown | null;
-  children?: React.ReactNode;
   debug?: boolean;
+  children?: ReactNode;
 }
 
 export default function AnchorModalLayout({
@@ -30,6 +41,7 @@ export default function AnchorModalLayout({
   onCancel,
   anchorDataPreview,
   debug = config.debug || config.environment === "development",
+  children,
 }: AnchorModalLayoutProps) {
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[AnchorModalLayout]", ...args);
@@ -38,17 +50,7 @@ export default function AnchorModalLayout({
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mapDivRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (anchorModal?.flight?.id !== undefined) {
-      dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
-    }
-    if (modalContentRef.current) {
-      modalContentRef.current.scrollTop = 0;
-    }
-    return () => {
-      dlog("[AnchorModal] Fermée");
-    };
-  }, [anchorModal?.flight, dlog]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     e.stopPropagation();
@@ -56,9 +58,16 @@ export default function AnchorModalLayout({
     dlog(`[AnchorModal] Description modifiée (${e.target.value.length} caractères)`);
   };
 
-  const handleValidate = () => {
+  const handleValidate = async () => {
     dlog("[AnchorModal] Validation déclenchée");
-    return onValidate();
+    setErrorMsg(null);
+    try {
+      await onValidate();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erreur inconnue";
+      dlog("[AnchorModal] Erreur lors validation:", e);
+      setErrorMsg(message);
+    }
   };
 
   if (!anchorModal?.flight) {
@@ -69,7 +78,16 @@ export default function AnchorModalLayout({
   const fullTrace = getFlightTrace(anchorModal.flight);
   const trace = stripTimestampFromTrace(fullTrace);
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
-  const disableValidation = isZipping || !anchorDescription.trim() || !hasValidTrace;
+  const disableValidation = isZipping || !hasValidTrace;
+
+  useEffect(() => {
+    if (anchorModal?.flight?.id !== undefined) {
+      dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
+    }
+    if (modalContentRef.current) {
+      modalContentRef.current.scrollTop = 0;
+    }
+  }, [anchorModal?.flight, dlog]);
 
   return (
     <div
@@ -96,21 +114,25 @@ export default function AnchorModalLayout({
                 value={anchorDescription}
                 onChange={handleDescriptionChange}
                 placeholder="Ajouter une description..."
-                required
-                aria-required="true"
                 spellCheck
               />
             </div>
+            {errorMsg && (
+              <div className="anchor-modal-error" role="alert">
+                ⚠️ {errorMsg}
+              </div>
+            )}
           </div>
 
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>
             <FlightMap
+              key={anchorModal.flight.id + "-" + trace.length}
               ref={mapDivRef}
               trace={trace}
               markerIcon={historyIcon}
-              zoom={10}
               showMarkers
+              fitToTrace={true}
               className="anchor-modal-map modal-map-capture"
             />
             {!hasValidTrace && (
@@ -124,6 +146,8 @@ export default function AnchorModalLayout({
           </div>
         </div>
 
+        {children}
+
         <div className="anchor-modal-actions">
           <button
             disabled={disableValidation}
@@ -131,7 +155,13 @@ export default function AnchorModalLayout({
             aria-busy={isZipping}
             aria-label="Valider l'ancrage"
           >
-            {isZipping ? "Validation..." : "Valider l'ancrage"}
+            {isZipping ? (
+              <>
+                <span className="spinner" aria-hidden="true" /> Validation...
+              </>
+            ) : (
+              "Valider l'ancrage"
+            )}
           </button>
           <button onClick={onCancel} aria-label="Annuler l'ancrage">
             Annuler

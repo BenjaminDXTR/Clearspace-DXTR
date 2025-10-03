@@ -1,145 +1,149 @@
 .anchor-modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.68);
+  z-index: 2000;
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 9999;
-  padding: 10px;
-  overflow-y: auto;
+  justify-content: center;
+  overflow: hidden;
 }
 
+/* MODAL : quasi plein écran */
 .anchor-modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 58vw;      /* légèrement agrandi: plus d'espace à droite */
-  max-height: 88vh;
-  width: 100%;
+  background: #fdfdfd;
+  border-radius: 15px;
+  width: 96vw;
+  min-width: 282px;
+  max-width: 1500px;
+  max-height: 96vh;
+  min-height: 550px;
   display: flex;
   flex-direction: column;
-  padding: 14px 14px 0 14px;
-  box-shadow: 0 4px 40px rgba(0,0,0,0.32);
+  padding: 22px 22px 0 22px;
+  box-shadow: 0 12px 60px rgba(20,40,80,0.15);
   overflow: hidden;
-  padding-bottom: 0 !important;
+  outline: none;
+  margin: 0 auto;
 }
 
-/* Panels côte à côte, centrés */
+/* Panels bien espacés, grandes tailles */
 .anchor-modal-scrollable {
   display: flex;
   flex-direction: row;
-  flex: 1 1 auto;
-  gap: 15px;
-  align-items: flex-start; /* évite tout débordement vertical */
-  overflow-y: auto;
+  gap: 40px;
+  align-items: flex-start;
+  border-bottom: 1px solid #ebebeb;
   min-height: 0;
 }
 
-/* Panel gauche (JSON + description) */
 .left-panel {
-  flex: 1 1 320px;
-  max-width: 400px;           /* largeur JSON max : limite la place */
-  min-width: 200px;
+  flex: 1 1 540px;
+  max-width: 670px;
+  min-width: 270px;
   display: flex;
   flex-direction: column;
-  gap: 13px;
-  min-height: 0;
-  overflow: hidden;
+  gap: 18px;
 }
 
-/* JSON : largeur adaptée, haut scrolle si besoin */
-.anchor-modal-json {
-  background: #f6f6f6;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 9px;
-  font-family: monospace, monospace;
-  font-size: 13px;
-  width: 100%;
-  height: auto;
-  max-height: 320px;        /* scrolle vertical dans la zone modale si besoin */
-  overflow-y: auto;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-.left-panel .anchor-modal-section textarea {
-  width: 100%;
-  height: 62px;
-  min-height: 32px;
-  max-height: 110px;
-  resize: vertical;
-  padding: 7px;
-  font-size: 13px;
-  border-radius: 4px;
-  border: 1px solid #bbb;
-  margin: 0;
-}
-
-/* Panel droite (carte carrée) */
 .right-panel {
-  flex: 0 0 250px;              /* largeur fixée pour la carte : ni trop petite ni trop large */
+  flex: 0 0 620px;
+  min-width: 350px;
+  max-width: 650px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;      /* centre verticalement la carte */
-  min-width: 160px;
-  max-width: 260px;
-  height: 100%;
-  min-height: 0;
+  justify-content: flex-start;
 }
 
-/* Carte carrée centrée et adaptée : jamas rognée ni trop petite */
+/* Grosse zone JSON */
+.anchor-modal-json {
+  background: #f8fafd;
+  border: 1.4px solid #e0e5ef;
+  border-radius: 8px;
+  padding: 11px 13px 9px 13px;
+  font-family: "Fira Mono", "Menlo", "Consolas", monospace;
+  font-size: 15px;
+  line-height: 1.36;
+  height: auto;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+/* Label zone JSON */
+.anchor-modal-json::before {
+  content: "Payload d’ancrage :";
+  color: #495366;
+  font-size: 12.2px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Grosse zone carte ! */
+.anchor-modal-map {
+  box-shadow: 0 2px 10px rgba(28,40,80,0.14);
+  border-radius: 12px;
+  border: 1.7px solid #dbe4ee;
+  margin-bottom: 12px;
+}
+
 .modal-map-capture {
-  width: 220px;
-  height: 220px;
-  min-width: 130px;
-  min-height: 130px;
-  max-width: 240px;
-  max-height: 240px;
-  border-radius: 7px;
-  overflow: hidden;
+  width: 540px;
+  height: 540px;
+  min-width: 260px;
+  min-height: 260px;
+  max-width: 98vw;
+  max-height: 560px;
   background: #fafafa;
-  margin: 0 auto;
   aspect-ratio: 1 / 1;
   display: block;
   box-sizing: border-box;
 }
 
-.anchor-modal-warning {
-  font-size: 12.5px;
-  color: #b71c1c;
-  font-weight: bold;
+/* Description textarea spacieuse */
+.left-panel .anchor-modal-section textarea {
+  background: #f7fafd;
+  width: 100%;
+  border: 1.3px solid #cfd8dc;
+  font-size: 15px;
+  border-radius: 7px;
+  min-height: 45px;
+  max-height: 150px;
+  height: 68px;
+  padding: 11px;
   margin-top: 5px;
+  transition: border .14s;
 }
-.anchor-modal-hint {
-  font-size: 11px;
-  color: #666;
-  margin-top: 4px;
+.left-panel .anchor-modal-section textarea:focus {
+  border-color: #1976d2;
+  outline: none;
+  background: #fff;
 }
 
+/* Actions large et visibles */
 .anchor-modal-actions {
-  flex-shrink: 0;
   display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  padding-top: 7px;
-  border-top: 1px solid #ebebeb;
-  background: white;
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
+  flex-direction: row-reverse;
+  gap: 17px;
+  justify-content: flex-start;
+  align-items: center;
+  border-top: 1.5px solid #dee2eb;
+  background: #f9f9fb;
+  margin-top: 18px;
+  padding: 18px 14px 13px 0;
 }
 
+/* Gros boutons accessibles */
 .anchor-modal-actions button {
-  border: none;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 4px;
-  cursor: pointer;
+  font-size: 1.16rem;
+  min-width: 148px;
+  padding: 13px 0;
+  border-radius: 7px;
+  font-weight: 700;
 }
 .anchor-modal-actions button:first-child {
   background-color: #1976d2;
@@ -149,54 +153,63 @@
   background-color: #125daa;
 }
 .anchor-modal-actions button:disabled {
-  background-color: #ccc;
+  background-color: #bbb;
   cursor: not-allowed;
 }
 .anchor-modal-actions button:last-child {
-  background-color: #e0e0e0;
-  color: #333;
+  background: #e6ecf4;
+  color: #396;
 }
 .anchor-modal-actions button:last-child:hover {
-  background-color: #c6c6c6;
+  background: #dde8f4;
+  color: #234;
 }
 
-/* Zéro espace sous le footer */
-.anchor-modal-content, 
-.anchor-modal-content > :last-child,
-.anchor-modal-content > .anchor-modal-actions {
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
+/* Spinner taille adaptée */
+.spinner {
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top: 2px solid #1976d2;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg);}
 }
 
-/* Responsive mobile/tablette : panels en colonne, carte adaptée */
-@media (max-width: 700px) {
-  .anchor-modal-content {
-    max-width: 99vw;
-    max-height: 97vh;
-    padding: 8px;
-  }
-  .anchor-modal-scrollable {
-    flex-direction: column;
-    gap: 7px;
-  }
-  .left-panel, .right-panel {
-    max-width: 100%;
-    min-width: 0;
-    align-items: center;
-  }
-  .modal-map-capture {
-    width: 86vw;
-    max-width: 220px;
-    height: auto;
-    aspect-ratio: 1 / 1;
-  }
-  .anchor-modal-json {
-    font-size: 12px;
-    padding: 6px;
-    max-height: 140px;
-  }
-  .left-panel .anchor-modal-section textarea {
-    height: 38px;
-    font-size: 12.5px;
-  }
+/* Améliorations messages */
+.anchor-modal-hint {
+  color: #999;
+  font-size: 13px;
+  margin-top: 13px;
+}
+.anchor-modal-warning {
+  margin-top: 14px;
+  color: #b71c1c;
+  font-size: 14px;
+  font-weight: bold;
+}
+.anchor-modal-error {
+  color: #b71c1c;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+/* Responsive pour mobile/tablette */
+@media (max-width: 1100px) {
+  .anchor-modal-content { max-width: 98vw; min-width: 0; }
+  .anchor-modal-scrollable { flex-direction: column; gap: 18px; }
+  .right-panel { min-width: 0; max-width: 100%; }
+  .modal-map-capture { max-width: 94vw; width: 100%; height: 52vw; max-height: 380px; }
+  .anchor-modal-json { font-size: 13px; max-height: 110px; }
+  .left-panel .anchor-modal-section textarea { font-size: 13px; height: 38px; }
 }
