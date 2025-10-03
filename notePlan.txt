@@ -123,10 +123,7 @@ Les vols passent bien du statut live à local côté backend à l’expiration d
 Le backend modifie la donnée, met à jour le fichier JSON et envoie une notification WebSocket refresh indiquant le nom du fichier modifié.
 Problème :
 Le frontend reçoit bien ces notifications, mais la mise à jour du fichier d'historique n'a pas l'air de se faire car aucun nouveau vol affiché, sauf quand on refresh la page.
-De plus on remarque une reception du refresh très fréqunte alors qu'aucun vol n'est passé de live à local dnas le backend.
-Analyse possible :
-Le backend peut générer plusieurs notifications refresh très rapprochées, peut-être suite à des modifications successives de vols et un appel mal placé du notify avec resh ou mauvaise conditions d'activation.
-Le frontend reçoit bien refresh mais ne le gère pas correctement. il faut revoir la chaine de refresh.
+
 
 
 autreeeee

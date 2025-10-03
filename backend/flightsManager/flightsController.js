@@ -8,6 +8,7 @@ const log = require('../utils/logger');
 
 async function saveFlightToHistory(flight) {
   try {
+    log.info(`[saveFlightToHistory] Début traitement vol id=${flight.id}, type=${flight.type}`);
     if (!flight.id) {
       log.error('[saveFlightToHistory] flight.id manquant, abandon');
       throw new Error('flight.id est requis');
@@ -72,9 +73,10 @@ async function saveFlightToHistory(flight) {
     log.debug(`[saveFlightToHistory] Trace sample drone ${flight.id}: ${JSON.stringify(flight.trace?.slice(0, 5))}`);
 
     addOrUpdateFlightInFile(flight, historyData);
-    log.info(`[saveFlightToHistory] Vol fusionné ou ajouté drone ${flight.id}, nb entrées fichier : ${historyData.length}`);
-
+    log.info(`[saveFlightToHistory] Vol drone ${flight.id} ajouté/fusionné dans ${filename} (nb entrées: ${historyData.length})`);
+    
     await flushCacheToDisk(filename);
+    
     log.info(`[saveFlightToHistory] Cache flushé disque pour fichier ${filename}`);
 
     return filename;

@@ -71,18 +71,21 @@ export default function useLocalHistory({
 
     prevHistoryFileRef.current = currentHistoryFile;
 
+    console.log(`[useLocalHistory] Début fetch historique fichier: ${currentHistoryFile}`);
+
     (async () => {
       try {
         setLoading(true);
         log(`Fetching history file: ${currentHistoryFile}`);
         const flights = await fetchHistory(currentHistoryFile);
-        log(`Fetched ${flights.length} flights from ${currentHistoryFile}`);
+        console.log(`[useLocalHistory] Données reçues (${flights.length} vols) pour fichier ${currentHistoryFile}`);
         setLocalHistory(flights);
         setLocalPage(1);
         setError(null);
       } catch (e) {
-        const msg = `Error loading history ${currentHistoryFile}: ${(e as Error).message}`;
+        const msg = `Erreur chargement historique ${currentHistoryFile}: ${(e as Error).message}`;
         setError(msg);
+        console.log(`[useLocalHistory] ${msg}`);
         onUserError?.(msg);
         setLocalHistory([]);
         setLocalPage(1);
@@ -100,7 +103,7 @@ export default function useLocalHistory({
       refreshTrigger === currentHistoryFile &&
       prevRefreshTrigger !== refreshTrigger
     ) {
-      log(`Refresh triggered for currentHistoryFile ${currentHistoryFile}, refreshing`);
+      console.log(`[useLocalHistory] Refresh déclenché pour fichier courant ${currentHistoryFile}`);
       setRefreshCounter((v) => v + 1);
     }
   }, [refreshTrigger, currentHistoryFile, prevRefreshTrigger]);

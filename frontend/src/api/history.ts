@@ -2,16 +2,44 @@ import type { Flight } from "../types/models";
 
 const baseApiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3200";
 
+/**
+ * Wrapper fetch avec gestion de retry en cas d'erreur réseau.
+ * @param url URL à fetcher.
+ * @param options Options fetch.
+ * @param retries Nombre de tentatives (défaut 3).
+ * @param delay Délai entre tentatives en ms (défaut 500ms).
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  delay = 500
+): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      return response;
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`[fetchWithRetry] Tentative ${i + 1} échouée pour ${url}, nouvelle tentative dans ${delay} ms`);
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+  throw new Error("Fetch échoué après plusieurs tentatives");
+}
+
 export async function fetchHistoryFile(filename: string): Promise<Flight[]> {
   if (!filename) {
     throw new Error("Nom fichier manquant");
   }
   const url = `${baseApiUrl}/history/${filename}`;
   console.log(`[fetchHistoryFile] Fetching URL: ${url}`);
-  const response = await fetch(url, { cache: "no-store" });
+
+  const response = await fetchWithRetry(url, { cache: "no-store" });
   console.log(`[fetchHistoryFile] Response status: ${response.status}`);
   const ct = response.headers.get("content-type") ?? "";
   console.log(`[fetchHistoryFile] Content-Type: ${ct}`);
+
   if (!response.ok) {
     throw new Error(`Erreur chargement historique, status=${response.status}`);
   }
