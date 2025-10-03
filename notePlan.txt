@@ -116,13 +116,13 @@ MapLayout :
 visualisation spatiale des traces des vols.
 
 autreeeee
-une fois que le drone est délectionneé, mettre en surbrillance, ne pas mettre à jour la position de vue à chauqe mise a jour 
+une fois que le drone est selectionneé, mettre en surbrillance, ne pas mettre à jour la position de vue à chauqe mise a jour 
 ajuster zone Details
-ajuster backend live persistant
 ajuter historique d'erreurs
 ajuter Detection table et autres tables les memee ?
 ajuster fin de vol = ignorer (ou garder jusqua validation)
-ajutser les confis et constants
+ajutser les config et constants
+ajuster les noms des fichiers
 _type à vérifier
 
 backend:

@@ -5,6 +5,8 @@ const { loadHistoryToCache, flushCacheToDisk } = require('./historyCache');
 const { notifyUpdate } = require('./notification');
 const { lastSeenMap, flightTraces } = require('./state');
 const log = require('../utils/logger');
+const { checkIfAnchored } = require('../services/blockchainService'); // Import de la fonction d’interrogation blockchain
+
 
 async function saveFlightToHistory(flight) {
   try {
@@ -43,8 +45,18 @@ async function saveFlightToHistory(flight) {
         log.info(`[saveFlightToHistory] Timeout ou nouvelle session, trace backend supprimée pour drone ${flight.id}`);
       }
       if (liveIdx !== -1 && historyData[liveIdx].type !== 'local') {
+        // Passage en mode local détecté => vérifier isAnchored dans blockchain
         historyData[liveIdx].type = 'local';
         log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé en 'local'`);
+
+        try {
+          const anchored = await checkIfAnchored(flight.id, historyData[liveIdx].created_time);
+          historyData[liveIdx].isAnchored = anchored;
+          log.info(`[saveFlightToHistory] isAnchored mis à jour pour vol ${flight.id} : ${anchored}`);
+        } catch (err) {
+          log.error(`[saveFlightToHistory] Erreur checkIfAnchored pour vol ${flight.id} : ${err.message}`);
+          historyData[liveIdx].isAnchored = false; // par sécurité, on marque non ancré en cas d'erreur
+        }
 
         notifyUpdate(filename);
         log.info(`[saveFlightToHistory] Notification mise à jour envoyée pour fichier ${filename}`);

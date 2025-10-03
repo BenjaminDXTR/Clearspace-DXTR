@@ -28,7 +28,6 @@ app.use(errorHandler);
 
 const wss = setup(server);
 
-log.info(`Config backend active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
 
 if (config.backend.useTestSim) {
   const simulation = require('./simulation');
@@ -109,4 +108,5 @@ process.on('unhandledRejection', (reason) => {
 const port = config.backend.port || 3200;
 server.listen(port, () => {
   log.info(`✅ Backend DroneWeb démarré sur http://localhost:${port}`);
+  log.info(`Config backend active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
 });

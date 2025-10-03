@@ -75,18 +75,21 @@ const config = {
     logLevel: process.env.LOG_LEVEL || 'info',
     websocketPort: parseIntOrDefault(process.env.WEBSOCKET_PORT, 3200),
     useTestSim: process.env.USE_TEST_SIM === 'true',
-    blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || '',
-    blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || '',
-    apiProtocol: process.env.API_PROTOCOL || 'http',
-    apiHost: process.env.API_HOST || '192.168.1.100',
-    apiPort: process.env.API_PORT || '3200',
+    
+    // Configuration API blockchain adaptée
+    blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || 'https://clearspace.databeam.eu',
+    blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || 'admin_api_key',
 
-    // Constantes déplacées ici
+    // Facultatif si besoin de composition manuelle URL API
+    apiProtocol: process.env.API_PROTOCOL || 'https',
+    apiHost: process.env.API_HOST || 'clearspace.databeam.eu',
+    apiPort: process.env.API_PORT || '',
+
+    // Constantes internes
     inactiveTimeoutMs: 10000,
     maxTraceLength: 1000,
     distanceEpsilon: 0.00001,
 
-    // Valeurs avancées (non modifiables via .env)
     graphqlDroneQuery: graphqlDroneQuery,
     maxUploadSizeMb: parseIntOrDefault(process.env.MAX_UPLOAD_SIZE_MB, 50),
     websocketMinDistance: parseFloatOrDefault(process.env.WEBSOCKET_MIN_DISTANCE, 0.0001),

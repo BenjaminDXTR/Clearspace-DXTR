@@ -71,7 +71,7 @@ async function poller() {
 
             // Limiter les logs de snapshot à moins fréquent ou conditionnel (ex: trace > X)
             if (trace.length > 5) {
-                log.trace(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
+                log.debug(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
             }
 
             const fullDroneData = {
