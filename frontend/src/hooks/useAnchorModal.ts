@@ -8,6 +8,7 @@ import {
 import html2canvas from "html2canvas";
 import { config } from "../config";
 
+
 interface UseAnchorModalResult {
   anchorModal: AnchorModal | null;
   anchorDescription: string;
@@ -21,10 +22,12 @@ interface UseAnchorModalResult {
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
 }
 
+
 interface UseAnchorModalOptions {
   handleSelect?: HandleSelectFn;
   debug?: boolean;
 }
+
 
 export default function useAnchorModal({
   handleSelect,
@@ -37,14 +40,17 @@ export default function useAnchorModal({
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
 
+
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
+
 
   const convertTrace = useCallback((trace: LatLng[], altitude: number) =>
     trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
     []
   );
+
 
   const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
     dlog("Ouverture modal pour vol :", flight.id);
@@ -56,12 +62,14 @@ export default function useAnchorModal({
     if (handleSelect) handleSelect({ ...flight, _type: "local" });
   }, [convertTrace, dlog, handleSelect]);
 
+
   useEffect(() => {
     if (!anchorModal?.flight) return;
     const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
     const newAnchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
     setAnchorDataPreview(newAnchorData);
   }, [anchorDescription, anchorModal, convertTrace]);
+
 
   const onCancel = useCallback(() => {
     dlog("Fermeture du modal");
@@ -70,6 +78,7 @@ export default function useAnchorModal({
     traceRef.current = [];
     setAnchorDataPreview(null);
   }, [dlog]);
+
 
   const captureMap = useCallback(async (): Promise<Blob> => {
     if (!mapDivRef.current) {
@@ -93,6 +102,7 @@ export default function useAnchorModal({
     });
   }, [dlog]);
 
+
   const onValidate = useCallback(async () => {
     if (!anchorModal) return;
     setIsZipping(true);
@@ -107,21 +117,23 @@ export default function useAnchorModal({
       dlog("Création ZIP (image + positions)...");
       const zipBlob = await generateAnchorZip(mapImageBlob, traceConverted);
       dlog("Envoi des données au backend...");
+      // Envoi unique au backend - backend gère la file d'attente et la connexion blockchain
       await sendAnchorToBackend(anchorData, zipBlob);
+      dlog("Ancrage signalé avec succès au backend");
       if (handleSelect) {
         dlog("Mise à jour sélection vol ancré");
         handleSelect({ ...anchorModal.flight, _type: "local" });
       }
-      dlog("Ancrage terminé avec succès");
       onCancel();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Erreur inconnue";
-      if (debug) console.error("[useAnchorModal] Erreur:", e);
+      dlog("[useAnchorModal] Erreur:", e);
       alert("Erreur lors de l'ancrage : " + message);
     } finally {
       setIsZipping(false);
     }
   }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, onCancel, debug]);
+
 
   return {
     anchorModal,
