@@ -32,21 +32,24 @@ export default function useAppLogic() {
           severity: "error",
           dismissible: true,
         });
+        dlog(`[useAppLogic] User error added: ${msg}`);
       }
     },
-    [addError, errors]
+    [addError, errors, dlog]
   );
 
   const {
     currentHistoryFile,
     setCurrentHistoryFile,
-    localHistory: rawLocalFlights,
+    localHistory,
     error: localHistoryError,
     localPage,
     setLocalPage,
     localMaxPage,
     localPageData,
   } = useLocalHistory({ fetchHistory, historyFiles, refreshTrigger: refreshFilename, debug, onUserError });
+
+  dlog("useLocalHistory state:", { currentHistoryFile, localHistoryLength: localHistory.length, localPage, localMaxPage });
 
   const lastRefreshRef = useRef<string | null>(null);
 
@@ -57,11 +60,9 @@ export default function useAppLogic() {
       refreshFilename === currentHistoryFile &&
       lastRefreshRef.current !== refreshFilename
     ) {
-      dlog(`[useAppLogic] Refresh notification for current history file ${refreshFilename}, forcing reload`);
+      dlog(`[useAppLogic] Refresh notification for current history file ${refreshFilename}, setting currentHistoryFile`);
       lastRefreshRef.current = refreshFilename;
-      setCurrentHistoryFile(null);
-      // Délai de 200ms pour forcer remount et éviter conflits React (reset + set)
-      setTimeout(() => setCurrentHistoryFile(refreshFilename), 200);
+      setCurrentHistoryFile(refreshFilename);
     }
   }, [refreshFilename, currentHistoryFile, setCurrentHistoryFile, dlog]);
 
@@ -75,16 +76,18 @@ export default function useAppLogic() {
         severity: "error",
         dismissible: false,
       });
+      dlog(`[useAppLogic] Local history error: ${localHistoryError}`);
     }
     if (!localHistoryError) {
       dismissError("local-history-error");
+      dlog(`[useAppLogic] Local history error cleared`);
     }
-  }, [localHistoryError, addError, dismissError, errors]);
+  }, [localHistoryError, addError, dismissError, errors, dlog]);
 
-  // Traitement et fusion des vols live et locaux
+  // Traitement et fusion des vols live et locaux (localHistory utilisé ici au lieu de rawLocalFlights)
   const { liveFlights, localFlights } = useProcessedFlights(
     rawLiveDrones,
-    rawLocalFlights,
+    localHistory,
     { debug, onUserError },
     fetchHistory,
     historyFiles
@@ -231,7 +234,7 @@ export default function useAppLogic() {
     currentHistoryFile,
     setCurrentHistoryFile,
     historyFiles,
-    localHistory: rawLocalFlights,
+    localHistory,
     localPage,
     setLocalPage,
     localMaxPage,

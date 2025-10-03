@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Flight } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
 
+
 interface UseLocalHistoryOptions {
   fetchHistory: (filename: string) => Promise<Flight[]>;
   historyFiles: string[];
@@ -9,6 +10,7 @@ interface UseLocalHistoryOptions {
   debug?: boolean;
   onUserError?: (msg: string) => void;
 }
+
 
 interface UseLocalHistoryResult {
   currentHistoryFile: string | null;
@@ -23,12 +25,20 @@ interface UseLocalHistoryResult {
   loading: boolean;
 }
 
+
 function usePrevious<T>(value: T): T | undefined {
   const ref = useRef<T>();
   useEffect(() => {
     ref.current = value;
   }, [value]);
   return ref.current;
+}
+
+// Wrapper fetch avec cache-buster pour forcer rechargement dans Chrome
+async function fetchHistoryWithCacheBuster(fetchHistory: (filename: string) => Promise<Flight[]>, filename: string): Promise<Flight[]> {
+  const urlWithTimestamp = `${filename}?t=${Date.now()}`;
+  // On suppose que fetchHistory accepte une URL relative ou on adapte fetchHistory en conséquence
+  return fetchHistory(urlWithTimestamp);
 }
 
 export default function useLocalHistory({
@@ -45,10 +55,13 @@ export default function useLocalHistory({
   const [loading, setLoading] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
+
   const prevHistoryFileRef = useRef<string | null>(null);
   const prevRefreshTrigger = usePrevious(refreshTrigger);
 
+
   const log = (...args: any[]) => debug && console.log("[useLocalHistory]", ...args);
+
 
   // Chargement du fichier historique à la sélection et mise à jour, ou à refreshCounter change
   useEffect(() => {
@@ -64,22 +77,28 @@ export default function useLocalHistory({
       return;
     }
 
+
     if (prevHistoryFileRef.current === currentHistoryFile && refreshCounter === 0) {
       log(`Same currentHistoryFile ${currentHistoryFile}, no refresh, skip fetch`);
       return;
     }
 
+
     prevHistoryFileRef.current = currentHistoryFile;
 
+
     console.log(`[useLocalHistory] Début fetch historique fichier: ${currentHistoryFile}`);
+
 
     (async () => {
       try {
         setLoading(true);
         log(`Fetching history file: ${currentHistoryFile}`);
-        const flights = await fetchHistory(currentHistoryFile);
+        // Utilisation du fetch avec cache-buster
+        const flights = await fetchHistory(`${currentHistoryFile}?t=${Date.now()}`);
         console.log(`[useLocalHistory] Données reçues (${flights.length} vols) pour fichier ${currentHistoryFile}`);
-        setLocalHistory(flights);
+        // Forcer nouvelle référence pour React re-render
+        setLocalHistory([...flights]);
         setLocalPage(1);
         setError(null);
       } catch (e) {
@@ -94,7 +113,8 @@ export default function useLocalHistory({
         setLoading(false);
       }
     })();
-  }, [currentHistoryFile, fetchHistory, onUserError, refreshCounter]);
+  }, [currentHistoryFile, fetchHistory, onUserError, refreshCounter, debug]);
+
 
   // Rafraîchissement forcé si backend notifie modification du fichier courant
   useEffect(() => {
@@ -107,6 +127,7 @@ export default function useLocalHistory({
       setRefreshCounter((v) => v + 1);
     }
   }, [refreshTrigger, currentHistoryFile, prevRefreshTrigger]);
+
 
   // Mise à jour automatique du fichier courant vers le dernier fichier disponible
   useEffect(() => {
@@ -127,14 +148,17 @@ export default function useLocalHistory({
     }
   }, [historyFiles, currentHistoryFile]);
 
+
   const setLocalHistoryManual = useCallback((flights: Flight[]) => {
-    setLocalHistory(flights);
+    setLocalHistory([...flights]); // Forcer nouvelle référence
     setLocalPage(1);
     log(`Manually set localHistory with ${flights.length} flights`);
   }, []);
 
+
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)), [localHistory]);
   const localPageData = useMemo(() => localHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [localHistory, localPage]);
+
 
   return {
     currentHistoryFile,
