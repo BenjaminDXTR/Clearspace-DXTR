@@ -1,4 +1,3 @@
-// src/components/layout/AnchorModalLayout.tsx
 import {
   useEffect,
   ChangeEvent,
@@ -132,7 +131,7 @@ export default function AnchorModalLayout({
               trace={trace}
               markerIcon={historyIcon}
               showMarkers
-              fitToTrace={true}
+              fitToTrace
               className="anchor-modal-map modal-map-capture"
             />
             {!hasValidTrace && (
