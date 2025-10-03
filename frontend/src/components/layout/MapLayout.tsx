@@ -1,8 +1,8 @@
 // src/components/layout/MapLayout.tsx
+
 import { useEffect, useMemo, useCallback, useState } from "react";
 import FlightMap from "../common/FlightMap";
-import DetailsPanel from "../flights/DetailsPanel";
-import type { Flight, LatLng, LatLngTimestamp } from "../../types/models";
+import type { Flight, LatLngTimestamp } from "../../types/models";
 import { stripTimestampFromTrace } from "../../utils/coords";
 import { config } from "../../config";
 import "./MapLayout.css";
@@ -11,7 +11,6 @@ interface MapLayoutProps {
   selectedTracePoints?: LatLngTimestamp[] | null;
   selectedTraceRaw?: unknown;
   selected?: Flight | null;
-  detailFields?: string[];
   exportObj: (obj: Flight) => void;
   debug?: boolean;
   title?: string;
@@ -22,7 +21,6 @@ export default function MapLayout({
   selectedTracePoints,
   selectedTraceRaw,
   selected,
-  detailFields,
   exportObj,
   debug = config.debug || config.environment === "development",
   title = "Carte des détections",
@@ -70,36 +68,20 @@ export default function MapLayout({
 
   return (
     <div className="map-layout">
-      <div className="map-layout__map">
-        <h2 className="map-layout__title">{title}</h2>
-        <FlightMap
-          trace={points}
-          livePosition={livePosition}
-          startPosition={startPosition}
-          zoom={zoom}
-          showMarkers={false}
-          className="map-layout__leaflet"
-          aria-label={`Carte ${hasValidPoints ? "avec" : "sans"} trace sélectionnée`}
-          flyToTrigger={flyToTrigger}
-        />
-        {!hasValidPoints && (
-          <div className="map-layout__no-trace">Trace insuffisante pour affichage</div>
-        )}
-      </div>
-      <div className="map-layout__details">
-        {selected ? (
-          <DetailsPanel
-            selected={selected}
-            detailFields={detailFields}
-            exportObj={exportObj}
-            selectedTraceRaw={selectedTraceRaw}
-            selectedTracePoints={points}
-            debug={debug}
-          />
-        ) : (
-          <div className="map-layout__no-selection">Sélectionnez un vol pour voir les détails</div>
-        )}
-      </div>
+      <h2 className="map-layout__title">{title}</h2>
+      <FlightMap
+        trace={points}
+        livePosition={livePosition}
+        startPosition={startPosition}
+        zoom={zoom}
+        showMarkers={false}
+        className="map-layout__leaflet"
+        aria-label={`Carte ${hasValidPoints ? "avec" : "sans"} trace sélectionnée`}
+        flyToTrigger={flyToTrigger}
+      />
+      {!hasValidPoints && (
+        <div className="map-layout__no-trace">Trace insuffisante pour affichage</div>
+      )}
     </div>
   );
 }

@@ -1,13 +1,15 @@
 /* Conteneur de chaque tableau */
 .table-container {
+    width: 100%;
+    min-width: 520px !important;
+    /* Absorbe l'espace */
+    max-width: 100%;
+    overflow-x: auto;
     background: #fff;
     border-radius: 10px;
-    padding: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 5px;
-    width: 100%;
-    min-width: 480px;
-    /* Fond blanc toujours englobant */
+    padding: 14px 8px 18px 14px;
+    margin-bottom: 10px;
 }
 
 /* Titre */
@@ -36,13 +38,13 @@
 .data-table th,
 .data-table td {
     border: 1px solid #ddd;
-    padding: 6px 8px;
-    text-align: left;
-    font-size: 0.89rem;
-    max-width: 150px;
+    padding: 7px 9px;
+    font-size: 0.97rem;
+    max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    background: #fff;
 }
 
 .data-table thead {
@@ -50,8 +52,7 @@
 }
 
 .data-table th {
-    font-weight: 700;
-    text-transform: capitalize;
+    background-color: #f3f6fa;
 }
 
 .clickable-row {

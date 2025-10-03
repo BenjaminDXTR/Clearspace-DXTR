@@ -31,7 +31,7 @@ export default function DetailsPanel({
     if (debug) console.log("[DetailsPanel]", ...args);
   };
 
-  // Gestion nullable sécurisée
+  // Hooks TOUJOURS AVANT tout return conditionnel
   const tracePoints = selectedTracePoints ?? [];
 
   useEffect(() => {
@@ -42,8 +42,17 @@ export default function DetailsPanel({
     } else {
       dlog("Aucun vol sélectionné");
     }
-  }, [selected, detailFields, tracePoints, selectedTraceRaw, dlog]);
+  }, [selected, detailFields, tracePoints, selectedTraceRaw]);
 
+  const sortedFields = useMemo(() =>
+    [
+      ...IMPORTANT_FIELDS.filter(f => detailFields.includes(f)),
+      ...detailFields.filter(f => !IMPORTANT_FIELDS.includes(f)),
+    ],
+    [detailFields]
+  );
+
+  // Ensuite seulement le return conditionnel
   if (!selected) {
     return (
       <div className="details-panel">
@@ -63,14 +72,6 @@ export default function DetailsPanel({
 
   const showTracePoints = tracePoints.length > 0;
 
-  const sortedFields = useMemo(() =>
-    [
-      ...IMPORTANT_FIELDS.filter(f => detailFields.includes(f)),
-      ...detailFields.filter(f => !IMPORTANT_FIELDS.includes(f)),
-    ],
-    [detailFields]
-  );
-
   const renderPointsList = (points: LatLng[], label: string) => (
     <section className="points-section">
       <h4>{label}</h4>
@@ -85,7 +86,6 @@ export default function DetailsPanel({
   return (
     <div className="details-panel">
       <h3>Détails</h3>
-
       <table className="details-table">
         <tbody>
           {sortedFields.map(field => {
@@ -107,7 +107,6 @@ export default function DetailsPanel({
           })}
         </tbody>
       </table>
-
       <div className="details-actions">
         <button
           aria-label="Exporter les détails"
@@ -119,9 +118,7 @@ export default function DetailsPanel({
           Exporter JSON
         </button>
       </div>
-
       {showTracePoints && renderPointsList(tracePoints, "Points du vol :")}
-
       {selectedTraceRaw != null && (
         <section className="raw-trace-section">
           <h4>Tracé brut (JSON) :</h4>

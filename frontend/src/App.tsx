@@ -2,15 +2,14 @@ import React from "react";
 import "./App.css";
 
 import { DronesProvider } from "./contexts/DronesContext";
-
 import Header from "./components/layout/Header";
 import MapLayout from "./components/layout/MapLayout";
 import TablesLive from "./components/layout/TablesLive";
 import TablesLocal from "./components/layout/TablesLocal";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 import ErrorPanel from "./components/common/ErrorPanel";
-
 import HistoryFileSelector from "./components/common/HistoryFileSelector";
+import DetailsPanel from "./components/flights/DetailsPanel"; // ← Assure-toi de ce chemin selon ton projet
 
 import { LIVE_FIELDS, LOCAL_FIELDS, LIVE_DETAILS } from "./utils/constants";
 import useAppLogic from "./hooks/useAppLogic";
@@ -21,17 +20,6 @@ function AppContent() {
   return (
     <div>
       <Header />
-
-      <div className="error-container">
-        <ErrorPanel
-          errors={logic.errors}
-          criticalErrors={logic.criticalErrors}
-          onDismiss={logic.dismissError}
-          showHistoryToggle={true}
-          errorHistory={logic.errorHistory}
-        />
-      </div>
-
       <div className="container-main">
         <div className="left-column">
           <div className="map-container">
@@ -39,22 +27,33 @@ function AppContent() {
               selectedTracePoints={logic.selectedTracePoints}
               selectedTraceRaw={logic.selectedTraceRaw}
               selected={logic.selected}
-              detailFields={logic.detailFields}
               exportObj={logic.exportSelectedAsAnchorJson}
               flyToTrigger={logic.flyToTrigger}
             />
           </div>
           <div className="info-details">
-            <p>Détails test</p>
-            <ul>
-              <li>Id: 123</li>
-              <li>Nom: Drone A</li>
-              <li>Altitude: 300m</li>
-            </ul>
+            <DetailsPanel
+              selected={logic.selected}
+              detailFields={logic.detailFields}
+              exportObj={logic.exportSelectedAsAnchorJson}
+              selectedTraceRaw={logic.selectedTraceRaw}
+              selectedTracePoints={logic.selectedTracePoints}
+              debug={logic.debug}
+            />
           </div>
         </div>
 
         <div className="right-column">
+          <div className="error-container">
+            <ErrorPanel
+              errors={logic.errors}
+              criticalErrors={logic.criticalErrors}
+              onDismiss={logic.dismissError}
+              showHistoryToggle={true}
+              errorHistory={logic.errorHistory}
+            />
+          </div>
+          
           <TablesLive
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
