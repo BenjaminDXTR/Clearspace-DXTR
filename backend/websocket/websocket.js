@@ -12,7 +12,7 @@ let wss;
 
 function broadcast(data, filterLocal = false) {
   if (!clients || !(clients instanceof Set)) {
-    log.error('[broadcast] clients Set is undefined or not a Set; aborting broadcast');
+    log.error('[broadcast] clients Set undefined or invalid, aborting broadcast');
     return;
   }
   let filteredData = data;
@@ -23,12 +23,14 @@ function broadcast(data, filterLocal = false) {
   try {
     const message = JSON.stringify(filteredData);
     log.info(`[broadcast] Sending message to ${clients.size} clients, size: ${message.length} bytes`);
+    let clientIndex = 0;
     for (const ws of clients) {
+      clientIndex++;
       if (ws.readyState === 1) {
         try {
           ws.send(message);
         } catch (err) {
-          log.error(`[broadcast] Error sending to client: ${err.message}`);
+          log.error(`[broadcast] Error sending to client #${clientIndex}: ${err.message}`);
         }
       }
     }
@@ -38,8 +40,13 @@ function broadcast(data, filterLocal = false) {
 }
 
 async function startPollingLoop(intervalMs) {
+  log.info(`[pollerLoop] Starting WebSocket poll loop with interval ${intervalMs} ms`);
   while (true) {
-    await poller();
+    try {
+      await poller();
+    } catch (err) {
+      log.error(`[pollerLoop] Error during poll: ${err.message}`);
+    }
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
 }
@@ -48,10 +55,12 @@ function setup(server) {
   if (wss) return wss;
 
   wss = new WebSocket.Server({ server });
+  log.info('[websocket] WebSocket server initialized');
 
   wss.on('connection', async ws => {
     clients.add(ws);
     log.info(`[websocket] New client connected. Total clients: ${clients.size}`);
+
     setupConnection(ws, broadcast);
 
     try {
@@ -63,7 +72,7 @@ function setup(server) {
         .map(f => ({ filename: f }))
         .sort();
       ws.send(JSON.stringify({ type: 'historySummaries', data: summaries }));
-      log.debug('[websocket] Sent initial history summaries to client');
+      log.debug(`[websocket] Sent ${summaries.length} history summaries to client`);
     } catch (e) {
       ws.send(JSON.stringify({ type: 'historySummaries', data: [] }));
       log.warn(`[websocket] Error sending history summaries: ${e.message}`);
@@ -77,10 +86,11 @@ function setup(server) {
   setInterval(async () => {
     try {
       const updatedFiles = await archiveInactiveFlights();
+      const timestamp = new Date().toISOString();
       if (updatedFiles && updatedFiles.length > 0) {
-        log.info(`[websocket] Automatic archiving completed for files: ${updatedFiles.join(', ')}`);
+        log.info(`[${timestamp}] [websocket] Automatic archiving completed for files: ${updatedFiles.join(', ')}`);
       } else {
-        log.debug('[websocket] Automatic archiving: no flights archived');
+        log.debug(`[${timestamp}] [websocket] Automatic archiving: no flights archived`);
       }
     } catch (e) {
       log.error(`[websocket] Error during automatic archiving: ${e.message}`);

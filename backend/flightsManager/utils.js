@@ -1,5 +1,3 @@
-// backend/utils/utils.js
-
 function getWeekPeriod(dateStr) {
   const d = new Date(dateStr);
   const day = d.getDay();
@@ -9,6 +7,10 @@ function getWeekPeriod(dateStr) {
   const saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
   const fmt = (date) => date.toISOString().slice(0, 10);
+
+  // Optionnel : log debug
+  log.debug(`[utils] Calculated week period from ${dateStr}: ${fmt(sunday)} to ${fmt(saturday)}`);
+
   return {
     start: fmt(sunday),
     end: fmt(saturday),

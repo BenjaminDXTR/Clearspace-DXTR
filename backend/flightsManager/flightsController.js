@@ -8,7 +8,8 @@ const log = require('../utils/logger');
 
 async function saveFlightToHistory(flight) {
   try {
-    log.info(`[saveFlightToHistory] Début traitement vol id=${flight.id}, type=${flight.type}`);
+    log.info(`[saveFlightToHistory] Début traitement vol id=${flight.id}, type=${flight.type || 'live'}`);
+
     if (!flight.id) {
       log.error('[saveFlightToHistory] flight.id manquant, abandon');
       throw new Error('flight.id est requis');
@@ -18,10 +19,11 @@ async function saveFlightToHistory(flight) {
 
     const period = getWeekPeriod(flight.created_time || new Date().toISOString());
     const filename = period.filename;
+
     log.info(`[saveFlightToHistory] Traitement vol drone ${flight.id} dans fichier : ${filename}`);
 
     const historyData = await loadHistoryToCache(filename);
-    log.debug(`[saveFlightToHistory] Cache chargé ${filename} : ${historyData.length} entrées`);
+    log.info(`[saveFlightToHistory] Cache chargé pour ${filename} avec ${historyData.length} entrées`); 
 
     const now = Date.now();
     const INACTIVE_TIMEOUT = config.backend.inactiveTimeoutMs;
@@ -40,44 +42,39 @@ async function saveFlightToHistory(flight) {
         flightTraces.delete(flight.id);
         log.info(`[saveFlightToHistory] Timeout ou nouvelle session, trace backend supprimée pour drone ${flight.id}`);
       }
-      if (liveIdx !== -1) {
-        if (historyData[liveIdx].type !== 'local') {
-          historyData[liveIdx].type = 'local';
-          log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé à 'local'`);
+      if (liveIdx !== -1 && historyData[liveIdx].type !== 'local') {
+        historyData[liveIdx].type = 'local';
+        log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé en 'local'`);
 
-          // Notification d'archivage uniquement ici
-          notifyUpdate(filename);
-          log.info(`[saveFlightToHistory] Notifie mise à jour pour fichier ${filename} suite à archivage`);
-        }
+        notifyUpdate(filename);
+        log.info(`[saveFlightToHistory] Notification mise à jour envoyée pour fichier ${filename}`);
       }
     }
 
-    if (flight.type === 'live' && flight.id) {
+    if (flight.type === 'live') {
       lastSeenMap.set(flight.id, Date.now());
-    } else if (flight.type === 'local' && flight.id) {
+    } else if (flight.type === 'local') {
       lastSeenMap.delete(flight.id);
-      log.info(`[saveFlightToHistory] Vol ${flight.id} archivé (local), entry lastSeen supprimée`);
+      log.info(`[saveFlightToHistory] Vol ${flight.id} archivé, entrée lastSeen supprimée`);
     }
 
     if (!flight.created_time) {
       flight.created_time = new Date().toISOString();
+      log.info(`[saveFlightToHistory] created_time initialisé à ${flight.created_time} pour drone ${flight.id}`);
     }
 
     if (newSession && (!flight.trace || flight.trace.length === 0)) {
       flight.trace = [];
-      log.debug(`[saveFlightToHistory] Nouvelle session avec trace vide pour drone ${flight.id}`);
+      log.info(`[saveFlightToHistory] Nouvelle session avec trace vide pour drone ${flight.id}`);
     } else {
-      log.debug(`[saveFlightToHistory] Trace avec ${flight.trace.length} points conservée pour drone ${flight.id}`);
+      log.info(`[saveFlightToHistory] Trace avec ${flight.trace.length} points conservée pour drone ${flight.id}`);
     }
 
-    log.debug(`[saveFlightToHistory] Trace sample drone ${flight.id}: ${JSON.stringify(flight.trace?.slice(0, 5))}`);
-
     addOrUpdateFlightInFile(flight, historyData);
-    log.info(`[saveFlightToHistory] Vol drone ${flight.id} ajouté/fusionné dans ${filename} (nb entrées: ${historyData.length})`);
-    
+    log.info(`[saveFlightToHistory] Vol drone ${flight.id} ajouté/fusionné dans ${filename} (total entrées: ${historyData.length})`);
+
     await flushCacheToDisk(filename);
-    
-    log.info(`[saveFlightToHistory] Cache flushé disque pour fichier ${filename}`);
+    log.info(`[saveFlightToHistory] Cache sauvegardé sur disque pour fichier ${filename}`);
 
     return filename;
   } catch (err) {

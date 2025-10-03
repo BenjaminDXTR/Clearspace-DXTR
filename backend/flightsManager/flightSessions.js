@@ -34,6 +34,7 @@ function addOrUpdateFlightInFile(flight, historyFile) {
     let newTrace = Array.isArray(flight.trace) ? flight.trace.slice() : [];
     if (newTrace.length > MAX_TRACE_LENGTH) {
       newTrace = newTrace.slice(newTrace.length - MAX_TRACE_LENGTH);
+      log.info(`[addOrUpdateFlightInFile] Trace truncated to max length ${MAX_TRACE_LENGTH} for drone ${flight.id}`);
     }
 
     log.debug(`[addOrUpdateFlightInFile] Trace length before update: ${newTrace.length}`);
@@ -47,10 +48,11 @@ function addOrUpdateFlightInFile(flight, historyFile) {
 
     historyFile[idxToUpdate] = updatedFlight;
 
-    log.info(`[addOrUpdateFlightInFile] Fusion avec session drone ${flight.id} created_time ${selectedCreatedTime}`);
+    log.info(`[addOrUpdateFlightInFile] Updated session for drone ${flight.id} with created_time ${selectedCreatedTime}`);
     return;
   }
 
+  // Nouvelle session
   const newCreated = new Date().toISOString();
   flight.created_time = newCreated;
 
@@ -60,7 +62,7 @@ function addOrUpdateFlightInFile(flight, historyFile) {
 
   historyFile.push(flight);
 
-  log.info(`[addOrUpdateFlightInFile] Nouvelle session drone ${flight.id} created_time ${newCreated}, trace length: ${flight.trace.length}`);
+  log.info(`[addOrUpdateFlightInFile] Added new session for drone ${flight.id} with created_time ${newCreated} and trace length ${flight.trace.length}`);
 }
 
 module.exports = { addOrUpdateFlightInFile };

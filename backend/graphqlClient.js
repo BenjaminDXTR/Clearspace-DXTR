@@ -12,6 +12,8 @@ async function fetchDroneData() {
 
   log.debug(`graphqlClient: Envoi requête vers ${graphqlUrl} avec query : ${query}`);
 
+  const startTime = Date.now();
+
   try {
     const response = await fetch(graphqlUrl, {
       method: 'POST',
@@ -19,20 +21,24 @@ async function fetchDroneData() {
       body: JSON.stringify({ query }),
     });
 
-    log.debug(`graphqlClient: Réponse HTTP ${response.status} ${response.statusText}`);
+    const duration = Date.now() - startTime;
+    log.debug(`graphqlClient: Réponse HTTP ${response.status} ${response.statusText} reçue en ${duration} ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      log.error(`graphqlClient: Erreur réponse : ${errorText}`);
+      log.error(`graphqlClient: Erreur réponse depuis ${graphqlUrl} : ${errorText}`);
       throw new Error(`API Erreur: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    log.debug(`graphqlClient: Corps réponse reçu (début 500 caractères) : ${JSON.stringify(data).slice(0, 500)}`);
+
+    if (config.backend.nodeEnv !== 'production') {
+      log.debug(`graphqlClient: Corps réponse reçu (début 500 caractères) : ${JSON.stringify(data).slice(0, 500)}`);
+    }
 
     return data;
   } catch (error) {
-    log.error(`graphqlClient: Erreur lors fetchDroneData : ${error.message}`);
+    log.error(`graphqlClient: Erreur lors fetchDroneData vers ${graphqlUrl} : ${error.message}`);
     throw error;
   }
 }

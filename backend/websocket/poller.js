@@ -33,20 +33,22 @@ async function poller() {
     }
     isPolling = true;
 
+    log.info('[poller] Starting new poll cycle');
+
     try {
         let drones;
         if (config.backend.useTestSim) {
             const simulation = require('../simulation');
             drones = await simulation.getCurrentSimulationData();
-            log.debug(`[poller] Retrieved data from simulation, count: ${drones.length}`);
+            log.info(`[poller] Simulation data retrieved, drones count: ${drones.length}`);
         } else {
             const data = await fetchWithRetry(fetchDroneData, 5, 1000);
             drones = data?.data?.drone ? (Array.isArray(data.data.drone) ? data.data.drone : [data.data.drone]) : [];
-            log.debug(`[poller] Retrieved data from API, count: ${drones.length}`);
+            log.info(`[poller] API data retrieved, drones count: ${drones.length}`);
         }
 
         if (!drones || drones.length === 0) {
-            log.info('[poller] No drones detected');
+            log.info('[poller] No drones detected, ending poll cycle');
             return;
         }
 
@@ -57,7 +59,6 @@ async function poller() {
                 log.debug('[poller] Empty drone data detected, ignoring this drone');
                 continue;
             }
-
             if (!drone.id) {
                 log.warn('[poller] Drone without ID skipped');
                 continue;
@@ -67,7 +68,11 @@ async function poller() {
 
             const trace = flightTraces.get(drone.id) || [];
             log.debug(`[poller] Drone ${drone.id} trace length: ${trace.length}`);
-            log.debug(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
+
+            // Limiter les logs de snapshot à moins fréquent ou conditionnel (ex: trace > X)
+            if (trace.length > 5) {
+                log.trace(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
+            }
 
             const fullDroneData = {
                 ...drone,
@@ -77,23 +82,22 @@ async function poller() {
 
             fullDrones.push(fullDroneData);
 
-            log.debug(`[poller] Drone ${drone.id} fullDroneData trace length before save: ${fullDroneData.trace.length}`);
-            log.debug(`[poller] Drone ${drone.id} fullDroneData trace sample before save: ${JSON.stringify(fullDroneData.trace.slice(0, 5))}`);
-
-            log.info(`[poller] Saving flight to history for drone ${drone.id}`);
+            log.info(`[poller] Saving flight to history for drone ${drone.id} with trace points: ${fullDroneData.trace.length}`);
             await saveFlightToHistory(fullDroneData);
         }
 
         // Filtrer les drones locaux pour ne pas les renvoyer en live
         const filteredFullDrones = fullDrones.filter(flight => flight.type !== 'local');
-        log.info(`[POOOOOOOLLER] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
-        broadcast(filteredFullDrones, clients, true);
-        log.info('[poller] Broadcast to clients complete');
+        log.info(`[poller] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
 
+        broadcast(filteredFullDrones, clients, true);
+
+        log.info('[poller] Broadcast to clients complete');
     } catch (err) {
         log.error(`[poller] Error during polling: ${err.message}`);
     } finally {
         isPolling = false;
+        log.info('[poller] Poll cycle finished');
     }
 }
 

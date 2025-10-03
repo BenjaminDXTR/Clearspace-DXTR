@@ -33,6 +33,8 @@ async function loadHistoryToCache(filename) {
       log.error(`[loadHistoryToCache] Error loading ${filename}: ${e.message}`);
       historyCache.set(filename, []);
     }
+  } else {
+    log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
   }
   return historyCache.get(filename);
 }
@@ -40,7 +42,7 @@ async function loadHistoryToCache(filename) {
 async function flushCacheToDisk(filename) {
   await ensureHistoryDirExists();
   if (!historyCache.has(filename)) {
-    log.warn(`[flushCacheToDisk] No cache found for file ${filename}`);
+    log.warn(`[flushCacheToDisk] No cache found for file ${filename}, skipping flush`);
     return;
   }
   const data = historyCache.get(filename);
@@ -55,10 +57,12 @@ async function flushCacheToDisk(filename) {
 }
 
 async function flushAllCache() {
-  for (const filename of historyCache.keys()) {
+  const filenames = Array.from(historyCache.keys());
+  log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
+  for (const filename of filenames) {
     await flushCacheToDisk(filename);
   }
-  log.info('[flushAllCache] All cache flushed');
+  log.info('[flushAllCache] All cache flushed successfully');
 }
 
 module.exports = { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache };

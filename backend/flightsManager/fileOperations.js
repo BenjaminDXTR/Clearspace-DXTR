@@ -10,7 +10,7 @@ async function loadHistoryFile(filePath) {
       log.info(`[loadHistoryFile] File not found, returning empty array for ${filePath}`);
       return [];
     } else {
-      log.error(`[loadHistoryFile] Error accessing ${filePath}: ${e.message}`);
+      log.error(`[loadHistoryFile] Error accessing file ${filePath}: ${e.message}`);
       throw e;
     }
   }
@@ -18,19 +18,25 @@ async function loadHistoryFile(filePath) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
     const data = JSON.parse(raw);
-    log.info(`[loadHistoryFile] Loaded ${filePath} with ${data.length} entries`);
+    log.info(`[loadHistoryFile] Loaded file ${filePath} with ${data.length} entries`);
     return data;
   } catch (e) {
-    log.error(`[loadHistoryFile] Error reading/parsing ${filePath}: ${e.message}`);
+    log.error(`[loadHistoryFile] Error reading or parsing file ${filePath}: ${e.message}`);
     throw e;
   }
 }
 
 async function saveHistoryFile(filePath, data) {
-  if (!Array.isArray(data) || data.length === 0) {
-    log.info(`[saveHistoryFile] Empty data, skipping save for ${filePath}`);
+  if (!Array.isArray(data)) {
+    log.error(`[saveHistoryFile] Attempted to save non-array data to file ${filePath}`);
     return;
   }
+  if (data.length === 0) {
+    log.info(`[saveHistoryFile] Empty data array, skipping save for file ${filePath}`);
+    return;
+  }
+
+  log.info(`[saveHistoryFile] Saving data to file ${filePath} with ${data.length} entries`);
 
   const dir = path.dirname(filePath);
   try {
@@ -45,9 +51,9 @@ async function saveHistoryFile(filePath, data) {
   try {
     await fs.writeFile(tempFilePath, JSON.stringify(data, null, 2));
     await fs.rename(tempFilePath, filePath);
-    log.info(`[saveHistoryFile] Atomically saved ${filePath} with ${data.length} entries`);
+    log.info(`[saveHistoryFile] Atomically saved file ${filePath} with ${data.length} entries`);
   } catch (e) {
-    log.error(`[saveHistoryFile] Error saving file ${filePath} atomically: ${e.message}`);
+    log.error(`[saveHistoryFile] Error saving file atomically ${filePath}: ${e.message}`);
     throw e;
   }
 }

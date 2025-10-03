@@ -4,11 +4,9 @@ const { config } = require('../config');
 function errorHandler(err, req, res, next) {
   if (res.headersSent) return next(err);
 
-  const statusCode =
-    res.statusCode && res.statusCode !== 200
-      ? res.statusCode
-      : 500;
+  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
 
+  // Log différent selon environnement et niveau
   if (config.backend.nodeEnv === 'production') {
     if (config.backend.logLevel === 'verbose') {
       log.error(`${req.method} ${req.originalUrl} → ${err.message}`, {
@@ -16,14 +14,23 @@ function errorHandler(err, req, res, next) {
         stack: err.stack,
       });
     } else {
-      log.error(`${req.method} ${req.originalUrl} → ${err.message} (HTTP ${statusCode})`);
+      // Pour les erreurs internes, log spécial
+      if (statusCode === 500) {
+        log.error(`Erreur serveur critique sur ${req.method} ${req.originalUrl}: ${err.message}`);
+      } else {
+        log.error(`${req.method} ${req.originalUrl} → ${err.message} (HTTP ${statusCode})`);
+      }
     }
   } else {
-    // En dev, log complet incluant stacktrace
-    log.error(`${req.method} ${req.originalUrl} → ${err.message}`, {
+    // Mode dev, log complet en debug
+    const detailedLog = {
       status: statusCode,
       stack: err.stack,
-    });
+      headers: req.headers,
+      params: req.params,
+      query: req.query,
+    };
+    log.error(`${req.method} ${req.originalUrl} → ${err.message}`, detailedLog);
   }
 
   res.status(statusCode).json({

@@ -12,16 +12,25 @@ function broadcast(data, clients, filterLocal = false) {
   }
   try {
     const message = JSON.stringify(toSend);
-    log.info(`[broadcast] Sending message to ${clients.size} clients, size ${message.length} bytes`);
+    log.info(`[broadcast] Preparing broadcast to ${clients.size} clients, message size ${message.length} bytes`);
+    
+    let sentCount = 0;
+    let skippedCount = 0;
+    
     for (const ws of clients) {
       if (ws.readyState === 1) {
         try {
           ws.send(message);
+          sentCount++;
         } catch (err) {
           log.error(`[broadcast] WS send error to client: ${err.message}`);
         }
+      } else {
+        skippedCount++;
       }
     }
+    
+    log.info(`[broadcast] Broadcast complete: sent to ${sentCount}, skipped ${skippedCount} clients (not ready)`);
   } catch (err) {
     log.error(`[broadcast] JSON serialization error: ${err.message}`);
   }

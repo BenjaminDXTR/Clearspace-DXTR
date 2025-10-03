@@ -7,17 +7,16 @@ async function updateTrace(update) {
   const { id, latitude, longitude, created_time } = update;
 
   if (!id) {
-    log.warn('[updateTrace] Missing drone id, ignoring update');
+    log.warn('[updateTrace] Missing drone id, skipping update');
     return;
   }
 
   if (!flightTraces.has(id)) {
     flightTraces.set(id, []);
-    log.info(`[updateTrace] Created new trace array for drone ${id}`);
+    log.info(`[updateTrace] Initialized new trace array for drone ${id}`);
   }
 
   const trace = flightTraces.get(id);
-  log.debug(`[updateTrace] Current trace length for drone ${id}: ${trace.length}`);
 
   if (typeof latitude === 'number' && typeof longitude === 'number' && created_time) {
     try {
@@ -31,25 +30,31 @@ async function updateTrace(update) {
         trace[trace.length - 1][1] !== longitude
       ) {
         trace.push([latitude, longitude, relativeTime]);
-        log.debug(`[updateTrace] Added point to drone ${id}, total points in trace: ${trace.length}`);
+        log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}`);
       } else {
-        log.debug(`[updateTrace] Duplicate point, not added for drone ${id}`);
+        // Limiter ce log car redondant
+        // log.debug(`[updateTrace] Duplicate point ignored for drone ${id}`);
       }
     } catch (e) {
-      log.error(`[updateTrace] Error calculating relative time for drone ${id}: ${e.message}`);
+      log.error(`[updateTrace] Error computing relative time for drone ${id}: ${e.message}`);
     }
   } else {
     log.warn(`[updateTrace] Invalid coordinates or missing created_time for drone ${id}`);
   }
 
-  log.debug(`[updateTrace] Trace snapshot for drone ${id}: ${JSON.stringify(trace.slice(-5))}`);
+  // Limiter fréquence d'affichage snapshot si trace très longue
+  if (trace.length <= 10) {
+    log.debug(`[updateTrace] Trace snapshot for drone ${id}: ${JSON.stringify(trace)}`);
+  } else if (trace.length % 10 === 0) {
+    log.info(`[updateTrace] Trace length for drone ${id} reached ${trace.length} points`);
+    log.debug(`[updateTrace] Trace snapshot tail: ${JSON.stringify(trace.slice(-5))}`);
+  }
 
   if (config.backend.useTest) {
     try {
       const fullFlight = { ...update, trace: trace.slice(), type: 'live' };
-      // Utiliser saveFlightToHistory pour une gestion correcte du flux archive
       await saveFlightToHistory(fullFlight);
-      log.info(`[updateTrace] Saved flight during simulation for drone ${id}`);
+      log.info(`[updateTrace] Saved flight in simulation for drone ${id}`);
     } catch (error) {
       log.error(`[updateTrace] Error saving drone ${id} in simulation: ${error.message}`);
     }

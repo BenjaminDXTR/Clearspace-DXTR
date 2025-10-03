@@ -14,33 +14,32 @@ router.get('/', async (req, res) => {
     let files = await fs.readdir(historyDir);
     files = files.filter(f => f.endsWith('.json')).sort();
     res.json(files);
-    log.debug(`Liste des fichiers historiques envoyée, total: ${files.length}`);
+    log.info(`[history] Sent list of historical files (${files.length} files) to ${req.ip}`);
   } catch (error) {
-    log.error(`Erreur listing historiques: ${error.message}`);
+    log.error(`[history] Error listing history files: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
   }
 });
 
 // GET /history/:filename - contenu fichier
 router.get('/:filename', async (req, res) => {
+  const filename = req.params.filename;
+
+  // Validation simple du nom de fichier
+  if (!/^[\w\-\.]+$/.test(filename) || !filename.endsWith('.json')) {
+    log.warn(`[history] Invalid filename requested: ${filename} from IP ${req.ip}`);
+    return res.status(400).json({ error: 'Nom de fichier invalide' });
+  }
+
+  const filePath = path.join(historyDir, filename);
   try {
-    const filename = req.params.filename;
-
-    // Validation simple : nom doit être composé uniquement de chiffres/lettres, tirets, underscore ou points
-    if (!/^[\w\-\.]+$/.test(filename) || !filename.endsWith('.json')) {
-      log.warn(`Nom de fichier invalide demandé: ${filename}`);
-      return res.status(400).json({ error: 'Nom de fichier invalide' });
-    }
-
-    const filePath = path.join(historyDir, filename);
     await fs.access(filePath);
-
     const data = await fs.readFile(filePath, 'utf8');
     const json = JSON.parse(data);
     res.json(json);
-    log.debug(`Contenu du fichier historique ${filename} envoyé`);
+    log.info(`[history] Sent historical file content: ${filename} to ${req.ip}, entries count: ${json.length || 'unknown'}`);
   } catch (error) {
-    log.error(`Erreur lecture historique ${req.params.filename}: ${error.message}`);
+    log.error(`[history] Error reading historical file ${filename}: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
   }
 });

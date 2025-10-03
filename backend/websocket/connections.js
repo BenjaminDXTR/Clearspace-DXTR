@@ -20,7 +20,8 @@ function setupConnection(ws, broadcastFn) {
   log.info(`[connections] New client connected. Total clients: ${clients.size}`);
 
   ws.on('message', async message => {
-    log.debug(`[connections] Message received: ${message}`);
+    // Limiter la verbosité des messages reçus, afficher uniquement en debug
+    log.debug(`[connections] Message received from client: ${message.length} bytes`);
 
     try {
       const data = JSON.parse(message);
@@ -35,15 +36,15 @@ function setupConnection(ws, broadcastFn) {
         try {
           const filename = await saveFlight(data);
           broadcastFn([data], clients);
-          log.info(`[connections] Broadcasted updated flight: ${data.id}`);
+          log.info(`[connections] Broadcasted updated flight id=${data.id}, saved in file ${filename}`);
         } catch (e) {
-          log.error(`[connections] Error saving flight: ${e.message}`);
+          log.error(`[connections] Error saving flight id=${data.id}: ${e.message}`);
         }
       } else {
-        log.warn(`[connections] Invalid message data format: ${message}`);
+        log.warn(`[connections] Invalid message data format from client: ${message.slice(0, 100)}`);
       }
     } catch (e) {
-      log.error(`[connections] JSON parse error: ${e.message}`);
+      log.error(`[connections] JSON parse error from client: ${e.message}`);
     }
   });
 
@@ -53,7 +54,7 @@ function setupConnection(ws, broadcastFn) {
   });
 
   ws.on('error', e => {
-    log.error(`[connections] Client error: ${e.message}`);
+    log.error(`[connections] Client connection error: ${e.message}`);
   });
 }
 

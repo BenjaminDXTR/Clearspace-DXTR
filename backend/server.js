@@ -28,6 +28,8 @@ app.use(errorHandler);
 
 const wss = setup(server);
 
+log.info(`Config backend active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
+
 if (config.backend.useTestSim) {
   const simulation = require('./simulation');
   simulation.startSimulation();
@@ -65,11 +67,17 @@ function clearIntervals() {
 
 startIntervals();
 
+
 async function gracefulShutdown() {
-  log.info('Arrêt serveur : arrêt polling, flush cache en cours...');
+  log.info('Début arrêt serveur : arrêt polling, flush cache en cours...');
   try {
-    stopPolling();
-    clearIntervals();
+    await stopPolling();
+    log.info('Polling arrêté avec succès');
+  } catch (e) {
+    log.error(`Erreur arrêt polling : ${e.message}`);
+  }
+  clearIntervals();
+  try {
     await flushAllCache();
     log.info('Flush final du cache réussi');
   } catch (e) {
@@ -85,6 +93,7 @@ async function gracefulShutdown() {
     process.exit(1);
   }, 5000);
 }
+
 
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
