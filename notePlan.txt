@@ -24,6 +24,9 @@ aura lui meme l'historique et l'accès à la blockchain api, faut il toujour eff
 Coté frontend, les composentes anchor, useAnchorModal etc... doivent se charger de permettre à l'utilisateur, une fois un vol slectionné dans l'historique, de choisi d'ancrer, c'est à dire crééer les fichier qui seront envoyés dans la blockchain. l'utilisateur pourra visualisé le json qui sera enregisré (le json contien des champs définits spécialment pour l'ancrage afin de correspondre à la frome attendue dans l'api blockchain) et pouur ajouter un commentair. coté carte, il pourra visualiser le tracé et ajouter des capture de la carte via un bouton qui capturera le rendu actuellement consulté et stockera une fois l'ancrage valde les images dans un dosier zippé. ce dossier zipé continet toutes les pruves, images captures mais aussi la litse complete des trace avec la date de départ et leur valeur de temps associé.
 
 Pour commencer nous analyserons les anciens fichier obselets afin de faire le tri et de refactoriser le tout pour correspondre à la logique attendue
+
+
+
 Clearspace est un projet d'application web qui permet de visualiser les détection de drone et de les ancrer dans une blockchain.
 Pour cela le projet est composé d'un backend qui va interroger la machine de détection qui elle renvoi le donnée des drones détecté en vol.
 Le frontend reçoit les informations données par le backend et peut également permettre d'aficher un historique des vols enregistré dans un fichier json (coté backend) et permet de lancer un ancrage d'un vol, en donnant une description ainsi qu'en sélectionnant la zone de la carte à mettre en capture d'écran accompagnant le json d'information du vol.
