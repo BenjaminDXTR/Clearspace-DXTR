@@ -58,7 +58,9 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }
 
   function sendPing() {
-    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) return;
+    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) {
+      return;
+    }
     try {
       ws.current.send(JSON.stringify({ type: 'ping' }));
       console.log(`[DronesContext][${new Date().toISOString()}] Ping sent`);
@@ -81,27 +83,39 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   function setWebsocketError(msg: string) {
     const now = Date.now();
-    if (lastError.current && lastError.current.msg === msg && now - lastError.current.time < errorThrottle) return;
+    if (lastError.current && lastError.current.msg === msg && now - lastError.current.time < errorThrottle) {
+      return;
+    }
     lastError.current = { msg, time: now };
-    setError(msg);
-    console.error(`[DronesContext][${new Date().toISOString()}] ${msg}`);
+    setError(`Erreur de connexion au serveur: ${msg}`);
+    console.error(`[${new Date().toISOString()}][DronesContext] ${msg}`);
   }
+
 
   function connect() {
     if (ws.current) {
       if (ws.current.readyState === WS_STATES.OPEN || ws.current.readyState === WS_STATES.CONNECTING) {
-        console.log(`[DronesContext][${new Date().toISOString()}] WebSocket already connecting or open, skipping connect`);
+        console.log(`[${new Date().toISOString()}][DronesContext] WS already connecting or open, skipping connect`);
         return;
       }
       try {
+        console.log(`[${new Date().toISOString()}][DronesContext] Closing existing WS connection before new connect`);
         ws.current.close();
-      } catch {}
+      } catch (e) {
+        console.warn(`[${new Date().toISOString()}][DronesContext] Error while closing WS:`, e);
+      }
       ws.current = null;
     }
-    if (reconnectTimeout.current) return;
+    if (reconnectTimeout.current) {
+      console.log(`[${new Date().toISOString()}][DronesContext] Reconnect already scheduled, ignoring new connect call`);
+      return;
+    }
+    console.log(`[${new Date().toISOString()}][DronesContext] Attempting WS connection to ${websocketUrl}`
+  );
+
 
     setLoading('connecting');
-    console.log(`[DronesContext][${new Date().toISOString()}] Opening WebSocket connection to ${websocketUrl}`);
+    console.log(`[DronesContext][${new Date().toISOString()}] Opening WS connection to ${websocketUrl}`);
 
     ws.current = new WebSocket(websocketUrl);
 
@@ -112,7 +126,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         clearTimeout(reconnectTimeout.current);
         reconnectTimeout.current = null;
       }
-      console.log(`[DronesContext][${new Date().toISOString()}] WebSocket connected`);
+      console.log(`[${new Date().toISOString()}][DronesContext] WS connection established`);
       schedulePing();
     };
 
@@ -164,7 +178,10 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               }
               break;
             default:
-              console.warn(`[DronesContext][${new Date().toISOString()}] Unrecognized WS message type:`, data.type);
+              const unknownMsg = `Message WebSocket inconnu ou mal formé: ${JSON.stringify(data)}`;
+              setError(unknownMsg);
+              console.warn(`[${new Date().toISOString()}][DronesContext] ${unknownMsg}`);
+              break;
           }
         }
       } catch (e) {
@@ -173,9 +190,10 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     ws.current.onerror = (evt) => {
-      setWebsocketError(`WebSocket error occurred`);
+      const errorMsg = 'Erreur réseau lors de la connexion WebSocket';
+      setWebsocketError(errorMsg);
       setLoading('disconnected');
-      console.error(`[DronesContext][${new Date().toISOString()}] WebSocket error:`, evt);
+      console.error(`[${new Date().toISOString()}][DronesContext] WS network error:`, evt);
     };
 
     ws.current.onclose = (evt) => {
@@ -185,6 +203,12 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ? 'WebSocket closed normally'
           : `WebSocket disconnected, code=${evt.code}, reason=${evt.reason}, reconnecting...`;
       setWebsocketError(msg);
+      const disconnectMsg = evt.code === 1000 ? 'Normal WS close' : `Abnormal WS close with code ${evt.code}`;
+      console.warn(`[${new Date().toISOString()}][DronesContext] WS disconnected: ${disconnectMsg}, schedule reconnect`);
+      const userFriendlyMsg = evt.code === 1000 ? 
+        'Connexion au serveur fermée correctement.' :
+        `La connexion au serveur a été interrompue (${evt.code}). Tentative de reconnexion en cours...`;
+      setError(userFriendlyMsg);
       if (!reconnectTimeout.current) {
         reconnectTimeout.current = setTimeout(() => {
           reconnectTimeout.current = null;

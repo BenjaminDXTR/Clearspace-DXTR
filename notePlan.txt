@@ -122,8 +122,7 @@ Contexte :
 Les vols passent bien du statut live à local côté backend à l’expiration du timeout.
 Le backend modifie la donnée, met à jour le fichier JSON et envoie une notification WebSocket refresh indiquant le nom du fichier modifié.
 Problème :
-Le frontend reçoit bien ces notifications, mais la mise à jour du fichier d'historique n'a pas l'air de se faire car aucun nouveau vol affiché, sauf quand on refresh la page.
-
+Le frontend reçoit bien ces notifications,mais la mise à jour fonctionne uniquemnt sur le navigateur firefoc, en testant sur chrome la liste n'est pas mise à jour, aide moi à trouver le probleme pour faire ne sorte que cela fonctionne sur tous navigateur.
 
 
 autreeeee
