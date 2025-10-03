@@ -10,6 +10,7 @@ backend
     utils.js
   history
     history-2025-09-27_to_2025-10-03.json
+    history-2025-09-28_to_2025-10-04.json
   middleware
     errorHandler.js
     notFoundHandler.js
@@ -65,8 +66,6 @@ frontend
         MapLayout.tsx
         Sidebar.css
         Sidebar.tsx
-        TablesLayout.css
-        TablesLayout.tsx
         TablesLive.css
         TablesLive.tsx
         TablesLocal.css

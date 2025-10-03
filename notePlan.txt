@@ -9,56 +9,11 @@
 - Composants UI : affichage, interaction visuelle, gestion modale, pagination.
 - Config & utils : paramètres globaux, formatage, icônes.
 
-
-## Plan refactorisation détaillé
-
-### Étape 1 : Simplification DronesContext
-
-- Fournir uniquement données brutes : listes drones (live/local), fichiers historique, état erreur.
-- Supprimer toute transformation, fusion ou filtrage dans ce contexte.
-- Conserver uniquement gestion connexion WebSocket, fetch historique, propagation erreurs.
-
-### Étape 2 : Refactorisation App.tsx
-
-- Enlever fusion et filtrage des vols (suppression combinedFlights, dronesWithType).
-- Garder orchestration sélection de fichier historique et gestion erreur.
-- Faire appel à un nouveau hook métier `useProcessedFlights` pour obtenir données prêtes à afficher.
-- Passer ces données directes aux composants TablesLayout, MapLayout, etc.
-
-### Étape 3 : Création Hook métier `useProcessedFlights`
-
-- Prend en entrée données brutes DronesContext.
-- Applique mise à jour, fusion live + local, filtrage sur données invalides.
-- Gère pagination locale, tri, enrichissement (_type).
-- Expose données prêtes à consommer pour les composants UI.
-- Est compatible avec les hooks existants comme useLiveTraces, useLocalHistory, etc.
-
-### Étape 4 : Refactorisation Hooks métiers
-
-- Normaliser et consolider hooks useLiveTraces, useLocalHistory, useAnchored si possible.
-- Déplacer dans `useProcessedFlights` la logique de fusion et mise à jour des vols.
-- S’assurer que hooks métiers n’ont plus de dépendances directes aux contextes ou composants.
-- Hooks métiers utilisent désormais uniquement les données entrées sans post-traitement côté composant.
-
-### Étape 5 : Revue composants UI
+ Revue composants UI
 
 - Passer uniquement les données déjà traitées et filtrées aux composants TablesLayout, MapLayout, etc.
 - Supprimer toute logique métier ou filtrage dans ces composants.
 - Garder uniquement responsabilité affichage, interactions UI pures.
-
-### Étape 6 : Tests & Validation
-
-- Tester continuellement à chaque étape pour s’assurer que la mise à jour en temps réel, chargement historique et ancrages fonctionnent toujours.
-- Ajouter tests unitaires/ d’intégration sur hooks métiers.
-
-***
-
-Ce plan offre une séparation claire des responsabilités, améliore la maintenabilité et facilite l’évolution future.
-
-
-
-
-
 
 
 les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
@@ -71,10 +26,9 @@ lui meme l'historique et l'accès à la blockchain api, faut il toujour effectue
 au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain
 
 
-Clearspace est un projet d'application web qui permet de visualiser les détection de drone et de les ancrer dans une blockchain. Pour cela le projet est composé d'un backend qui va interroger la machine de détection qui elle renvoi le donnée des drones détecté en vol. Le frontend reçoit les informations données par le backend et peut également permettre d'aficher un historique des vols enregistré dans un fichier json (coté backend) et permet de lancer un ancrage d'un vol, en donnant une description ainsi qu'en sélectionnant la zone de la carte à mettre en capture d'écran accompagnant le json d'information du vol.
-
-
-le but est d'applique rcette liste d'amélioration à apporter au frontend:
+Clearspace est un projet d'application web qui permet de visualiser les détection de drone et de les ancrer dans une blockchain.
+Pour cela le projet est composé d'un backend qui va interroger la machine de détection qui elle renvoi le donnée des drones détecté en vol.
+Le frontend reçoit les informations données par le backend et peut également permettre d'aficher un historique des vols enregistré dans un fichier json (coté backend) et permet de lancer un ancrage d'un vol, en donnant une description ainsi qu'en sélectionnant la zone de la carte à mettre en capture d'écran accompagnant le json d'information du vol.
 
 
 Optimisation des dépendances des hooks
@@ -86,7 +40,8 @@ s'assurer qu'elle est stable ou listée.
 Gestion d’erreurs centralisée améliorée
 Le hook useErrorManager pourrait filtrer les doublons d'erreurs identiques pour éviter la répétition de messages.
 Ajouter des priorités et gestion des erreurs critiques vs warnings.
-Sauvegarder éventuellement l’historique d’erreurs pour debug.
+++couleurs
+Sauvegarder éventuellement l’historique d’erreurs pour debug. (bouton discret sous live détail)
 
 Chargement asynchrone et états de chargement
 Ajouter des indicateurs visuels dans l’UI pour signaler le chargement des données (live ou historiques).
@@ -112,69 +67,74 @@ Tests unitaires et d’intégration
 Ajouter des tests des hooks métier et composants cruciaux pour améliorer la fiabilité et faciliter les évolutions.
 
 
-L'objectif est le suivant, le backend envoie la liste des noms de fichiers d'historique. Ensuite le front end récupère la liste afin d'envoyer la requête de récupération des données du fichier le plus récent. ainsi le frontend récupère la listedes vols enregistrés et affiche dans le tableau. coté backend, dès qu'un vol n'est plus détecté pendant plus d'un certaintemp, il est passé en "type" = local et envoie l'information "refresh au frontend" accompagné du nom du dossier concerné, ce qui permet au frontend de savoir quand mettre à jour sa liste si le fichier modifié est le fichier actuellement consulté.
-
-
+L'objectif est le suivant, le backend envoie la liste des noms de fichiers d'historique.
+Ensuite le front end récupère la liste afin d'envoyer la requête de récupération des données du fichier le plus récent.
+ainsi le frontend récupère la listedes vols enregistrés et affiche dans le tableau.
+coté backend, dès qu'un vol n'est plus détecté pendant plus d'un certaintemp, il est passé en "type" = local.
+ensuite il envoie l'information "refresh au frontend" accompagné du nom du dossier concerné.
+cela permet au frontend de savoir quand mettre à jour sa liste si le fichier modifié est le fichier actuellement consulté.
 
 
 
 Projet Clearspace – Gestion des vols de drones et historique
 Contexte général
-Le projet Clearspace est une application permettant la détection, le suivi et l'archivage des vols de drones. Le système comprend deux parties centrales : un backend dédié à la collecte et au stockage des données, et un frontend pour la visualisation en temps réel et la consultation des historiques.
-
+Le projet Clearspace est une application permettant la détection, le suivi et l'archivage des vols de drones.
+Le système comprend deux parties centrales :
+un backend dédié à la collecte et au stockage des données,
+un frontend pour la visualisation en temps réel et la consultation des historiques.
 Fonctionnement du backend
 Le backend est développé en Node.js et s'appuie sur plusieurs modules orchestrés :
-
-Collecte et traitement des vols : Les vols sont reçus en direct avec un identifiant unique (id), un type (live par défaut), une trace GPS, et d'autres métadonnées.
-
-Gestion du timeout des vols : Un mécanisme de temporisation détecte les vols inactifs. Dès que le drone n'est plus détecté depuis un délai configuré (inactiveTimeout), il est « limogé » de l'état live pour être archivé en local.
-
-Archivage en fichiers JSON : Les vols (live & archivés) sont stockés dans des fichiers JSON organisés par période hebdomadaire (ex : history-YYYY-MM-DD_to_YYYY-MM-DD.json). Le backend maintient un cache en mémoire de ces fichiers via historyCache.
-
-Mise à jour & fusion des données : Lorsqu'un vol évolue, il est soit ajouté, soit fusionné aux données archivées avec des règles précises sur la gestion des traces.
-
-Notification des clients : À chaque modification d'un fichier historique, notamment lorsqu'un vol devient local (archivé), le backend notifie tous les clients connectés via une notification WebSocket de type refresh avec le nom du fichier modifié.
-
+Collecte et traitement des vols :
+Les vols sont reçus en direct avec un identifiant unique (id), un type (live par défaut), une trace GPS, et d'autres métadonnées.
+Gestion du timeout des vols :
+Un mécanisme de temporisation détecte les vols inactifs.
+Dès que le drone n'est plus détecté depuis un délai configuré (inactiveTimeout), il est « limogé » de l'état live pour être archivé en local.
+Archivage en fichiers JSON :
+Les vols (live & archivés) sont stockés dans des fichiers JSON organisés par période hebdomadaire (ex : history-YYYY-MM-DD_to_YYYY-MM-DD.json).
+Le backend maintient un cache en mémoire de ces fichiers via historyCache.
+Mise à jour & fusion des données :
+Lorsqu'un vol évolue, il est soit ajouté, soit fusionné aux données archivées avec des règles précises sur la gestion des traces.
+Notification des clients :
+À chaque modification d'un fichier historique, notamment lorsqu'un vol devient local (archivé),
+le backend notifie tous les clients connectés via une notification WebSocket de type refresh avec le nom du fichier modifié.
 Fonctionnement du frontend
 Le frontend, construit avec React, s'organise autour de plusieurs couches :
-
-Context DronesContext : Gère la connexion WebSocket, reçoit les mises à jour des vols en direct, la liste des fichiers d'historique disponibles, et les notifications refresh.
-
-Hook métier useAppLogic : Coordonne les sources de données
-
+Context DronesContext :
+Gère la connexion WebSocket, reçoit les mises à jour des vols en direct, la liste des fichiers d'historique disponibles,
+et les notifications refresh.
+Hook métier useAppLogic :
+Coordonne les sources de données
 Réception temps réel via WebSocket (vols live),
-
 Chargement & pagination des historiques via fetch HTTP des fichiers JSON,
-
 Gestion de la sélection, détails, export JSON, et intégration de la géolocalisation pour les traces.
-
-Hook useLocalHistory : Chargement du fichier historique courant, rafraîchissement déclenché sur réception de notification, pagination.
-
+Hook useLocalHistory :
+Chargement du fichier historique courant, rafraîchissement déclenché sur réception de notification, pagination.
 Affichage :
-
-HistorySelector (à intégrer) : permet à l'utilisateur de choisir le fichier historique à consulter.
-
-TablesLayout : affiche les vols live et archivés dans des tableaux, avec filtres basés sur le champ type.
-
-MapLayout : visualisation spatiale des traces des vols.
+HistorySelector (à intégrer) :
+permet à l'utilisateur de choisir le fichier historique à consulter.
+TablesLayout :
+affiche les vols live et archivés dans des tableaux, avec filtres basés sur le champ type.
+MapLayout :
+visualisation spatiale des traces des vols.
 
 Problème actuel
 Contexte :
-
 Les vols passent bien du statut live à local côté backend à l’expiration du timeout.
-
 Le backend modifie la donnée, met à jour le fichier JSON et envoie une notification WebSocket refresh indiquant le nom du fichier modifié.
-
 Problème :
-
 Le frontend reçoit bien ces notifications, mais la mise à jour du fichier d'historique n'a pas l'air de se faire car aucun nouveau vol affiché, sauf quand on refresh la page.
-
 De plus on remarque une reception du refresh très fréqunte alors qu'aucun vol n'est passé de live à local dnas le backend.
-
-
 Analyse possible :
-
 Le backend peut générer plusieurs notifications refresh très rapprochées, peut-être suite à des modifications successives de vols et un appel mal placé du notify avec resh ou mauvaise conditions d'activation.
-
 Le frontend reçoit bien refresh mais ne le gère pas correctement. il faut revoir la chaine de refresh.
 
+
+autreeeee
+une fois que le drone est délectionneé, mettre en surbrillance, ne pas mettre à jour la position de vue à chauqe mise a jour 
+ajuster zone Details
+ajuster backend live persistant
+ajuter historique d'erreurs
+ajuter Detection table et autres tables les memee ?
+ajuster fin de vol = ignorer (ou garder jusqua validation)
+ajutser les confis et constants
+_type à vérifier
