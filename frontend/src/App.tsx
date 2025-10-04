@@ -24,8 +24,6 @@ function AppContent() {
         <div className="left-column">
           <div className="map-container">
             <MapLayout
-              selectedTracePoints={logic.selectedTracePoints}
-              selectedTraceRaw={logic.selectedTraceRaw}
               selected={logic.selected}
               exportObj={logic.exportSelectedAsAnchorJson}
               flyToTrigger={logic.flyToTrigger}
@@ -96,6 +94,7 @@ function AppContent() {
           onValidate={logic.handleAnchorValidate}
           onCancel={logic.handleAnchorCancel}
         >
+          {/* Children content if any */}
         </AnchorModalLayout>
       )}
     </div>

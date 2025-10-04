@@ -1,4 +1,6 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle, useState, CSSProperties } from "react";
+// src/components/common/FlightMap.tsx
+
+import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,35 +14,14 @@ import L, { Icon, Map as LeafletMap, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isLatLng } from "../../utils/coords";
 import { droneIcon, historyIcon } from "../../utils/icons";
-import { getFitForTrace } from "../../utils/mapFit";
 import "./FlightMap.css";
 
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 100);
+    const timer = setTimeout(() => map.invalidateSize(), 300);
     return () => clearTimeout(timer);
   }, [map]);
-  return null;
-}
-
-function FlyToPosition({
-  position,
-  zoom,
-  flyToTrigger,
-}: {
-  position: LatLngExpression | null;
-  zoom: number;
-  flyToTrigger?: number;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (flyToTrigger !== undefined && position && Array.isArray(position)) {
-      map.flyTo(position, zoom, { duration: 1.0 });
-    }
-  }, [flyToTrigger, position, zoom, map]);
-
   return null;
 }
 
@@ -56,10 +37,14 @@ interface FlightMapProps {
   debug?: boolean;
   livePosition?: LatLngExpression | null;
   startPosition?: LatLngExpression | null;
-  flyToTrigger?: number;
-  fitToTrace?: boolean;
 }
 
+/**
+ * Composant purement présentationnel gérant l'affichage Leaflet.
+ * Reçoit en props les données traitées (points, centre, zoom).
+ * Ne gère plus le fitToTrace ni flyToTrigger pour recentrage
+ * car cela est piloté de façon contrôlée en amont.
+ */
 const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   trace = [],
   markerIcon = null,
@@ -72,8 +57,6 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   debug = process.env.NODE_ENV === "development",
   livePosition = null,
   startPosition = null,
-  flyToTrigger,
-  fitToTrace = false,
 }, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -83,34 +66,19 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  const [autoCenter, setAutoCenter] = useState<[number, number] | null>(null);
-  const [autoZoom, setAutoZoom] = useState<number>(zoom);
+  // Computed center and zoom driven by props center and zoom passed from parent
+  // No internal flyTo or fitToTrace to keep map controlled externally
 
-  useEffect(() => {
-    if (fitToTrace && validTrace.length > 0) {
-      const timer = setTimeout(() => {
-        const fit = getFitForTrace(validTrace);
-        setAutoCenter(fit.center);
-        setAutoZoom(fit.zoom);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [fitToTrace, validTrace]);
-
-  const computedCenter: [number, number] =
-    (fitToTrace && autoCenter)
-      ? autoCenter
-      : (center ?? (hasTrace
-          ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
-          : [48.8584, 2.2945]));
-
-  const computedZoom = fitToTrace ? autoZoom : zoom;
+  const computedCenter: [number, number] = center ?? 
+    (hasTrace ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number]) : [48.8584, 2.2945]);
 
   return (
     <MapContainer
-      ref={mapRef}
+      ref={(mapInstance) => {
+        mapRef.current = mapInstance;
+      }}
       center={computedCenter}
-      zoom={computedZoom}
+      zoom={zoom}
       scrollWheelZoom
       style={style}
       className={`flight-map ${className}`}
@@ -127,18 +95,17 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       {validTrace.length > 1 && (
         <>
           <Polyline positions={validTrace} pathOptions={polylineOptions} />
-          {showMarkers &&
-            validTrace.map((pt, i) => (
-              <CircleMarker
-                key={`circle-${i}`}
-                center={pt}
-                radius={4}
-                fillColor="#1976d2"
-                color="#fff"
-                weight={1}
-                fillOpacity={0.9}
-              />
-            ))}
+          {showMarkers && validTrace.map((pt, i) => (
+            <CircleMarker
+              key={`circle-${i}`}
+              center={pt}
+              radius={4}
+              fillColor="#1976d2"
+              color="#fff"
+              weight={1}
+              fillOpacity={0.9}
+            />
+          ))}
         </>
       )}
 
@@ -157,12 +124,6 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       {markerIcon && hasTrace && !livePosition && (
         <Marker position={validTrace[validTrace.length - 1]} icon={markerIcon} />
       )}
-
-      <FlyToPosition
-        position={livePosition ?? startPosition}
-        zoom={computedZoom}
-        flyToTrigger={flyToTrigger}
-      />
     </MapContainer>
   );
 });

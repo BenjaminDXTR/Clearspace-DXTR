@@ -9,7 +9,6 @@ backend
     state.js
     utils.js
   history
-    history-2025-09-27_to_2025-10-03.json
     history-2025-09-28_to_2025-10-04.json
   middleware
     errorHandler.js
@@ -20,6 +19,7 @@ backend
     index.js
   services
     anchorService.js
+    blockchainService.js
   utils
     logger.js
   websocket
@@ -36,6 +36,28 @@ backend
   package.json
   server.js
   simulation.js
+Clearspace
+  infosCS
+    SMDR2_1_DXTR
+      SMDR2_1_CEGELEC_1.conf
+      SMDR2_1_CEGELEC_2.conf
+      SMDR2_1_CEGELEC_3.conf
+      SMDR2_1_DXTR.conf
+      SMDR2_1_LITIS.conf
+    SMDR2_1_DXTR.zip
+  apiInfos
+  architecture(1).png
+  attendus(1).docx
+  Cahier des charges système Clearspace V5.docx
+  clearspace.pptx
+  info.json
+  infoplus
+  infos
+  Insomnia_2025-06-16.yaml
+  invite.ics
+  package-lock.json
+  Partie 1.3.ics
+  Spécification des Interfaces Clearspace v8.docx
 frontend
   public
     favicon.ico
@@ -92,6 +114,7 @@ frontend
       fieldConfig.ts
       format.ts
       icons.ts
+      mapFit.ts
     App.css
     App.tsx
     config.ts
@@ -109,6 +132,7 @@ arborescence.txt
 arborescences.txt
 env.exemple
 env.prod
+envBureau
 notePlan.txt
 package-lock.json
 README.md

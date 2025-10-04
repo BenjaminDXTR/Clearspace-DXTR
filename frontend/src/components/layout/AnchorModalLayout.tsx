@@ -1,3 +1,5 @@
+// src/components/layout/AnchorModalLayout.tsx
+
 import {
   useEffect,
   ChangeEvent,
@@ -16,6 +18,7 @@ import {
 } from "../../utils/coords";
 import { config } from "../../config";
 import "./AnchorModalLayout.css";
+import useFlightMapData from "../../hooks/useFlightMapData";
 
 interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
@@ -47,7 +50,6 @@ export default function AnchorModalLayout({
   }, [debug]);
 
   const modalContentRef = useRef<HTMLDivElement>(null);
-  const mapDivRef = useRef<HTMLElement | null>(null);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -74,8 +76,11 @@ export default function AnchorModalLayout({
     return null;
   }
 
-  const fullTrace = getFlightTrace(anchorModal.flight);
-  const trace = stripTimestampFromTrace(fullTrace);
+  // Utilisation du hook métier pour gestion trace, centre et zoom
+  const { points: trace, center, zoom } = useFlightMapData(
+    anchorModal.flight,
+    0 // Pas de flyToTrigger dynamique ici
+  );
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
   const disableValidation = isZipping || !hasValidTrace;
 
@@ -126,12 +131,11 @@ export default function AnchorModalLayout({
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>
             <FlightMap
-              key={anchorModal.flight.id + "-" + trace.length}
-              ref={mapDivRef}
               trace={trace}
               markerIcon={historyIcon}
               showMarkers
-              fitToTrace
+              center={center}
+              zoom={zoom}
               className="anchor-modal-map modal-map-capture"
             />
             {!hasValidTrace && (
