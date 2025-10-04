@@ -14,6 +14,8 @@ interface FlyToPositionProps {
   duration?: number;
   /** Logs console debug (par défaut désactivé en prod) */
   debug?: boolean;
+  /** Trigger pour savoir quand déclencher le flyTo */
+  flyToTrigger?: number;
 }
 
 export default function FlyToPosition({
@@ -21,6 +23,7 @@ export default function FlyToPosition({
   zoom = 13,
   duration = 1.5,
   debug = config.debug || config.environment === "development",
+  flyToTrigger,
 }: FlyToPositionProps) {
   const map = useMap();
 
@@ -41,7 +44,7 @@ export default function FlyToPosition({
     } else {
       dlog(`Position invalide ou nulle :`, position);
     }
-  }, [position, zoom, duration, map, dlog]);
+  }, [position, zoom, duration, map, dlog, flyToTrigger]);
 
   return null;
 }
