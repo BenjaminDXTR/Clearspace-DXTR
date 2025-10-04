@@ -1,9 +1,11 @@
+// src/hooks/useLiveTraces.ts
 import { useState, useEffect, useCallback } from "react";
 import type { Flight, LatLng, LatLngTimestamp } from "../types/models";
 import { config } from "../config";
 import { isEqual } from "lodash";
+import useDebugLogger from "./useDebugLogger";
 
-interface UseLivetraceOptions {
+interface UseLiveTracesOptions {
   onUpdate?: (flight: Flight, trace: LatLng[] | LatLngTimestamp[]) => void;
   onUserError?: (message: string) => void;
   debug?: boolean;
@@ -16,14 +18,12 @@ interface DroneTraceState {
 
 export default function useLiveTraces(
   drones: Flight[],
-  { onUpdate, onUserError, debug = config.debug || config.environment === "development" }: UseLivetraceOptions = {}
+  { onUpdate, onUserError, debug = config.debug || config.environment === "development" }: UseLiveTracesOptions = {}
 ) {
   const [liveTraces, setLiveTraces] = useState<Record<string, DroneTraceState>>({});
 
-  // Log helper
-  const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[useLiveTraces]", ...args);
-  }, [debug]);
+  // Log helper with centralized debug logging
+  const dlog = useDebugLogger(debug, "useLiveTraces");
 
   useEffect(() => {
     if (drones.length && debug) {
@@ -66,7 +66,7 @@ export default function useLiveTraces(
       dlog(msg);
       if (onUserError) onUserError(msg);
     }
-  }, [drones, onUpdate, onUserError, dlog]);
+  }, [drones, onUpdate, onUserError, dlog, debug]);
 
   return { liveTraces };
 }

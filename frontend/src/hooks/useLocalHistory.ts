@@ -1,7 +1,8 @@
+// src/hooks/useLocalHistory.ts
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Flight } from "../types/models";
 import { PER_PAGE } from "../utils/constants";
-
+import useDebugLogger from "./useDebugLogger";
 
 interface UseLocalHistoryOptions {
   fetchHistory: (filename: string) => Promise<Flight[]>;
@@ -10,7 +11,6 @@ interface UseLocalHistoryOptions {
   debug?: boolean;
   onUserError?: (msg: string) => void;
 }
-
 
 interface UseLocalHistoryResult {
   currentHistoryFile: string | null;
@@ -24,7 +24,6 @@ interface UseLocalHistoryResult {
   error: string | null;
   loading: boolean;
 }
-
 
 function usePrevious<T>(value: T): T | undefined {
   const ref = useRef<T>();
@@ -55,13 +54,10 @@ export default function useLocalHistory({
   const [loading, setLoading] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
-
   const prevHistoryFileRef = useRef<string | null>(null);
   const prevRefreshTrigger = usePrevious(refreshTrigger);
 
-
-  const log = (...args: any[]) => debug && console.log("[useLocalHistory]", ...args);
-
+  const log = useDebugLogger(debug, "useLocalHistory");
 
   // Chargement du fichier historique à la sélection et mise à jour, ou à refreshCounter change
   useEffect(() => {
@@ -77,25 +73,21 @@ export default function useLocalHistory({
       return;
     }
 
-
     if (prevHistoryFileRef.current === currentHistoryFile && refreshCounter === 0) {
       log(`Same currentHistoryFile ${currentHistoryFile}, no refresh, skip fetch`);
       return;
     }
 
-
     prevHistoryFileRef.current = currentHistoryFile;
 
-
     console.log(`[useLocalHistory] Début fetch historique fichier: ${currentHistoryFile}`);
-
 
     (async () => {
       try {
         setLoading(true);
         log(`Fetching history file: ${currentHistoryFile}`);
         // Utilisation du fetch avec cache-buster
-        const flights = await fetchHistory(`${currentHistoryFile}?t=${Date.now()}`);
+        const flights = await fetchHistoryWithCacheBuster(fetchHistory, currentHistoryFile);
         console.log(`[useLocalHistory] Données reçues (${flights.length} vols) pour fichier ${currentHistoryFile}`);
         // Forcer nouvelle référence pour React re-render
         setLocalHistory([...flights]);
@@ -113,8 +105,7 @@ export default function useLocalHistory({
         setLoading(false);
       }
     })();
-  }, [currentHistoryFile, fetchHistory, onUserError, refreshCounter, debug]);
-
+  }, [currentHistoryFile, fetchHistory, onUserError, refreshCounter, debug, log]);
 
   // Rafraîchissement forcé si backend notifie modification du fichier courant
   useEffect(() => {
@@ -127,7 +118,6 @@ export default function useLocalHistory({
       setRefreshCounter((v) => v + 1);
     }
   }, [refreshTrigger, currentHistoryFile, prevRefreshTrigger]);
-
 
   // Mise à jour automatique du fichier courant vers le dernier fichier disponible
   useEffect(() => {
@@ -146,19 +136,16 @@ export default function useLocalHistory({
         setCurrentHistoryFile(latest);
       }
     }
-  }, [historyFiles, currentHistoryFile]);
-
+  }, [historyFiles, currentHistoryFile, log]);
 
   const setLocalHistoryManual = useCallback((flights: Flight[]) => {
     setLocalHistory([...flights]); // Forcer nouvelle référence
     setLocalPage(1);
     log(`Manually set localHistory with ${flights.length} flights`);
-  }, []);
-
+  }, [log]);
 
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)), [localHistory]);
   const localPageData = useMemo(() => localHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [localHistory, localPage]);
-
 
   return {
     currentHistoryFile,

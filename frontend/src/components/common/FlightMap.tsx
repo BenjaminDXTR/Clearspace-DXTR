@@ -2,16 +2,13 @@ import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties, useC
 import {
   MapContainer,
   TileLayer,
-  Polyline,
-  Marker,
-  CircleMarker,
   useMap,
-  Popup,
 } from "react-leaflet";
-import L, { Icon, Map as LeafletMap, LatLngExpression } from "leaflet";
+import L, { Icon, Map as LeafletMap, LatLngExpression, LatLngLiteral, LatLngTuple } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isLatLng } from "../../utils/coords";
-import { droneIcon, historyIcon } from "../../utils/icons";
+import FlightMarkers from "./FlightMarkers";
+import FlyToPosition from "./FlyToPosition";
 import "./FlightMap.css";
 
 function InvalidateMapSize() {
@@ -23,6 +20,13 @@ function InvalidateMapSize() {
   return null;
 }
 
+// Fonction utilitaire de conversion
+function toLatLngTuple(pos: LatLngLiteral | LatLngTuple | null | undefined): LatLngTuple | null {
+  if (!pos) return null;
+  if (Array.isArray(pos)) return pos as LatLngTuple;
+  return [pos.lat, pos.lng];
+}
+
 interface FlightMapProps {
   trace?: LatLngExpression[];
   markerIcon?: Icon | null;
@@ -32,25 +36,15 @@ interface FlightMapProps {
   showMarkers?: boolean;
   center?: [number, number] | null;
   polylineOptions?: L.PathOptions;
+  circleMarkerRadius?: number;
+  circleMarkerFillColor?: string;
+  circleMarkerColor?: string;
+  flyToDurationSec?: number;
   debug?: boolean;
-  livePosition?: LatLngExpression | null;
-  startPosition?: LatLngExpression | null;
-}
-
-/**
- * Composant interne pour déplacer automatiquement la carte
- * dès que center ou zoom change, en utilisant map.flyTo().
- */
-function MapAutoFlyTo({ center, zoom }: { center: [number, number] | null; zoom: number }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (center) {
-      map.flyTo(center, zoom, { duration: 1.0 });
-    }
-  }, [center, zoom, map]);
-
-  return null;
+  livePosition?: LatLngLiteral | LatLngTuple | null;
+  startPosition?: LatLngLiteral | LatLngTuple | null;
+  flyToTrigger?: number;
+  fitToTrace?: boolean;
 }
 
 const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
@@ -62,6 +56,10 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   showMarkers = true,
   center = null,
   polylineOptions = { color: "#c00", weight: 2 },
+  circleMarkerRadius = 4,
+  circleMarkerFillColor = "#1976d2",
+  circleMarkerColor = "#fff",
+  flyToDurationSec = 1.0,
   debug = process.env.NODE_ENV === "development",
   livePosition = null,
   startPosition = null,
@@ -106,38 +104,24 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
         attribution="© OpenStreetMap contributors"
       />
 
-      {validTrace.length > 1 && (
-        <>
-          <Polyline positions={validTrace} pathOptions={polylineOptions} />
-          {showMarkers && validTrace.map((pt, i) => (
-            <CircleMarker
-              key={`circle-${i}`}
-              center={pt}
-              radius={4}
-              fillColor="#1976d2"
-              color="#fff"
-              weight={1}
-              fillOpacity={0.9}
-            />
-          ))}
-        </>
-      )}
+      <FlightMarkers
+        trace={validTrace}
+        showMarkers={showMarkers}
+        markerIcon={markerIcon}
+        startPosition={startPosition}
+        livePosition={livePosition}
+        polylineOptions={polylineOptions}
+        circleMarkerRadius={circleMarkerRadius}
+        circleMarkerFillColor={circleMarkerFillColor}
+        circleMarkerColor={circleMarkerColor}
+      />
 
-      {startPosition && (
-        <Marker position={startPosition} icon={historyIcon}>
-          <Popup>Position de départ</Popup>
-        </Marker>
-      )}
-
-      {livePosition && (
-        <Marker position={livePosition} icon={droneIcon}>
-          <Popup>Position actuelle</Popup>
-        </Marker>
-      )}
-
-      {markerIcon && hasTrace && !livePosition && (
-        <Marker position={validTrace[validTrace.length - 1]} icon={markerIcon} />
-      )}
+      <FlyToPosition
+        position={toLatLngTuple(livePosition ?? startPosition)}
+        zoom={zoom}
+        flyToTrigger={flyToTrigger}
+        duration={flyToDurationSec}
+      />
     </MapContainer>
   );
 });

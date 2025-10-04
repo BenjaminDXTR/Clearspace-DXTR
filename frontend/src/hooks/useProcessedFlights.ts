@@ -1,6 +1,8 @@
+// src/hooks/useProcessedFlights.ts
 import { useEffect, useMemo, useCallback, useRef } from "react";
 import type { Flight } from "../types/models";
 import useLocalHistory from "./useLocalHistory";
+import useDebugLogger from "./useDebugLogger";
 
 interface UseProcessedFlightsOptions {
     debug?: boolean;
@@ -35,11 +37,8 @@ export function useProcessedFlights(
 ): UseProcessedFlightsResult {
     const { debug = false, onUserError } = options;
 
-    const debugLog = useCallback((...args: unknown[]) => {
-        if (debug) {
-            console.log("[useProcessedFlights]", ...args);
-        }
-    }, [debug]);
+    // Utilisation de useDebugLogger pour debug conditionnel
+    const debugLog = useDebugLogger(debug, "useProcessedFlights");
 
     const {
         setLocalHistory,
