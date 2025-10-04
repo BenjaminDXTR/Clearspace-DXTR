@@ -74,7 +74,7 @@ export default function TablesLive({
           </thead>
           <tbody>
             {liveDrones.map((item, idx) => {
-              const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
+              const anchored = typeof isAnchored === "function" ? isAnchored(item.id ?? "", item.created_time ?? "") : false;
               return (
                 <tr
                   key={genKey(item, idx)}

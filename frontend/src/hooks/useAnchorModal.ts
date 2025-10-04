@@ -3,7 +3,6 @@ import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/model
 import { buildAnchorData, generateAnchorZip, sendAnchorToBackend } from "../services/anchorService";
 import html2canvas from "html2canvas";
 import { config } from "../config";
-import { getFitForTrace } from "../utils/mapFit";
 
 interface UseAnchorModalResult {
   anchorModal: AnchorModal | null;
@@ -16,8 +15,6 @@ interface UseAnchorModalResult {
   openModal: (flight: Flight, trace?: LatLng[]) => void;
   anchorDataPreview: ReturnType<typeof buildAnchorData> | null;
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
-  mapCenter: [number, number] | null;
-  mapZoom: number | null;
 }
 
 interface UseAnchorModalOptions {
@@ -35,8 +32,6 @@ export default function useAnchorModal({
   const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
-  const [mapZoom, setMapZoom] = useState<number | null>(null);
 
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useAnchorModal]", ...args);
@@ -53,15 +48,6 @@ export default function useAnchorModal({
     traceRef.current = trace;
     setAnchorModal({ flight });
     setAnchorDescription("");
-    const gpsTrace = trace.map(([lat, lng]) => [lat, lng] as [number, number]);
-    if (gpsTrace.length > 0) {
-      const fit = getFitForTrace(gpsTrace, 15);
-      setMapCenter(fit.center);
-      setMapZoom(fit.zoom);
-    } else {
-      setMapCenter(null);
-      setMapZoom(15);
-    }
     if (handleSelect) handleSelect({ ...flight, _type: "local" });
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
     setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
@@ -145,7 +131,5 @@ export default function useAnchorModal({
     openModal,
     anchorDataPreview,
     mapDivRef,
-    mapCenter,
-    mapZoom,
   };
 }

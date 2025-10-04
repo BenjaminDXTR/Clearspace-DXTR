@@ -1,4 +1,3 @@
-// src/components/common/FlyToPosition.tsx
 import { useEffect, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
@@ -32,19 +31,25 @@ export default function FlyToPosition({
   }, [debug]);
 
   useEffect(() => {
-    if (isLatLng(position)) {
-      dlog(`Animation vers position: (${position![0]}, ${position![1]})`);
-      
-      // Différer le flyTo pour s'assurer que la carte est bien ready
-      const timer = setTimeout(() => {
-        map.flyTo(position!, zoom, { duration });
-      }, 50); // 50ms retarde assez sans effet visible
-      
-      return () => clearTimeout(timer);
-    } else {
-      dlog(`Position invalide ou nulle :`, position);
+    dlog(`useEffect triggered with flyToTrigger=${flyToTrigger}`);
+
+    if (flyToTrigger === undefined) {
+      dlog("flyToTrigger is undefined, skipping flyTo animation");
+      return;
     }
-  }, [position, zoom, duration, map, dlog, flyToTrigger]);
+
+    if (!isLatLng(position)) {
+      dlog("Invalid position, skipping flyTo animation", position);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      map.flyTo(position!, zoom, { duration });
+      dlog("map.flyTo called");
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [flyToTrigger]); // <- uniquement flyToTrigger comme dépendance
 
   return null;
 }

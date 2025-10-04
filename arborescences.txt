@@ -70,6 +70,7 @@ frontend
         ErrorPanel.tsx
         FlightMap.css
         FlightMap.tsx
+        FlightMarkers.tsx
         FlyToPosition.tsx
         HistoryFileSelector.tsx
         Pagination.css
@@ -97,7 +98,9 @@ frontend
     hooks
       useAnchorModal.ts
       useAppLogic.tsx
+      useDebugLogger.ts
       useErrorManager.ts
+      useFlightMapData.ts
       useLiveTraces.ts
       useLocalHistory.ts
       useProcessedFlights.ts

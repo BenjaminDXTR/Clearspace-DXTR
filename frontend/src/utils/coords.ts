@@ -55,19 +55,23 @@ export function parseTracePoints(pointsStr: string): LatLngTimestamp[] {
  */
 export function getFlightTrace(flight?: Flight | null): LatLngTimestamp[] {
   if (!flight) {
-    if (DEBUG) dlog("[getFlightTrace] Vol null/undefined");
+    dlog("[getFlightTrace] Vol null/undefined");
     return [];
   }
 
   if (Array.isArray(flight.trace) && flight.trace.every(isLatLngOrTimestamp)) {
-    return flight.trace as LatLngTimestamp[];
+    const validPoints = flight.trace.filter(isLatLngOrTimestamp);
+    if (validPoints.length !== flight.trace.length) {
+      dlog("[getFlightTrace] Certains points de trace sont invalides et seront ignorés");
+    }
+    return validPoints as LatLngTimestamp[];
   }
 
   if (typeof flight.trace === "string") {
     return parseTracePoints(flight.trace);
   }
 
-  if (DEBUG) dlog("[getFlightTrace] Aucune trace valide trouvée");
+  dlog("[getFlightTrace] Aucune trace valide trouvée");
   return [];
 }
 
@@ -75,9 +79,28 @@ export function getFlightTrace(flight?: Flight | null): LatLngTimestamp[] {
  * Extrait lat/lng classique d’une trace timestamp pour affichage map
  */
 export function stripTimestampFromTrace(trace: LatLngTimestamp[]): LatLng[] {
-  return trace.map(([lat, lng]) => [lat, lng]);
+  if (!Array.isArray(trace)) {
+    dlog("[stripTimestampFromTrace] Trace invalide non tableau");
+    return [];
+  }
+
+  const cleanTrace = trace.filter(
+    (pt): pt is LatLngTimestamp =>
+      Array.isArray(pt) &&
+      pt.length === 3 &&
+      pt.every((v) => typeof v === "number")
+  );
+
+  if (cleanTrace.length !== trace.length) {
+    dlog(`[stripTimestampFromTrace] Points invalides filtrés: ${trace.length - cleanTrace.length}`);
+  }
+
+  return cleanTrace.map(([lat, lng]) => [lat, lng]);
 }
 
+/**
+ * Calcule la distance haversine entre deux points GPS (en mètres)
+ */
 export function haversineDistance(
   lat1: number,
   lon1: number,

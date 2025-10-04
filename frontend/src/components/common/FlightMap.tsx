@@ -11,10 +11,11 @@ import FlightMarkers from "./FlightMarkers";
 import FlyToPosition from "./FlyToPosition";
 import "./FlightMap.css";
 
+/** Hook qui force Leaflet à recalculer la taille de la carte */
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 300);
+    const timer = setTimeout(() => map.invalidateSize(), 100);
     return () => clearTimeout(timer);
   }, [map]);
   return null;
@@ -44,7 +45,6 @@ interface FlightMapProps {
   livePosition?: LatLngLiteral | LatLngTuple | null;
   startPosition?: LatLngLiteral | LatLngTuple | null;
   flyToTrigger?: number;
-  fitToTrace?: boolean;
 }
 
 const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
@@ -63,31 +63,39 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   debug = process.env.NODE_ENV === "development",
   livePosition = null,
   startPosition = null,
+  flyToTrigger,
 }, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) {
+      console.log("[FlightMap]", ...args);
+    }
+  }, [debug]);
+
+  // Expose via ref the Leaflet container div for capture
   useImperativeHandle(ref, () => containerRef.current as HTMLElement, []);
 
+  // Filtrage des points valides
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[FlightMap]", ...args);
-  }, [debug]);
+  // Centre initial : props center > milieu trace > Paris par défaut
+  const computedCenter: [number, number] =
+    center ??
+    (hasTrace
+      ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
+      : [48.8584, 2.2945]);
 
   useEffect(() => {
-    dlog("Received center:", center, "zoom:", zoom);
-  }, [center, zoom, dlog]);
-
-  const computedCenter: [number, number] = center ??
-    (hasTrace ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number]) : [48.8584, 2.2945]);
+    dlog(`flyToTrigger received: ${flyToTrigger}`);
+    dlog(`Position passed to FlyToPosition: ${JSON.stringify(toLatLngTuple(livePosition ?? startPosition))}`);
+  }, [flyToTrigger, livePosition, startPosition, dlog]);
 
   return (
     <MapContainer
-      ref={(mapInstance) => {
-        mapRef.current = mapInstance;
-      }}
+      ref={mapRef}
       center={computedCenter}
       zoom={zoom}
       scrollWheelZoom
@@ -97,7 +105,6 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       aria-label="Carte du tracé de vol"
     >
       <InvalidateMapSize />
-      <MapAutoFlyTo center={computedCenter} zoom={zoom} />
       <div ref={containerRef} className="leaflet-container" />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -105,6 +112,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       />
 
       <FlightMarkers
+        key={`flight-markers-${validTrace.length}`} // clé ajoutée pour forcer re-render quand trace change
         trace={validTrace}
         showMarkers={showMarkers}
         markerIcon={markerIcon}
@@ -121,6 +129,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
         zoom={zoom}
         flyToTrigger={flyToTrigger}
         duration={flyToDurationSec}
+        debug={debug}
       />
     </MapContainer>
   );

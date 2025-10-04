@@ -8,13 +8,13 @@ import { useCallback } from "react";
  * @returns Fonction d'écriture dans la console si activée.
  */
 export default function useDebugLogger(enabled: boolean, namespace?: string) {
-    return useCallback((...args: any[]) => {
-        if (enabled) {
-            if (namespace) {
-                console.log(`[${namespace}]`, ...args);
-            } else {
-                console.log(...args);
-            }
-        }
-    }, [enabled, namespace]);
+  return useCallback((...args: any[]) => {
+    if (enabled) {
+      if (namespace) {
+        console.log(`[${namespace}]`, ...args);
+      } else {
+        console.log(...args);
+      }
+    }
+  }, [enabled, namespace]);
 }

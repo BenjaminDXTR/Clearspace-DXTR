@@ -25,15 +25,17 @@ function AppContent() {
           <div className="map-container">
             <MapLayout
               selected={logic.selected}
-              exportObj={logic.exportSelectedAsAnchorJson}
-              flyToTrigger={logic.flyToTrigger}
+              selectedTracePoints={logic.selectedTracePoints}
+              selectedTraceRaw={logic.selectedTraceRaw}
+              exportObj={logic.exportSelectedAsJson}
+              flyToTrigger={logic.flyTrigger}
             />
           </div>
           <div className="info-details">
             <DetailsPanel
               selected={logic.selected}
               detailFields={logic.detailFields}
-              exportObj={logic.exportSelectedAsAnchorJson}
+              exportObj={logic.exportSelectedAsJson}
               selectedTraceRaw={logic.selectedTraceRaw}
               selectedTracePoints={logic.selectedTracePoints}
               debug={logic.debug}
@@ -55,7 +57,7 @@ function AppContent() {
           <TablesLive
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
-            isAnchored={logic.isAnchoredFn}
+            isAnchored={logic.isAnchored}
             renderAnchorCell={logic.renderAnchorCell}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
@@ -75,7 +77,7 @@ function AppContent() {
             localMaxPage={logic.localMaxPage}
             localPageData={logic.localPageData}
             LOCAL_FIELDS={LOCAL_FIELDS}
-            isAnchored={logic.isAnchoredFn}
+            isAnchored={logic.isAnchored}
             renderAnchorCell={logic.renderAnchorCell}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
@@ -91,11 +93,9 @@ function AppContent() {
           setAnchorDescription={logic.setAnchorDescription}
           getFlightTrace={logic.getTraceForFlight}
           isZipping={logic.isZipping}
-          onValidate={logic.handleAnchorValidate}
-          onCancel={logic.handleAnchorCancel}
-        >
-          {/* Children content if any */}
-        </AnchorModalLayout>
+          onValidate={logic.onValidate}
+          onCancel={logic.onCancel}
+        />
       )}
     </div>
   );

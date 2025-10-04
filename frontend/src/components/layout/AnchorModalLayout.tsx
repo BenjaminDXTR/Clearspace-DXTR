@@ -1,5 +1,3 @@
-// src/components/layout/AnchorModalLayout.tsx
-
 import {
   useEffect,
   ChangeEvent,
@@ -50,7 +48,6 @@ export default function AnchorModalLayout({
   }, [debug]);
 
   const modalContentRef = useRef<HTMLDivElement>(null);
-
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -76,11 +73,8 @@ export default function AnchorModalLayout({
     return null;
   }
 
-  // Utilisation du hook métier pour gestion trace, centre et zoom
-  const { points: trace, center, zoom } = useFlightMapData(
-    anchorModal.flight,
-    0 // Pas de flyToTrigger dynamique ici
-  );
+  // Utilisation du hook useFlightMapData avec flyToTrigger=1 pour forcer les calculs
+  const { points: trace, center, zoom } = useFlightMapData(anchorModal.flight, 1);
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
   const disableValidation = isZipping || !hasValidTrace;
 
@@ -93,6 +87,15 @@ export default function AnchorModalLayout({
     }
   }, [anchorModal?.flight, dlog]);
 
+  if (!center) {
+    dlog("[AnchorModalLayout] Centre non défini encore, affichage d’un chargement");
+    return (
+      <div className="anchor-modal-overlay" role="alert" aria-live="polite">
+        Chargement de la carte...
+      </div>
+    );
+  }
+
   return (
     <div
       className="anchor-modal-overlay"
@@ -103,7 +106,6 @@ export default function AnchorModalLayout({
     >
       <div className="anchor-modal-content" tabIndex={-1} ref={modalContentRef}>
         <h3 id="anchorModalTitle">Préparation de l&apos;ancrage</h3>
-
         <div className="anchor-modal-scrollable">
           <div className="left-panel">
             <pre className="anchor-modal-json">
@@ -127,7 +129,6 @@ export default function AnchorModalLayout({
               </div>
             )}
           </div>
-
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>
             <FlightMap
@@ -137,6 +138,7 @@ export default function AnchorModalLayout({
               center={center}
               zoom={zoom}
               className="anchor-modal-map modal-map-capture"
+              flyToTrigger={1} // flyTo unique à l’ouverture
             />
             {!hasValidTrace && (
               <div className="anchor-modal-warning" role="alert">
@@ -148,9 +150,7 @@ export default function AnchorModalLayout({
             </div>
           </div>
         </div>
-
         {children}
-
         <div className="anchor-modal-actions">
           <button
             disabled={disableValidation}

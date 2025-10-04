@@ -82,7 +82,9 @@ export default function TablesLocal({
             </thead>
             <tbody>
               {archivedDrones.map((item, idx) => {
-                const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
+                // Sécurité: vérifier si isAnchored est bien une fonction avant appel
+                const anchored = typeof isAnchored === "function" ? isAnchored(item.id ?? "", item.created_time ?? "") : false;
+
                 return (
                   <tr
                     key={genKey(item, idx)}
