@@ -1,3 +1,4 @@
+// src/hooks/useAppLogic.ts
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useDrones } from "../contexts/DronesContext";
 import { useProcessedFlights } from "./useProcessedFlights";
@@ -9,13 +10,13 @@ import { config } from "../config";
 import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "../types/models";
 import { buildAnchorData } from "../services/anchorService";
 import { LIVE_DETAILS } from "../utils/constants";
+import useDebugLogger from "./useDebugLogger";
 
 export default function useAppLogic() {
   const debug = config.debug || config.environment === "development";
 
-  const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[useAppLogic]", ...args);
-  }, [debug]);
+  // Utilisation du hook useDebugLogger pour les logs conditionnels
+  const dlog = useDebugLogger(debug, "useAppLogic");
 
   const { drones: rawLiveDrones, historyFiles, fetchHistory, error: dronesError, refreshFilename } = useDrones();
 
@@ -262,3 +263,4 @@ export default function useAppLogic() {
     renderAnchorCell,
   };
 }
+
