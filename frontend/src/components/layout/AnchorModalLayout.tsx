@@ -17,8 +17,7 @@ import {
 } from "../../utils/coords";
 import { config } from "../../config";
 import "./AnchorModalLayout.css";
-import useFlightMapData from "../../hooks/useFlightMapData";
-
+import useFlightData from "../../hooks/useFlightMapData";
 
 interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
@@ -31,19 +30,12 @@ interface AnchorModalLayoutProps {
   anchorDataPreview: unknown | null;
   debug?: boolean;
   children?: ReactNode;
-  mapDivRef: React.MutableRefObject<HTMLDivElement | null>;
+  mapDivRef: React.RefObject<HTMLDivElement>;
 }
 
-
-function getRefCurrent<T>(ref: React.Ref<T>): T | null {
-  if (!ref) return null;
-  if (typeof ref === "function") {
-    // Callback ref, non accessible directement
-    return null;
-  }
+function getRefCurrent<T>(ref: React.RefObject<T>): T | null {
   return ref.current ?? null;
 }
-
 
 const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   anchorModal,
@@ -59,81 +51,75 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   mapDivRef,
 }, ref) => {
   const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[AnchorModalLayout]", ...args);
+    if (debug) console.log("[AnchorModal]", ...args);
   }, [debug]);
-
 
   const modalContentRef = useRef<HTMLDivElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Prise en compte du fallback center et zoom si manquants
+  const { points: trace, center: rawCenter, zoom: rawZoom } = useFlightData(anchorModal?.flight ?? null, 1);
+  const center = rawCenter ?? [48.8584, 2.2945]; // fallback Paris
+  const zoom = rawZoom ?? 13;
 
-  const { points: trace, center, zoom } = useFlightMapData(anchorModal?.flight ?? null, 1);
-  dlog("[AnchorModal] useFlightMapData renvoie centre, zoom:", center, zoom);
-
+  dlog("useFlightData points and center", trace.length, center);
 
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
   const disableValidation = isZipping || !hasValidTrace;
-  dlog(`[AnchorModal] disableValidation=${disableValidation}, isZipping=${isZipping}, hasValidTrace=${hasValidTrace}`);
 
+  dlog("disableValidation:", disableValidation, "isZipping:", isZipping, "hasValidTrace:", hasValidTrace);
 
   useEffect(() => {
-    if (anchorModal?.flight?.id !== undefined) {
-      dlog(`[AnchorModal] Ouverte pour vol id=${anchorModal.flight.id}`);
+    if (anchorModal?.flight) {
+      dlog("Opening modal for flight", anchorModal.flight.id);
+      if (modalContentRef.current) {
+        modalContentRef.current.scrollTop = 0;
+        dlog("Scrolled modal to top");
+      }
     }
-    if (modalContentRef.current) {
-      modalContentRef.current.scrollTop = 0;
-      dlog("[AnchorModal] Scroll top remis à zéro");
-    }
-  }, [anchorModal?.flight, dlog]);
-
+  }, [anchorModal, dlog]);
 
   useEffect(() => {
     const current = getRefCurrent(mapDivRef);
     if (current) {
-      dlog("[AnchorModalLayout] mapDivRef.current détectée:", current);
+      dlog("mapDivRef current:", current);
     } else {
-      dlog("[AnchorModalLayout] mapDivRef.current manquante ou callback ref");
+      dlog("mapDivRef current is null or not stable");
     }
-  }, [mapDivRef, mapDivRef?.current]);
-
+  }, [mapDivRef]);
 
   if (!anchorModal?.flight) {
-    dlog("[AnchorModal] Aucun vol sélectionné → rien à afficher");
+    dlog("No flight selected, nothing to display");
     return null;
   }
 
-
   if (!center) {
-    dlog("[AnchorModalLayout] Centre non défini encore, affichage d’un chargement");
+    dlog("Center not defined, showing loading");
     return (
       <div className="anchor-modal-overlay" role="alert" aria-live="polite">
-        Chargement de la carte...
+        Chargement...
       </div>
     );
   }
 
-
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     e.stopPropagation();
     setAnchorDescription(e.target.value);
-    dlog(`[AnchorModal] Description modifiée (${e.target.value.length} caractères)`);
+    dlog("Description changed", e.target.value.length);
   };
 
-
   const handleValidate = async () => {
-    dlog("[AnchorModal] Validation déclenchée");
+    dlog("Validate clicked");
     setErrorMsg(null);
     try {
-      dlog("[AnchorModal] Appel de onValidate");
       await onValidate();
-      dlog("[AnchorModal] onValidate terminé avec succès");
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erreur inconnue";
-      dlog("[AnchorModal] Erreur lors validation:", e);
+      dlog("Validate finished without error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      dlog("Validate error:", error);
       setErrorMsg(message);
     }
   };
-
 
   return (
     <div
@@ -145,18 +131,16 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
       ref={ref}
     >
       <div className="anchor-modal-content" tabIndex={-1} ref={modalContentRef}>
-        <h3 id="anchorModalTitle">Préparation de l&apos;ancrage</h3>
+        <h3 id="anchorModalTitle">Préparation de l'ancrage</h3>
         <div className="anchor-modal-scrollable">
           <div className="left-panel">
             <pre className="anchor-modal-json">
-              {anchorDataPreview ? JSON.stringify(anchorDataPreview, null, 2) : "Aucune donnée"}
+              {anchorDataPreview ? JSON.stringify(anchorDataPreview, null, 2) : "Pas de données"}
             </pre>
             <div className="anchor-modal-section">
-              <label htmlFor="anchor-description-textarea">
-                <b>Description :</b>
-              </label>
+              <label htmlFor="anchorDescription">Description :</label>
               <textarea
-                id="anchor-description-textarea"
+                id="anchorDescription"
                 value={anchorDescription}
                 onChange={handleDescriptionChange}
                 placeholder="Ajouter une description..."
@@ -170,7 +154,7 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
             )}
           </div>
           <div className="right-panel" id="anchorModalDesc">
-            <b>Carte à ancrer :</b>
+            <div>Carte à ancrer :</div>
             <FlightMap
               ref={mapDivRef}
               trace={trace}
@@ -178,16 +162,16 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
               showMarkers
               center={center}
               zoom={zoom}
-              className="anchor-modal-map modal-map-capture"
+              className="modal-map"
               flyToTrigger={1}
             />
             {!hasValidTrace && (
               <div className="anchor-modal-warning" role="alert">
-                ⚠️ La trace est vide ou invalide, impossible de valider.
+                ⚠️ Trace vide ou invalide, impossible de valider.
               </div>
             )}
             <div className="anchor-modal-hint">
-              Déplacez et zoomez la carte ci-dessus avant de valider.
+              Déplacez et zoomez la carte avant validation.
             </div>
           </div>
         </div>
@@ -201,13 +185,13 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
           >
             {isZipping ? (
               <>
-                <span className="spinner" aria-hidden="true" /> Validation...
+                <span className="spinner" aria-hidden="true" /> Traitement...
               </>
             ) : (
-              "Valider l'ancrage"
+              "Valider"
             )}
           </button>
-          <button onClick={onCancel} aria-label="Annuler l'ancrage">
+          <button onClick={onCancel} aria-label="Annuler">
             Annuler
           </button>
         </div>
@@ -216,8 +200,6 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   );
 });
 
-
 AnchorModalLayout.displayName = "AnchorModalLayout";
-
 
 export default AnchorModalLayout;

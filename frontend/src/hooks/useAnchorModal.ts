@@ -4,7 +4,6 @@ import { buildAnchorData, generateAnchorZip, sendAnchorToBackend } from "../serv
 import html2canvas from "html2canvas";
 import { config } from "../config";
 
-
 interface UseAnchorModalResult {
   anchorModal: AnchorModal | null;
   anchorDescription: string;
@@ -18,12 +17,10 @@ interface UseAnchorModalResult {
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
 }
 
-
 interface UseAnchorModalOptions {
   handleSelect?: HandleSelectFn;
   debug?: boolean;
 }
-
 
 function getRefCurrent(ref: React.Ref<HTMLElement | null>): HTMLElement | null {
   if (!ref) return null;
@@ -33,7 +30,6 @@ function getRefCurrent(ref: React.Ref<HTMLElement | null>): HTMLElement | null {
   return ref.current ?? null;
 }
 
-
 function waitForStableRef(
   ref: React.RefObject<HTMLElement>,
   timeoutMs = 7000,
@@ -42,8 +38,6 @@ function waitForStableRef(
   return new Promise((resolve, reject) => {
     let elapsed = 0;
     let lastPresence = 0;
-
-
     const interval = 50;
     const check = () => {
       if (ref.current) {
@@ -55,18 +49,13 @@ function waitForStableRef(
       } else {
         lastPresence = 0; // Reset if ref disappears
       }
-
-
       elapsed += interval;
       if (elapsed >= timeoutMs) reject(new Error("Timeout waiting for stable ref"));
       else setTimeout(check, interval);
     };
-
-
     check();
   });
 }
-
 
 export default function useAnchorModal({
   handleSelect,
@@ -79,18 +68,15 @@ export default function useAnchorModal({
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
 
-
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
-
 
   const convertTrace = useCallback(
     (trace: LatLng[], altitude: number) =>
       trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
     []
   );
-
 
   const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
     dlog("Ouverture modal pour vol :", flight.id);
@@ -105,7 +91,6 @@ export default function useAnchorModal({
     setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
   }, [convertTrace, dlog, handleSelect]);
 
-
   useEffect(() => {
     if (!anchorModal?.flight) return;
     const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
@@ -113,7 +98,6 @@ export default function useAnchorModal({
     dlog("Mise à jour des données d’ancrage avec description:", anchorDescription);
     setAnchorDataPreview(newAnchorData);
   }, [anchorDescription, anchorModal, convertTrace, dlog]);
-
 
   const onCancel = useCallback(() => {
     dlog("Fermeture du modal");
@@ -123,7 +107,6 @@ export default function useAnchorModal({
     setAnchorDataPreview(null);
   }, [dlog]);
 
-
   const captureMap = useCallback(async (): Promise<Blob> => {
     dlog("Attente ref stable pour capture");
     await waitForStableRef(mapDivRef, 7000, 300);
@@ -131,12 +114,6 @@ export default function useAnchorModal({
     const currentRef = mapDivRef.current;
     if (!currentRef) throw new Error("Ref non disponible au moment de la capture");
     dlog("Capture du container prête", currentRef);
-    if (!currentRef) {
-      dlog("Erreur captureMap: Ref carte toujours manquante après attente");
-      throw new Error("Carte non trouvée pour la capture d'ancrage");
-    }
-    dlog("captureMap: ref carte trouvée :", currentRef);
-    dlog("Début capture html2canvas...");
     const canvas = await html2canvas(currentRef, {
       useCORS: true,
       allowTaint: true,
@@ -146,7 +123,7 @@ export default function useAnchorModal({
     } as any);
     return new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
-        (blob) => {
+        blob => {
           dlog(blob ? "Capture réalisée avec succès." : "Capture échouée.");
           blob ? resolve(blob) : reject(new Error("Impossible de capturer la carte"));
         },
@@ -156,7 +133,6 @@ export default function useAnchorModal({
     });
   }, [dlog, mapDivRef]);
 
-
   const onValidate = useCallback(async () => {
     if (!anchorModal) {
       dlog("Validation ignorée, aucun modal actif.");
@@ -165,7 +141,7 @@ export default function useAnchorModal({
     setIsZipping(true);
     dlog("Début validation pour vol id:", anchorModal.flight.id);
     try {
-      await new Promise(resolve => setTimeout(resolve, 600)); // délai pour attendre animations/rendus éventuels
+      await new Promise(resolve => setTimeout(resolve, 600));
       dlog("Lancement capture de la carte...");
       const mapImageBlob = await captureMap();
       dlog("Construction des données JSON d'ancrage...");
@@ -189,7 +165,6 @@ export default function useAnchorModal({
       setIsZipping(false);
     }
   }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, onCancel]);
-
 
   return {
     anchorModal,

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle, useState, useCallback, CSSProperties } from "react";
+import React, { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,7 +11,6 @@ import FlightMarkers from "./FlightMarkers";
 import FlyToPosition from "./FlyToPosition";
 import "./FlightMap.css";
 
-
 function InvalidateMapSize() {
   const map = useMap();
   useEffect(() => {
@@ -21,13 +20,11 @@ function InvalidateMapSize() {
   return null;
 }
 
-
 function toLatLngTuple(pos: LatLngLiteral | LatLngTuple | null | undefined): LatLngTuple | null {
   if (!pos) return null;
   if (Array.isArray(pos)) return pos as LatLngTuple;
   return [pos.lat, pos.lng];
 }
-
 
 interface FlightMapProps {
   trace?: LatLngExpression[];
@@ -48,7 +45,6 @@ interface FlightMapProps {
   flyToTrigger?: number;
 }
 
-
 const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
   trace = [],
   markerIcon = null,
@@ -68,9 +64,6 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
   flyToTrigger,
 }, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerDiv, setContainerDiv] = useState<HTMLDivElement | null>(null);
-
 
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) {
@@ -78,30 +71,18 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
     }
   }, [debug]);
 
-
-  // Met à jour containerDiv dès que containerRef change (montage)
-  useEffect(() => {
-    if (containerRef.current) {
-      setContainerDiv(containerRef.current);
-      dlog("FlightMap containerRef monté", containerRef.current);
+  useImperativeHandle(ref, () => {
+    if (mapRef.current) {
+      const container = mapRef.current.getContainer();
+      dlog("[FlightMap] Expose container ref", container);
+      return container as HTMLDivElement;
     }
-  }, [containerRef.current, dlog]);
-
-
-  // Expose la ref impérative sur containerDiv stable
-  useImperativeHandle(ref, () => containerDiv as HTMLDivElement, [containerDiv]);
-
-
-  const mountCountRef = React.useRef(0);
-  useEffect(() => {
-    mountCountRef.current++;
-    dlog(`[FlightMap] Mount count ${mountCountRef.current} - containerRef:`, containerDiv);
-  }, [containerDiv, dlog]);
-
+    dlog("[FlightMap] Ref container non définie");
+    return null as unknown as HTMLDivElement;
+  }, [mapRef.current]);
 
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
-
 
   const computedCenter: [number, number] =
     center ??
@@ -109,16 +90,10 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
       ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
       : [48.8584, 2.2945]);
 
-
   useEffect(() => {
     dlog(`flyToTrigger reçu: ${flyToTrigger}`);
     dlog(`Position passée à FlyToPosition: ${JSON.stringify(toLatLngTuple(livePosition ?? startPosition))}`);
   }, [flyToTrigger, livePosition, startPosition, dlog]);
-
-
-
-
-
 
   return (
     <MapContainer
@@ -132,12 +107,10 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
       aria-label="Carte du tracé de vol"
     >
       <InvalidateMapSize />
-      <div ref={containerRef} className="leaflet-container" />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="© OpenStreetMap contributors"
       />
-
 
       <FlightMarkers
         key={`flight-markers-${validTrace.length}`}
@@ -152,9 +125,8 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
         circleMarkerColor={circleMarkerColor}
       />
 
-
       <FlyToPosition
-        position={toLatLngTuple(livePosition ?? startPosition)}
+        position={toLatLngTuple(livePosition ?? startPosition) ?? computedCenter}
         zoom={zoom}
         flyToTrigger={flyToTrigger}
         duration={flyToDurationSec}
@@ -164,8 +136,6 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
   );
 });
 
-
 FlightMap.displayName = "FlightMap";
-
 
 export default FlightMap;
