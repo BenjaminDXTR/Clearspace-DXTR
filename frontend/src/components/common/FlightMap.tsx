@@ -1,6 +1,4 @@
-// src/components/common/FlightMap.tsx
-
-import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties } from "react";
+import { useRef, useEffect, forwardRef, useImperativeHandle, CSSProperties, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -40,11 +38,21 @@ interface FlightMapProps {
 }
 
 /**
- * Composant purement présentationnel gérant l'affichage Leaflet.
- * Reçoit en props les données traitées (points, centre, zoom).
- * Ne gère plus le fitToTrace ni flyToTrigger pour recentrage
- * car cela est piloté de façon contrôlée en amont.
+ * Composant interne pour déplacer automatiquement la carte
+ * dès que center ou zoom change, en utilisant map.flyTo().
  */
+function MapAutoFlyTo({ center, zoom }: { center: [number, number] | null; zoom: number }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, zoom, { duration: 1.0 });
+    }
+  }, [center, zoom, map]);
+
+  return null;
+}
+
 const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   trace = [],
   markerIcon = null,
@@ -66,10 +74,15 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
   const validTrace = trace.filter(isLatLng);
   const hasTrace = validTrace.length > 0;
 
-  // Computed center and zoom driven by props center and zoom passed from parent
-  // No internal flyTo or fitToTrace to keep map controlled externally
+  const dlog = useCallback((...args: unknown[]) => {
+    if (debug) console.log("[FlightMap]", ...args);
+  }, [debug]);
 
-  const computedCenter: [number, number] = center ?? 
+  useEffect(() => {
+    dlog("Received center:", center, "zoom:", zoom);
+  }, [center, zoom, dlog]);
+
+  const computedCenter: [number, number] = center ??
     (hasTrace ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number]) : [48.8584, 2.2945]);
 
   return (
@@ -86,6 +99,7 @@ const FlightMap = forwardRef<HTMLElement, FlightMapProps>(({
       aria-label="Carte du tracé de vol"
     >
       <InvalidateMapSize />
+      <MapAutoFlyTo center={computedCenter} zoom={zoom} />
       <div ref={containerRef} className="leaflet-container" />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

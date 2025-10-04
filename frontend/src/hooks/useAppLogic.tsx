@@ -14,17 +14,19 @@ export default function useAppLogic() {
   const debug = config.debug || config.environment === "development";
 
   const dlog = useCallback((...args: unknown[]) => {
-    if (debug) console.log("[useAppLogic]", ...args);
+    if (debug) {
+      console.log("[useAppLogic]", ...args);
+    }
   }, [debug]);
 
-  const { drones: rawLiveDrones, historyFiles, fetchHistory, error: dronesError, refreshFilename } = useDrones();
+  const { drones: rawDrones, historyFiles, fetchHistory, error: dronesError, refreshFilename } = useDrones();
 
   const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
 
   const onUserError = useCallback(
     (msg: string) => {
       const id = `user-error-${msg}`;
-      if (!errors.some((e) => e.id === id)) {
+      if (!errors.some(e => e.id === id)) {
         addError({
           id,
           title: "Erreur",
@@ -53,25 +55,19 @@ export default function useAppLogic() {
 
   const lastRefreshRef = useRef<string | null>(null);
 
-  // Effet pour refresh à réception notification backend mise à jour
   useEffect(() => {
-    if (
-      refreshFilename &&
-      refreshFilename === currentHistoryFile &&
-      lastRefreshRef.current !== refreshFilename
-    ) {
-      dlog(`[useAppLogic] Refresh notification for current history file ${refreshFilename}, setting currentHistoryFile`);
+    if (refreshFilename && refreshFilename === currentHistoryFile && lastRefreshRef.current !== refreshFilename) {
+      dlog(`[useAppLogic] Refresh notification received for file ${refreshFilename}, updating currentHistoryFile`);
       lastRefreshRef.current = refreshFilename;
       setCurrentHistoryFile(refreshFilename);
     }
   }, [refreshFilename, currentHistoryFile, setCurrentHistoryFile, dlog]);
 
-  // Gestion erreur historique local
   useEffect(() => {
-    if (localHistoryError && !errors.some((e) => e.id === "local-history-error")) {
+    if (localHistoryError && !errors.some(e => e.id === "local-history-error")) {
       addError({
         id: "local-history-error",
-        title: "Erreur chargement historique local",
+        title: "Erreur de chargement historique local",
         message: localHistoryError,
         severity: "error",
         dismissible: false,
@@ -80,34 +76,33 @@ export default function useAppLogic() {
     }
     if (!localHistoryError) {
       dismissError("local-history-error");
-      dlog(`[useAppLogic] Local history error cleared`);
+      dlog(`[useAppLogic] Cleared local history error`);
     }
-  }, [localHistoryError, addError, dismissError, errors, dlog]);
+  }, [localHistoryError, errors, dismissError, addError, dlog]);
 
-  // Fusion vols live et locaux (localHistory utilisé)
   const { liveFlights, localFlights } = useProcessedFlights(
-    rawLiveDrones,
+    rawDrones,
     localHistory,
     { debug, onUserError },
     fetchHistory,
-    historyFiles
+    historyFiles,
   );
 
   useEffect(() => {
-    console.log("[useAppLogic] Drones live actuellement:", liveFlights);
-    console.log("[useAppLogic] Vols locaux actuellement:", localFlights);
-  }, [liveFlights, localFlights]);
+    dlog("[useAppLogic] Live flights count:", liveFlights.length);
+    dlog("[useAppLogic] Local flights count:", localFlights.length);
+  }, [liveFlights, localFlights, dlog]);
 
   const { liveTraces } = useLiveTraces(liveFlights, { debug, onUserError });
 
   const dronesErrorRef = useRef(false);
 
   useEffect(() => {
-    dlog("[useAppLogic] dronesError change detected:", dronesError, " ref:", dronesErrorRef.current);
+    dlog("[useAppLogic] dronesError changed:", dronesError, " ref:", dronesErrorRef.current);
     if (dronesError && !dronesErrorRef.current) {
       addError({
         id: "drones-error",
-        title: "Problème de connexion au backend",
+        title: "Connexion backend échouée",
         message: dronesError,
         severity: "error",
         dismissible: false,
@@ -119,69 +114,75 @@ export default function useAppLogic() {
     }
   }, [dronesError, addError, dismissError, dlog]);
 
-  const [selected, setSelected] = useState<Flight | null>(null);
-  const [flyToTrigger, setFlyToTrigger] = useState(0);
+  const [selected, setSelected] = useState<Flight|null>(null);
+  const [flyTrigger, setFlyTrigger] = useState(0);
 
-  const handleSelect: HandleSelectFn = useCallback(
-    (flight) => {
-      if (!flight?.id) return;
-      setSelected({ ...flight });
-      setFlyToTrigger((prev) => prev + 1);
-      dlog(`[useAppLogic] Vol sélectionné id=${flight.id}`);
-    },
-    [dlog]
-  );
+  useEffect(() => {
+    if (selected) {
+      dlog(`[useAppLogic] Detected selected flight trace change`);
+      setFlyTrigger(prev => {
+        const next = prev + 1;
+        dlog(`[useAppLogic] flyTrigger incremented ${prev} -> ${next}`);
+        return next;
+      });
+    }
+  }, [selected?.trace]);
 
-  const getTraceForFlight = useCallback(
-    (flight: Flight): LatLngTimestamp[] => {
-      let trace: LatLngTimestamp[] = [];
-      if (flight.type === "live") {
-        trace = (liveTraces[flight.id]?.trace as LatLngTimestamp[]) ?? [];
-        dlog(`[useAppLogic] getTraceForFlight live id=${flight.id} avec trace points=${trace.length}`);
-      } else if (flight.type === "local") {
-        const ft = (flight as any).trace ?? [];
-        if (ft.length > 0 && ft[0].length === 3) {
-          trace = ft as LatLngTimestamp[];
-        } else if (ft.length > 0 && ft[0].length === 2) {
-          trace = ft.map(([lat, lng]: [number, number]) => [lat, lng, 0]);
-        }
-        dlog(`[useAppLogic] getTraceForFlight local id=${flight.id} avec trace points=${trace.length}`);
-      } else {
-        dlog(`[useAppLogic] getTraceForFlight vol id=${flight.id} inconnu type: ${flight.type}`);
+  const handleSelect: HandleSelectFn = useCallback((flight) => {
+    if (!flight?.id) {
+      dlog("[useAppLogic] Invalid flight selection attempt", flight);
+      return;
+    }
+    dlog(`[useAppLogic] Selecting flight id=${flight.id}`);
+    setSelected({...flight});
+    setFlyTrigger(prev => {
+      const next = prev + 1;
+      dlog(`[useAppLogic] flyTrigger incremented ${prev} -> ${next}`);
+      return next;
+    });
+  }, [dlog]);
+
+  const getTraceForFlight = useCallback((flight: Flight): LatLngTimestamp[] => {
+    let trace: LatLngTimestamp[] = [];
+    if (flight.type === "live") {
+      trace = (liveTraces[flight.id]?.trace ?? []) as LatLngTimestamp[];
+      dlog(`[useAppLogic] getTraceForFlight live id=${flight.id} points=${trace.length}`);
+    } else if (flight.type === "local") {
+      const rawTrace = (flight as any).trace ?? [];
+      if (rawTrace.length > 0 && rawTrace[0].length === 3) {
+        trace = rawTrace as LatLngTimestamp[];
+      } else if (rawTrace.length > 0 && rawTrace[0].length === 2) {
+        trace = rawTrace.map(([lat, lng]: [number, number]) => [lat, lng, 0]);
       }
-      return trace;
-    },
-    [liveTraces, dlog]
-  );
+      dlog(`[useAppLogic] getTraceForFlight local id=${flight.id} points=${trace.length}`);
+    }
+    return trace;
+  }, [liveTraces, dlog]);
 
   const {
     anchorModal,
     anchorDescription,
     isZipping,
     setAnchorDescription,
-    onValidate: handleAnchorValidate,
-    onCancel: handleAnchorCancel,
+    onValidate,
+    onCancel,
     openModal,
     anchorDataPreview,
-  } = useAnchorModal({ handleSelect, debug });
+  } = useAnchorModal({handleSelect, debug});
 
-  const exportSelectedAsAnchorJson = useCallback(() => {
+  const exportSelectedAsJson = useCallback(() => {
     if (!selected) return;
     const rawTrace = getTraceForFlight(selected);
-    const trace = rawTrace.map(([lat, lng]) => ({
-      latitude: lat,
-      longitude: lng,
-      altitude: selected.altitude ?? 0,
-    }));
-    const anchorData = buildAnchorData(selected, "Export depuis panneau", trace);
-    const blob = new Blob([JSON.stringify(anchorData, null, 2)], { type: "application/json" });
+    const trace = rawTrace.map(([lat, lng]) => ({latitude: lat, longitude: lng, altitude: selected.altitude ?? 0}));
+    const data = buildAnchorData(selected, "Export depuis panneau", trace);
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `drone_${selected.id}_${selected.created_time ?? "unknown"}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    dlog(`[useAppLogic] Export JSON vol id=${selected.id}`);
+    dlog(`[useAppLogic] Exported JSON for flight id=${selected.id}`);
   }, [selected, getTraceForFlight, dlog]);
 
   const selectedTracePoints = useMemo(() => {
@@ -198,28 +199,25 @@ export default function useAppLogic() {
     return selected.type === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
-  const isAnchoredFn = useCallback(
-    (id: string, created_time: string): boolean =>
-      localFlights.some((f) => f.id === id && f.created_time === created_time && !!f.isAnchored),
-    [localFlights]
-  );
+  const isAnchored = useCallback((id: string, created_time: string) => {
+    return localFlights.some(f => f.id === id && f.created_time === created_time && !!f.isAnchored);
+  }, [localFlights]);
 
-  const renderAnchorCell = useCallback(
-    (flight: Flight) => (
-      <button
-        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          e.stopPropagation();
-          const traceLatLngTimestamp = getTraceForFlight(flight);
-          const trace: LatLng[] = traceLatLngTimestamp.map(([lat, lng]) => [lat, lng]);
-          openModal(flight, trace);
-          dlog(`[useAppLogic] Clic Ancrer vol id=${flight.id}`);
-        }}
-      >
-        Ancrer
-      </button>
-    ),
-    [getTraceForFlight, dlog, openModal]
-  );
+  const renderAnchorCell = useCallback((flight: Flight) => (
+    <button
+      onClick={e => {
+        e.stopPropagation();
+        const trace = getTraceForFlight(flight);
+        const latLngTrace: LatLng[] = trace
+          .map(pt => pt.length >= 2 ? [pt[0], pt[1]] as LatLng : null)
+          .filter((pt): pt is LatLng => pt !== null);
+        openModal(flight, latLngTrace);
+        dlog(`[useAppLogic] Anchor button clicked for flight id=${flight.id}`);
+      }}
+    >
+      Ancrer
+    </button>
+  ), [getTraceForFlight, openModal, dlog]);
 
   return {
     debug,
@@ -241,24 +239,25 @@ export default function useAppLogic() {
     liveTraces,
     selected,
     setSelected,
-    flyToTrigger,
+    flyTrigger,
     handleSelect,
     getTraceForFlight,
     anchorModal,
     anchorDescription,
     isZipping,
     setAnchorDescription,
-    handleAnchorValidate,
-    handleAnchorCancel,
+    onValidate,
+    onCancel,
     openModal,
     anchorDataPreview,
-    exportSelectedAsAnchorJson,
+    exportSelectedAsJson,
     selectedTracePoints,
     selectedTraceRaw,
     detailFields,
     dronesError,
     localHistoryError,
-    isAnchoredFn,
+    isAnchored,
     renderAnchorCell,
   };
 }
+

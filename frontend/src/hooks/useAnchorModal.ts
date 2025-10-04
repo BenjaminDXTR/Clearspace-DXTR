@@ -1,13 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/models";
-import {
-  buildAnchorData,
-  generateAnchorZip,
-  sendAnchorToBackend,
-} from "../services/anchorService";
+import { buildAnchorData, generateAnchorZip, sendAnchorToBackend } from "../services/anchorService";
 import html2canvas from "html2canvas";
 import { config } from "../config";
-
+import { getFitForTrace } from "../utils/mapFit";
 
 interface UseAnchorModalResult {
   anchorModal: AnchorModal | null;
@@ -20,14 +16,14 @@ interface UseAnchorModalResult {
   openModal: (flight: Flight, trace?: LatLng[]) => void;
   anchorDataPreview: ReturnType<typeof buildAnchorData> | null;
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
+  mapCenter: [number, number] | null;
+  mapZoom: number | null;
 }
-
 
 interface UseAnchorModalOptions {
   handleSelect?: HandleSelectFn;
   debug?: boolean;
 }
-
 
 export default function useAnchorModal({
   handleSelect,
@@ -39,29 +35,37 @@ export default function useAnchorModal({
   const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
-
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapZoom, setMapZoom] = useState<number | null>(null);
 
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
 
-
-  const convertTrace = useCallback((trace: LatLng[], altitude: number) =>
-    trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
+  const convertTrace = useCallback(
+    (trace: LatLng[], altitude: number) =>
+      trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
     []
   );
-
 
   const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
     dlog("Ouverture modal pour vol :", flight.id);
     traceRef.current = trace;
     setAnchorModal({ flight });
     setAnchorDescription("");
+    const gpsTrace = trace.map(([lat, lng]) => [lat, lng] as [number, number]);
+    if (gpsTrace.length > 0) {
+      const fit = getFitForTrace(gpsTrace, 15);
+      setMapCenter(fit.center);
+      setMapZoom(fit.zoom);
+    } else {
+      setMapCenter(null);
+      setMapZoom(15);
+    }
+    if (handleSelect) handleSelect({ ...flight, _type: "local" });
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
     setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
-    if (handleSelect) handleSelect({ ...flight, _type: "local" });
   }, [convertTrace, dlog, handleSelect]);
-
 
   useEffect(() => {
     if (!anchorModal?.flight) return;
@@ -70,7 +74,6 @@ export default function useAnchorModal({
     setAnchorDataPreview(newAnchorData);
   }, [anchorDescription, anchorModal, convertTrace]);
 
-
   const onCancel = useCallback(() => {
     dlog("Fermeture du modal");
     setAnchorModal(null);
@@ -78,7 +81,6 @@ export default function useAnchorModal({
     traceRef.current = [];
     setAnchorDataPreview(null);
   }, [dlog]);
-
 
   const captureMap = useCallback(async (): Promise<Blob> => {
     if (!mapDivRef.current) {
@@ -102,7 +104,6 @@ export default function useAnchorModal({
     });
   }, [dlog]);
 
-
   const onValidate = useCallback(async () => {
     if (!anchorModal) return;
     setIsZipping(true);
@@ -117,7 +118,6 @@ export default function useAnchorModal({
       dlog("Création ZIP (image + positions)...");
       const zipBlob = await generateAnchorZip(mapImageBlob, traceConverted);
       dlog("Envoi des données au backend...");
-      // Envoi unique au backend - backend gère la file d'attente et la connexion blockchain
       await sendAnchorToBackend(anchorData, zipBlob);
       dlog("Ancrage signalé avec succès au backend");
       if (handleSelect) {
@@ -134,7 +134,6 @@ export default function useAnchorModal({
     }
   }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, onCancel, debug]);
 
-
   return {
     anchorModal,
     anchorDescription,
@@ -146,5 +145,7 @@ export default function useAnchorModal({
     openModal,
     anchorDataPreview,
     mapDivRef,
+    mapCenter,
+    mapZoom,
   };
 }
