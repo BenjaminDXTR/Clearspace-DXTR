@@ -6,6 +6,7 @@ import { stripTimestampFromTrace } from "../../utils/coords";
 import { config } from "../../config";
 import "./MapLayout.css";
 
+
 interface MapLayoutProps {
   selected?: Flight | null;
   selectedTracePoints?: LatLng[] | LatLngTimestamp[] | null;
@@ -15,6 +16,7 @@ interface MapLayoutProps {
   title?: string;
   flyToTrigger?: number; // Pour cohérence avec useAppLogic
 }
+
 
 export default function MapLayout({
   selected,
@@ -34,12 +36,14 @@ export default function MapLayout({
     [debug]
   );
 
+
   const isSelectedValid =
     selected !== undefined &&
     selected !== null &&
     selected.id !== undefined &&
     selected.id !== null &&
     selected.id !== "";
+
 
   // Nettoyage si trace avec timestamps
   let cleanPoints: LatLng[] = [];
@@ -56,19 +60,24 @@ export default function MapLayout({
     }
   }
 
+
   const points = cleanPoints;
   const hasValidPoints = isSelectedValid && points.length > 0;
 
+
   const startPosition = hasValidPoints ? points[0] : null;
   const livePosition = hasValidPoints ? points[points.length - 1] : null;
+
 
   // États pour mémoriser le centre/zoom basé sur le vol sélectionné
   const [storedCenter, setStoredCenter] = useState<[number, number] | null>(null);
   const [storedZoom, setStoredZoom] = useState<number>(13);
   const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
 
+
   useEffect(() => {
     if (!isSelectedValid) return;
+
 
     if (selected?.id !== prevSelectedId) {
       const { center: newCenter, zoom: newZoom } = getFitForTrace(points, 10);
@@ -81,27 +90,32 @@ export default function MapLayout({
     }
   }, [selected, points, prevSelectedId, isSelectedValid, dlog]);
 
+
   // Utilisation du centre/zoom stocké pour le rendu carte
   const centerToUse = storedCenter;
   const zoomToUse = storedZoom;
+
 
   useEffect(() => {
     dlog("flyToTrigger prop changed:", flyToTrigger);
   }, [flyToTrigger, dlog]);
 
+
   useEffect(() => {
     dlog("points updated: ", points);
   }, [points, dlog]);
 
+
   dlog(
-    `[MapLayout] Vol sélectionné id=${
-      isSelectedValid ? selected?.id : "N/A"
+    `[MapLayout] Vol sélectionné id=${isSelectedValid ? selected?.id : "N/A"
     } avec points count=${points.length}`
   );
+
 
   dlog(
     `[MapLayout] Positions envoyées à FlightMap - startPosition: ${startPosition}, livePosition: ${livePosition}, center: ${centerToUse}, zoom: ${zoomToUse}`
   );
+
 
   return (
     <div className="map-layout" aria-live="polite">

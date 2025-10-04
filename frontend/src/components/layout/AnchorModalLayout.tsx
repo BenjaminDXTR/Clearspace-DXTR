@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   ReactNode,
+  forwardRef,
 } from "react";
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
@@ -18,6 +19,7 @@ import { config } from "../../config";
 import "./AnchorModalLayout.css";
 import useFlightMapData from "../../hooks/useFlightMapData";
 
+
 interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
   anchorDescription: string;
@@ -29,9 +31,21 @@ interface AnchorModalLayoutProps {
   anchorDataPreview: unknown | null;
   debug?: boolean;
   children?: ReactNode;
+  mapDivRef: React.MutableRefObject<HTMLDivElement | null>;
 }
 
-export default function AnchorModalLayout({
+
+function getRefCurrent<T>(ref: React.Ref<T>): T | null {
+  if (!ref) return null;
+  if (typeof ref === "function") {
+    // Callback ref, non accessible directement
+    return null;
+  }
+  return ref.current ?? null;
+}
+
+
+const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   anchorModal,
   anchorDescription,
   setAnchorDescription,
@@ -42,41 +56,25 @@ export default function AnchorModalLayout({
   anchorDataPreview,
   debug = config.debug || config.environment === "development",
   children,
-}: AnchorModalLayoutProps) {
+  mapDivRef,
+}, ref) => {
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[AnchorModalLayout]", ...args);
   }, [debug]);
 
+
   const modalContentRef = useRef<HTMLDivElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    e.stopPropagation();
-    setAnchorDescription(e.target.value);
-    dlog(`[AnchorModal] Description modifiée (${e.target.value.length} caractères)`);
-  };
 
-  const handleValidate = async () => {
-    dlog("[AnchorModal] Validation déclenchée");
-    setErrorMsg(null);
-    try {
-      await onValidate();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erreur inconnue";
-      dlog("[AnchorModal] Erreur lors validation:", e);
-      setErrorMsg(message);
-    }
-  };
+  const { points: trace, center, zoom } = useFlightMapData(anchorModal?.flight ?? null, 1);
+  dlog("[AnchorModal] useFlightMapData renvoie centre, zoom:", center, zoom);
 
-  if (!anchorModal?.flight) {
-    dlog("[AnchorModal] Aucun vol sélectionné → rien à afficher");
-    return null;
-  }
 
-  // Utilisation du hook useFlightMapData avec flyToTrigger=1 pour forcer les calculs
-  const { points: trace, center, zoom } = useFlightMapData(anchorModal.flight, 1);
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
   const disableValidation = isZipping || !hasValidTrace;
+  dlog(`[AnchorModal] disableValidation=${disableValidation}, isZipping=${isZipping}, hasValidTrace=${hasValidTrace}`);
+
 
   useEffect(() => {
     if (anchorModal?.flight?.id !== undefined) {
@@ -84,8 +82,26 @@ export default function AnchorModalLayout({
     }
     if (modalContentRef.current) {
       modalContentRef.current.scrollTop = 0;
+      dlog("[AnchorModal] Scroll top remis à zéro");
     }
   }, [anchorModal?.flight, dlog]);
+
+
+  useEffect(() => {
+    const current = getRefCurrent(mapDivRef);
+    if (current) {
+      dlog("[AnchorModalLayout] mapDivRef.current détectée:", current);
+    } else {
+      dlog("[AnchorModalLayout] mapDivRef.current manquante ou callback ref");
+    }
+  }, [mapDivRef, mapDivRef?.current]);
+
+
+  if (!anchorModal?.flight) {
+    dlog("[AnchorModal] Aucun vol sélectionné → rien à afficher");
+    return null;
+  }
+
 
   if (!center) {
     dlog("[AnchorModalLayout] Centre non défini encore, affichage d’un chargement");
@@ -96,6 +112,29 @@ export default function AnchorModalLayout({
     );
   }
 
+
+  const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation();
+    setAnchorDescription(e.target.value);
+    dlog(`[AnchorModal] Description modifiée (${e.target.value.length} caractères)`);
+  };
+
+
+  const handleValidate = async () => {
+    dlog("[AnchorModal] Validation déclenchée");
+    setErrorMsg(null);
+    try {
+      dlog("[AnchorModal] Appel de onValidate");
+      await onValidate();
+      dlog("[AnchorModal] onValidate terminé avec succès");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erreur inconnue";
+      dlog("[AnchorModal] Erreur lors validation:", e);
+      setErrorMsg(message);
+    }
+  };
+
+
   return (
     <div
       className="anchor-modal-overlay"
@@ -103,6 +142,7 @@ export default function AnchorModalLayout({
       aria-modal="true"
       aria-labelledby="anchorModalTitle"
       aria-describedby="anchorModalDesc"
+      ref={ref}
     >
       <div className="anchor-modal-content" tabIndex={-1} ref={modalContentRef}>
         <h3 id="anchorModalTitle">Préparation de l&apos;ancrage</h3>
@@ -132,13 +172,14 @@ export default function AnchorModalLayout({
           <div className="right-panel" id="anchorModalDesc">
             <b>Carte à ancrer :</b>
             <FlightMap
+              ref={mapDivRef}
               trace={trace}
               markerIcon={historyIcon}
               showMarkers
               center={center}
               zoom={zoom}
               className="anchor-modal-map modal-map-capture"
-              flyToTrigger={1} // flyTo unique à l’ouverture
+              flyToTrigger={1}
             />
             {!hasValidTrace && (
               <div className="anchor-modal-warning" role="alert">
@@ -173,4 +214,10 @@ export default function AnchorModalLayout({
       </div>
     </div>
   );
-}
+});
+
+
+AnchorModalLayout.displayName = "AnchorModalLayout";
+
+
+export default AnchorModalLayout;
