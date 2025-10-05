@@ -56,3 +56,20 @@ export async function fetchHistoryFile(filename: string): Promise<Flight[]> {
   console.log(`[fetchHistoryFile] Parsed ${json.length} flights`, json);
   return json as Flight[];
 }
+
+export async function fetchHistoryFlight(filename: string, flightId: string): Promise<Flight> {
+  if (!filename || !flightId) {
+    throw new Error("Nom fichier ou ID vol manquant");
+  }
+  const url = `${baseApiUrl}/history/${filename}/${flightId}`;
+  console.log(`[fetchHistoryFlight] Fetching URL: ${url}`);
+
+  const response = await fetchWithRetry(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Erreur chargement vol historique, status=${response.status}`);
+  }
+  const json = await response.json();
+  console.log(`[fetchHistoryFlight] Parsed flight with id=${flightId}`, json);
+  return json as Flight;
+}
+

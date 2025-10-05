@@ -38,7 +38,7 @@ export interface AnchorData {
   };
   comment: string;
   anchored_at: string;
-  // Ne plus inclure trace ici
+  // Ne plus inclure trace dans l'objet principal
 }
 
 export interface AnchorResponse {
@@ -75,10 +75,8 @@ export const AnchorJsonModel = {
   anchored_at: "",
 };
 
-export function buildAnchorDataPrincipal(
-  flight: Flight,
-  comment = ""
-): AnchorData {
+// Construction du JSON principal sans trace
+export function buildAnchorDataPrincipal(flight: Flight, comment = ""): AnchorData {
   const nowISO = new Date().toISOString();
   return {
     type: AnchorJsonModel.type,
@@ -102,24 +100,20 @@ export function buildAnchorDataPrincipal(
   };
 }
 
-// Le JSON 'brut' avec trace et toute info pour preuve
-export function buildRawData(
-  flight: Flight,
-  trace: PositionPoint[],
-  comment = ""
-) {
+// La fonction pour construire la preuve avec toute la trace
+export function buildRawData(flight: Flight, trace: PositionPoint[], comment = "") {
+  // Exclure la trace dans l'objet vol pour éviter double-contenu
+  const { trace: _excluded, ...flightSansTrace } = flight;
   return {
-    flight,
+    flight: flightSansTrace,
     comment,
     anchored_at: new Date().toISOString(),
     trace,
   };
 }
 
-export async function generateZipFromDataWithProof(
-  mapImageBlob: Blob,
-  rawData: any
-) {
+// Générateur ZIP avec preuve.json contenant la trace complète
+export async function generateZipFromDataWithProof(mapImageBlob: Blob, rawData: any) {
   const zip = new JSZip();
 
   if (mapImageBlob && mapImageBlob.size > 0) {

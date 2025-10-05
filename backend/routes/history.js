@@ -44,4 +44,40 @@ router.get('/:filename', async (req, res) => {
   }
 });
 
+router.get('/:filename/:flightId', async (req, res) => {
+  const { filename, flightId } = req.params;
+
+  // Validation simple nom fichier
+  if (!/^[\w\-\.]+$/.test(filename) || !filename.endsWith('.json')) {
+    log.warn(`[history] Invalid filename requested: ${filename} from IP ${req.ip}`);
+    return res.status(400).json({ error: 'Nom de fichier invalide' });
+  }
+  if (!flightId) {
+    log.warn(`[history] Missing flightId in request from IP ${req.ip}`);
+    return res.status(400).json({ error: 'ID de vol manquant' });
+  }
+
+  const filePath = path.join(historyDir, filename);
+  try {
+    await fs.access(filePath);
+    const dataStr = await fs.readFile(filePath, 'utf8');
+    const json = JSON.parse(dataStr);
+
+    // json est supposé être un tableau d’objets vol
+    const flight = Array.isArray(json) ? json.find(f => f.id === flightId) : null;
+
+    if (!flight) {
+      return res.status(404).json({ error: 'Vol non trouvé dans ce fichier' });
+    }
+
+    // Retour du vol complet
+    res.json(flight);
+    log.info(`[history] Sent flight id=${flightId} from file ${filename} to ${req.ip}`);
+
+  } catch (error) {
+    log.error(`[history] Error reading historical file ${filename} or flight: ${error.message}`);
+    res.status(500).json({ error: 'Erreur serveur interne' });
+  }
+});
+
 module.exports = router;

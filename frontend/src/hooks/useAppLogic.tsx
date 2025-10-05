@@ -7,7 +7,7 @@ import useAnchorModal from "./useAnchorModal";
 import { useErrorManager } from "./useErrorManager";
 import { config } from "../config";
 import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "../types/models";
-import { buildAnchorDataPrincipal, buildRawData, generateZipFromDataWithProof } from "../services/anchorService";
+import { buildAnchorDataPrincipal, generateZipFromDataWithProof, buildRawData } from "../services/anchorService";
 import { LIVE_DETAILS } from "../utils/constants";
 import useDebugLogger from "./useDebugLogger";
 
@@ -130,11 +130,7 @@ export default function useAppLogic() {
       }
       dlog(`[useAppLogic] handleSelect called with flight id=${flight.id}`);
       setSelected({ ...flight });
-      setFlyTrigger((prev) => {
-        const next = prev + 1;
-        dlog(`[useAppLogic] flyTrigger incremented: ${prev} -> ${next}`);
-        return next;
-      });
+      setFlyTrigger((prev) => prev + 1);
     },
     [dlog]
   );
