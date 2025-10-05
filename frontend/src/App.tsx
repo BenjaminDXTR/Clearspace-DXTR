@@ -17,9 +17,7 @@ import useAppLogic from "./hooks/useAppLogic";
 function AppContent() {
   const logic = useAppLogic();
 
-  // Ref stable pour la carte dans modal ancrage
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-
   const memoAnchorModal = useMemo(() => logic.anchorModal, [logic.anchorModal?.flight?.id]);
 
   return (
@@ -62,8 +60,6 @@ function AppContent() {
           <TablesLive
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
-            isAnchored={logic.isAnchored}
-            renderAnchorCell={logic.renderAnchorCell}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
           />
@@ -83,7 +79,8 @@ function AppContent() {
             localPageData={logic.localPageData}
             LOCAL_FIELDS={LOCAL_FIELDS}
             isAnchored={logic.isAnchored}
-            renderAnchorCell={logic.renderAnchorCell}
+            getTraceForFlight={logic.getTraceForFlight} // <-- Important ici
+            openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
           />

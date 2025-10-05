@@ -1,0 +1,87 @@
+{
+  "type": "drone",
+  "id": "1748FEV3HMG924501040",
+  "modele": "AUTEL RemoteID",
+  "xtr5 serial number": "",
+  "created_time": "2025-10-05T13:10:43.837Z",
+  "positionCible": {
+    "latitude": 49.5308,
+    "longitude": 0.0939,
+    "altitude": 0,
+    "distance": 9000000
+  },
+  "positionVehicule": {
+    "latitude": 0,
+    "longitude": 0,
+    "altitude": 0
+  },
+  "comment": "",
+  "anchored_at": "2025-10-05T13:51:01.567Z",
+  "trace": [
+    {
+      "latitude": 49.5312,
+      "longitude": 0.0939,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5313,
+      "longitude": 0.0941,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5314,
+      "longitude": 0.094,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.53145,
+      "longitude": 0.0938,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5314,
+      "longitude": 0.0936,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5313,
+      "longitude": 0.0934,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5312,
+      "longitude": 0.0933,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5311,
+      "longitude": 0.0934,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.531,
+      "longitude": 0.0935,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.53095,
+      "longitude": 0.0936,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5309,
+      "longitude": 0.0937,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.53085,
+      "longitude": 0.0938,
+      "altitude": 0
+    },
+    {
+      "latitude": 49.5308,
+      "longitude": 0.0939,
+      "altitude": 0
+    }
+  ]
+}

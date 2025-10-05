@@ -218,25 +218,6 @@ export default function useAppLogic() {
     [localFlights]
   );
 
-  const renderAnchorCell = useCallback(
-    (flight: Flight) => (
-      <button
-        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          e.stopPropagation();
-          const trace = getTraceForFlight(flight);
-          const latLngTrace: LatLng[] = trace
-            .map((pt) => (pt.length >= 2 ? ([pt[0], pt[1]] as LatLng) : null))
-            .filter((pt): pt is LatLng => pt !== null);
-          openModal(flight, latLngTrace);
-          dlog(`[useAppLogic] Anchor clicked for id=${flight.id}`);
-        }}
-      >
-        Ancrer
-      </button>
-    ),
-    [getTraceForFlight, openModal, dlog]
-  );
-
   return {
     debug,
     dlog,
@@ -278,7 +259,6 @@ export default function useAppLogic() {
     selectedTraceRaw,
     detailFields,
     isAnchored,
-    renderAnchorCell,
     dronesError,
   };
 }

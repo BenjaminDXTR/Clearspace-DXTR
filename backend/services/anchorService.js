@@ -12,9 +12,6 @@ const ANCHORED_DIR = path.isAbsolute(rawAnchoredDir)
 
 const ANCHOR_FILE = path.join(__dirname, '..', config.backend.anchorFile || 'anchored.json');
 
-/**
- * Lit la liste complète des vols ancrés depuis le fichier JSON.
- */
 async function getAnchoredList() {
   try {
     if (!fs.existsSync(ANCHOR_FILE)) {
@@ -36,9 +33,6 @@ async function getAnchoredList() {
   }
 }
 
-/**
- * Écrit la liste complète des vols ancrés dans le fichier JSON.
- */
 async function saveAnchoredList(anchoredList) {
   try {
     await fsPromises.writeFile(ANCHOR_FILE, JSON.stringify(anchoredList, null, 2));
@@ -49,33 +43,25 @@ async function saveAnchoredList(anchoredList) {
   }
 }
 
-/**
- * Sauvegarde un nouveau vol ancré dans un dossier + met à jour anchored.json.
- */
 async function saveAnchorWithProof(anchorData, proofZip) {
   try {
     if (!proofZip) throw new Error('Fichier preuve.zip manquant.');
 
     const dateDir = new Date().toISOString().replace(/[:.]/g, '-');
-    const destinationDir = path.join(ANCHORED_DIR, dateDir);
+    const folderName = `anchor_${anchorData.id ?? "unknown"}_${dateDir}`;
+    const destinationDir = path.join(ANCHORED_DIR, folderName);
+
     await fsPromises.mkdir(destinationDir, { recursive: true });
 
-    await fsPromises.writeFile(
-      path.join(destinationDir, 'ancrage.json'),
-      JSON.stringify(anchorData, null, 2)
-    );
+    await fsPromises.writeFile(path.join(destinationDir, 'ancrage.json'), JSON.stringify(anchorData, null, 2));
     log.debug(`ancrage.json sauvegardé dans ${destinationDir}`);
 
-    await fsPromises.writeFile(
-      path.join(destinationDir, 'preuve.zip'),
-      proofZip
-    );
+    await fsPromises.writeFile(path.join(destinationDir, 'preuve.zip'), proofZip);
     log.debug(`preuve.zip sauvegardé dans ${destinationDir}`);
 
     const anchoredList = await getAnchoredList();
-    const exists = anchoredList.some(
-      entry => entry.id === anchorData.id && entry.created_time === anchorData.created_time
-    );
+
+    const exists = anchoredList.some(entry => entry.id === anchorData.id && entry.created_time === anchorData.created_time);
 
     if (!exists) {
       anchoredList.push({
@@ -95,13 +81,6 @@ async function saveAnchorWithProof(anchorData, proofZip) {
   }
 }
 
-/* ======================
-   HANDLERS EXPRESS
-====================== */
-
-/**
- * GET /anchored → retourne la liste des vols ancrés.
- */
 async function handleGetAnchored(req, res) {
   log.debug(`→ GET /anchored depuis ${req.ip}`);
   try {
@@ -112,9 +91,6 @@ async function handleGetAnchored(req, res) {
   }
 }
 
-/**
- * POST /anchor → ancrer un vol avec preuve ZIP.
- */
 async function handlePostAnchor(req, res) {
   log.debug(`→ POST /anchor depuis ${req.ip}`);
 

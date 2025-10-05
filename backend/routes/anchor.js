@@ -9,7 +9,7 @@ const anchorService = require('../services/anchorService');
 const maxSizeMB = config.backend.maxUploadMb || 50;
 const upload = multer({ limits: { fileSize: maxSizeMB * 1024 * 1024 } });
 
-// GET /anchored : retourne la liste des vols ancrés
+// GET /anchored : liste des vols ancrés
 router.get('/anchored', async (req, res, next) => {
   log.debug(`→ GET /anchored depuis ${req.ip}`);
   try {
@@ -22,7 +22,7 @@ router.get('/anchored', async (req, res, next) => {
   }
 });
 
-// POST /anchor : ajoute une ancre avec preuve ZIP
+// POST /anchor : ajoute un ancrage avec preuve ZIP
 router.post('/anchor', upload.single('proofZip'), async (req, res, next) => {
   log.debug(`→ POST /anchor depuis ${req.ip}`);
 
@@ -32,7 +32,7 @@ router.post('/anchor', upload.single('proofZip'), async (req, res, next) => {
   }
 
   try {
-    await anchorService.handlePost(req, res);
+    await anchorService.handlePostAnchor(req, res);
     log.info('Vol ancré avec succès');
   } catch (err) {
     log.error(`Erreur POST /anchor : ${err.message}`);

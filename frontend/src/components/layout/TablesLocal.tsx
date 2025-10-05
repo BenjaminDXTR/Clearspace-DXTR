@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useEffect } from "react";
 import type { Flight, IsAnchoredFn, RenderAnchorCellFn, HandleSelectFn } from "../../types/models";
 import { prettyValue } from "../../utils/format";
-import Pagination from "../common/Pagination";
 import { config } from "../../config";
+import Pagination from "../common/Pagination";
 import "./TablesLocal.css";
 
 interface TablesLocalProps {
@@ -14,6 +14,8 @@ interface TablesLocalProps {
   isAnchored: IsAnchoredFn;
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
+  openModal: (flight: Flight, trace: any[]) => void; // ajoute cette prop
+  getTraceForFlight: (flight: Flight) => any[]; // ajoute cette prop
   debug?: boolean;
 }
 
@@ -37,6 +39,8 @@ export default function TablesLocal({
   isAnchored,
   renderAnchorCell,
   handleSelect,
+  openModal,
+  getTraceForFlight,
   debug = DEBUG,
 }: TablesLocalProps) {
   useEffect(() => {
@@ -60,7 +64,7 @@ export default function TablesLocal({
     );
     dlog(`Nombre drones archivés filtrés: ${filtered.length}`);
     return filtered;
-  }, [localPageData, dlog]);
+  }, [localPageData]);
 
   return (
     <section className="table-container" aria-label="Vols archivés (local)">
@@ -73,18 +77,14 @@ export default function TablesLocal({
             <thead>
               <tr>
                 {LOCAL_FIELDS.map((field) => (
-                  <th key={field} scope="col">
-                    {field}
-                  </th>
+                  <th key={field} scope="col">{field}</th>
                 ))}
                 <th scope="col">Ancrage</th>
               </tr>
             </thead>
             <tbody>
               {archivedDrones.map((item, idx) => {
-                // Sécurité: vérifier si isAnchored est bien une fonction avant appel
-                const anchored = typeof isAnchored === "function" ? isAnchored(item.id ?? "", item.created_time ?? "") : false;
-
+                const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
                 return (
                   <tr
                     key={genKey(item, idx)}
@@ -99,16 +99,21 @@ export default function TablesLocal({
                     <td className="anchor-cell">
                       {anchored ? (
                         "✔️"
-                      ) : renderAnchorCell ? (
-                        renderAnchorCell(item)
                       ) : (
-                        <button
-                          onClick={(e) => e.stopPropagation()}
-                          disabled={anchored}
-                          aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
-                        >
-                          Ancrer
-                        </button>
+                        renderAnchorCell ? (
+                          renderAnchorCell(item)
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const trace = getTraceForFlight(item);
+                              openModal(item, trace);
+                            }}
+                            aria-label="Ancrer ce vol"
+                          >
+                            Ancrer
+                          </button>
+                        )
                       )}
                     </td>
                   </tr>

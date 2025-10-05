@@ -101,23 +101,3 @@ export async function generateZipFromData(
 
   return zip.generateAsync({ type: "blob" });
 }
-
-// Deprecated: Disable actual server sending until backend ready
-/*
-export async function sendAnchorData(
-  anchorData: AnchorData,
-  zipBlob: Blob
-): Promise<void> {
-  const formData = new FormData();
-  formData.append("anchorData", JSON.stringify(anchorData));
-  formData.append("proofZip", zipBlob, `anchor_${Date.now()}.zip`);
-
-  const response = await fetch(ANCHOR_URL, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error(`Server error: ${response.statusText}`);
-  }
-}
-*/

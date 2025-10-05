@@ -2,7 +2,7 @@ import { config } from "../config";
 import type { Flight } from "../types/models";
 
 const HISTORY_URL = config.apiUrl + "/history";
-const ANCHOR_URL = config.apiUrl + "/anchor";
+const ANCHOR_URL = config.apiUrl + "/anchor";  // endpoint backend pour ancrage
 const DEBUG = config.debug || config.environment === "development";
 
 function dlog(...args: any) {
@@ -47,22 +47,6 @@ export async function postLocalHistoryFlight(flight: Flight, onUserError?: (msg:
 }
 
 export async function fetchAnchoredFlights(onUserError?: (msg: string) => void): Promise<Flight[]> {
-  // deprecated or placeholder  
+  // deprecated or placeholder
   return [];
 }
-
-// Deprecated: Disable actual server sending until backend ready
-/*
-export async function postAnchorFileName(fileName: string, onUserError?: (msg: string) => void): Promise<void> {
-  try {
-    const res = await fetch(config.apiUrl + "/anchor/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: fileName }),
-    });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  } catch (err) {
-    handleApiError("postAnchorFileName", err, onUserError);
-  }
-}
-*/

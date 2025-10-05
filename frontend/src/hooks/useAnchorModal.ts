@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/models";
-import { buildAnchorData, generateZipFromData /* , sendAnchorData */ } from "../services/anchorService";
+import { buildAnchorData, generateZipFromData } from "../services/anchorService";
 import html2canvas from "html2canvas";
 import { config } from "../config";
 
@@ -37,7 +37,7 @@ export default function useAnchorModal({
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
 
-  const dlog = useCallback((...args: unknown[]) => {
+  const dlog = useCallback((...args: any) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
 
@@ -68,8 +68,8 @@ export default function useAnchorModal({
     if (!anchorModal?.flight) return;
     const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
     const newData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
-    setAnchorDataPreview(newData);
     dlog("Updated anchor data with description", anchorDescription);
+    setAnchorDataPreview(newData);
   }, [anchorDescription, anchorModal, convertTrace, dlog]);
 
   const onCancel = useCallback(() => {
@@ -121,19 +121,31 @@ export default function useAnchorModal({
       const zipBlob = await generateZipFromData(imgBlob, traceConverted);
       const zipFileName = `anchor_${anchorData.id ?? "unknown"}_${new Date().toISOString()}.zip`;
 
-      dlog("Zip creation done. Filename:", zipFileName);
-      // NOTE: Backend upload temporarily disabled, store info locally if needed.
-      // To implement later when backend ready.
+      dlog("Sending anchor data and proof to backend...");
+      const formData = new FormData();
+      formData.append("anchorData", JSON.stringify(anchorData));
+      formData.append("proofZip", zipBlob, zipFileName);
 
-      // Old sending code:
-      // await sendAnchorData(anchorData, zipBlob);
+      const response = await fetch(config.apiUrl + "/anchor", {  // <-- Correction ici !
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erreur serveur ${response.status} : ${errorText || response.statusText}`);
+      }
+
+      const result = await response.json();
+      dlog("Anchor saved successfully on backend, folder:", result.folder);
 
       if (handleSelect) {
         handleSelect({ ...anchorModal.flight, _type: "local" });
       }
       onCancel();
     } catch (e) {
-      alert("Error during anchoring: " + (e instanceof Error ? e.message : "Unknown error"));
+      const message = e instanceof Error ? e.message : "Erreur inconnue";
+      alert("Erreur lors de l'ancrage : " + message);
       dlog("Error during anchoring:", e);
     } finally {
       setIsZipping(false);

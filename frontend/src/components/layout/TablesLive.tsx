@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect } from "react";
-import type { Flight, IsAnchoredFn, RenderAnchorCellFn, HandleSelectFn } from "../../types/models";
+import type { Flight, HandleSelectFn } from "../../types/models";
 import { prettyValue } from "../../utils/format";
 import { config } from "../../config";
 import "./TablesLive.css";
@@ -7,8 +7,6 @@ import "./TablesLive.css";
 interface TablesLiveProps {
   drones: Flight[];
   LIVE_FIELDS: string[];
-  isAnchored: IsAnchoredFn;
-  renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
   debug?: boolean;
 }
@@ -27,8 +25,6 @@ function dlog(...args: unknown[]) {
 export default function TablesLive({
   drones,
   LIVE_FIELDS,
-  isAnchored,
-  renderAnchorCell,
   handleSelect,
   debug = DEBUG,
 }: TablesLiveProps) {
@@ -69,41 +65,24 @@ export default function TablesLive({
                   {field}
                 </th>
               ))}
-              <th scope="col">Ancrage</th>
+              {/* La colonne "Ancrage" est supprimée */}
             </tr>
           </thead>
           <tbody>
-            {liveDrones.map((item, idx) => {
-              const anchored = typeof isAnchored === "function" ? isAnchored(item.id ?? "", item.created_time ?? "") : false;
-              return (
-                <tr
-                  key={genKey(item, idx)}
-                  tabIndex={0}
-                  className={`clickable-row ${anchored ? "anchored" : ""}`}
-                  onClick={() => onSelect(item)}
-                  aria-selected="false"
-                >
-                  {LIVE_FIELDS.map((field) => (
-                    <td key={field}>{prettyValue(field, (item as any)[field])}</td>
-                  ))}
-                  <td className="anchor-cell">
-                    {anchored ? (
-                      "✔️"
-                    ) : renderAnchorCell ? (
-                      renderAnchorCell(item)
-                    ) : (
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        disabled={anchored}
-                        aria-label={anchored ? "Vol déjà ancré" : "Ancrer ce vol"}
-                      >
-                        Ancrer
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {liveDrones.map((item, idx) => (
+              <tr
+                key={genKey(item, idx)}
+                tabIndex={0}
+                className="clickable-row"
+                onClick={() => onSelect(item)}
+                aria-selected="false"
+              >
+                {LIVE_FIELDS.map((field) => (
+                  <td key={field}>{prettyValue(field, (item as any)[field])}</td>
+                ))}
+                {/* Suppression de la cellule ancrage */}
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
