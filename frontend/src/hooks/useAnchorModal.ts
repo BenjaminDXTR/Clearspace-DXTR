@@ -1,6 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/models";
-import { buildAnchorData, generateZipFromData } from "../services/anchorService";
+import {
+  buildAnchorDataPrincipal,
+  buildRawData,
+  generateZipFromDataWithProof,
+} from "../services/anchorService";
 import html2canvas from "html2canvas";
 import { config } from "../config";
 
@@ -16,7 +20,7 @@ interface UseAnchorModal {
   onValidate: () => Promise<void>;
   onCancel: () => void;
   openModal: (flight: Flight, trace?: LatLng[]) => void;
-  anchorDataPreview: ReturnType<typeof buildAnchorData> | null;
+  anchorDataPreview: ReturnType<typeof buildAnchorDataPrincipal> | null;
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
 }
 
@@ -32,7 +36,7 @@ export default function useAnchorModal({
   const [anchorModal, setAnchorModal] = useState<AnchorModal | null>(null);
   const [anchorDescription, setAnchorDescription] = useState("");
   const [isZipping, setIsZipping] = useState(false);
-  const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
+  const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorDataPrincipal> | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
@@ -57,7 +61,7 @@ export default function useAnchorModal({
       handleSelect({ ...flight, _type: "local" });
     }
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
-    setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
+    setAnchorDataPreview(buildAnchorDataPrincipal(flight, ""));
   }, [convertTrace, dlog, handleSelect]);
 
   const setMapContainer = useCallback((node: HTMLElement | null) => {
@@ -67,7 +71,7 @@ export default function useAnchorModal({
   useEffect(() => {
     if (!anchorModal?.flight) return;
     const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
-    const newData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
+    const newData = buildAnchorDataPrincipal(anchorModal.flight, anchorDescription);
     dlog("Updated anchor data with description", anchorDescription);
     setAnchorDataPreview(newData);
   }, [anchorDescription, anchorModal, convertTrace, dlog]);
@@ -116,9 +120,10 @@ export default function useAnchorModal({
       const imgBlob = await captureMap();
       dlog("Building anchor data");
       const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
-      const anchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
-      dlog("Generating ZIP");
-      const zipBlob = await generateZipFromData(imgBlob, traceConverted);
+      const anchorData = buildAnchorDataPrincipal(anchorModal.flight, anchorDescription);
+      const rawData = buildRawData(anchorModal.flight, traceConverted, anchorDescription);
+      dlog("Generating ZIP with proof JSON");
+      const zipBlob = await generateZipFromDataWithProof(imgBlob, rawData);
       const zipFileName = `anchor_${anchorData.id ?? "unknown"}_${new Date().toISOString()}.zip`;
 
       dlog("Sending anchor data and proof to backend...");
@@ -126,7 +131,7 @@ export default function useAnchorModal({
       formData.append("anchorData", JSON.stringify(anchorData));
       formData.append("proofZip", zipBlob, zipFileName);
 
-      const response = await fetch(config.apiUrl + "/anchor", {  // <-- Correction ici !
+      const response = await fetch(config.apiUrl + "/anchor", {
         method: "POST",
         body: formData,
       });

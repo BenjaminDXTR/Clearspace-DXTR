@@ -1,20 +1,20 @@
 {
-	"type": "drone",
-	"id": "TEST123456789",
-	"modele": "PARROT Anafi",
-	"xtr5 serial number" : "10900",
-	"created_time": "2026-05-27T09:00:00.000Z",
-	"positionCible" : {
-        "latitude" : "49.324556",
-        "longitude" : "32.115154",
-        "altitude" : "12",
+    "type": "drone",
+    "id": "TEST123456789",
+    "modele": "PARROT Anafi",
+    "xtr5 serial number": "10900",
+    "created_time": "2026-05-27T09:00:00.000Z",
+    "positionCible": {
+        "latitude": "49.324556",
+        "longitude": "32.115154",
+        "altitude": "12",
         "distance": 150
-	},
-	"positionVehicule" : {
-        "latitude" : "0.0",
-        "longitude" : "0.0",
-        "altitude" : "0.0"
-	},
-  "comment" : "Drone au Havre",
-  "anchored_at": "2025-06-26T07:59:02.610Z"
+    },
+    "positionVehicule": {
+        "latitude": "0.0",
+        "longitude": "0.0",
+        "altitude": "0.0"
+    },
+    "comment": "Drone au Havre",
+    "anchored_at": "2025-06-26T07:59:02.610Z"
 }

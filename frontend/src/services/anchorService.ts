@@ -38,7 +38,7 @@ export interface AnchorData {
   };
   comment: string;
   anchored_at: string;
-  trace?: PositionPoint[];
+  // Ne plus inclure trace ici
 }
 
 export interface AnchorResponse {
@@ -54,50 +54,83 @@ function dlog(...args: any) {
   if (DEBUG) console.log(...args);
 }
 
-export function buildAnchorData(
+export const AnchorJsonModel = {
+  type: "drone" as const,
+  id: "",
+  modele: "",
+  "xtr5 serial number": "10900",
+  created_time: "",
+  positionCible: {
+    latitude: 0,
+    longitude: 0,
+    altitude: 0,
+    distance: 0,
+  },
+  positionVehicule: {
+    latitude: 0,
+    longitude: 0,
+    altitude: 0,
+  },
+  comment: "",
+  anchored_at: "",
+};
+
+export function buildAnchorDataPrincipal(
   flight: Flight,
-  comment = "",
-  trace: PositionPoint[] = [],
-  positionVehicule = { latitude: 0, longitude: 0, altitude: 0 }
+  comment = ""
 ): AnchorData {
-  const data: AnchorData = {
-    type: "drone",
-    id: flight.id,
-    modele: flight.name || flight.drone_type || "Inconnu",
-    "xtr5 serial number": flight.serial || "",
-    created_time: flight.created_time ? flight.created_time.toString() : undefined,
+  const nowISO = new Date().toISOString();
+  return {
+    type: AnchorJsonModel.type,
+    id: flight.id ?? AnchorJsonModel.id,
+    modele: flight.name || flight.drone_type || AnchorJsonModel.modele,
+    "xtr5 serial number": AnchorJsonModel["xtr5 serial number"],
+    created_time: flight.created_time ? flight.created_time.toString() : AnchorJsonModel.created_time,
     positionCible: {
-      latitude: flight.latitude ?? 0,
-      longitude: flight.longitude ?? 0,
-      altitude: flight.altitude ?? 0,
-      distance: flight.distance ?? 0,
+      latitude: flight.latitude ?? AnchorJsonModel.positionCible.latitude,
+      longitude: flight.longitude ?? AnchorJsonModel.positionCible.longitude,
+      altitude: flight.altitude ?? AnchorJsonModel.positionCible.altitude,
+      distance: flight.distance ?? AnchorJsonModel.positionCible.distance,
     },
-    positionVehicule,
+    positionVehicule: {
+      latitude: AnchorJsonModel.positionVehicule.latitude,
+      longitude: AnchorJsonModel.positionVehicule.longitude,
+      altitude: AnchorJsonModel.positionVehicule.altitude,
+    },
+    comment,
+    anchored_at: nowISO,
+  };
+}
+
+// Le JSON 'brut' avec trace et toute info pour preuve
+export function buildRawData(
+  flight: Flight,
+  trace: PositionPoint[],
+  comment = ""
+) {
+  return {
+    flight,
     comment,
     anchored_at: new Date().toISOString(),
     trace,
   };
-  dlog("buildAnchorData: prepared for flight", flight.id);
-  return data;
 }
 
-export async function generateZipFromData(
+export async function generateZipFromDataWithProof(
   mapImageBlob: Blob,
-  trace: PositionPoint[]
+  rawData: any
 ) {
   const zip = new JSZip();
 
   if (mapImageBlob && mapImageBlob.size > 0) {
     zip.file("carte.png", mapImageBlob);
-    dlog("Image added to ZIP");
+    dlog("Image ajoutée au ZIP");
   } else {
-    dlog("No image provided to ZIP");
+    dlog("Aucune image fournie pour le ZIP");
   }
 
-  if (trace && trace.length > 0) {
-    zip.file("trace.json", JSON.stringify(trace, null, 2));
-    dlog("Trace added to ZIP");
-  }
+  zip.file("preuve.json", JSON.stringify(rawData, null, 2));
+  dlog("Preuve JSON complète ajoutée au ZIP");
 
   return zip.generateAsync({ type: "blob" });
 }

@@ -7,7 +7,7 @@ import useAnchorModal from "./useAnchorModal";
 import { useErrorManager } from "./useErrorManager";
 import { config } from "../config";
 import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "../types/models";
-import { buildAnchorData } from "../services/anchorService";
+import { buildAnchorDataPrincipal, buildRawData, generateZipFromDataWithProof } from "../services/anchorService";
 import { LIVE_DETAILS } from "../utils/constants";
 import useDebugLogger from "./useDebugLogger";
 
@@ -186,7 +186,7 @@ export default function useAppLogic() {
       longitude: lng,
       altitude: selected.altitude ?? 0,
     }));
-    const data = buildAnchorData(selected, "Export depuis panneau", trace);
+    const data = buildAnchorDataPrincipal(selected, "Export depuis panneau");
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

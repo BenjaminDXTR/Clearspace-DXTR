@@ -59,27 +59,14 @@ async function saveAnchorWithProof(anchorData, proofZip) {
     await fsPromises.writeFile(path.join(destinationDir, 'preuve.zip'), proofZip);
     log.debug(`preuve.zip sauvegardé dans ${destinationDir}`);
 
-    const anchoredList = await getAnchoredList();
-
-    const exists = anchoredList.some(entry => entry.id === anchorData.id && entry.created_time === anchorData.created_time);
-
-    if (!exists) {
-      anchoredList.push({
-        ...anchorData,
-        anchored_at: new Date().toISOString()
-      });
-      await saveAnchoredList(anchoredList);
-      log.info('Nouveau vol ajouté à la liste globale des ancrages');
-    } else {
-      log.warn('Vol déjà présent dans la liste globale des ancrages');
-    }
-
     return destinationDir;
   } catch (error) {
     log.error(`Échec saveAnchorWithProof : ${error.message}`);
     throw error;
   }
 }
+
+// Handlers Express
 
 async function handleGetAnchored(req, res) {
   log.debug(`→ GET /anchored depuis ${req.ip}`);
