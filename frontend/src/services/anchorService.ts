@@ -4,11 +4,9 @@ import { config } from "../config";
 
 export interface Flight {
   altitude?: number;
-  created_time?: string | number;
+  created_time?: string;
   distance?: number;
-  id?: string | number;
-  latitude?: number;
-  longitude?: number;
+  id?: string;
   name?: string;
   drone_type?: string;
   serial?: string;
@@ -23,7 +21,7 @@ export interface PositionPoint {
 
 export interface AnchorData {
   type: "drone";
-  id?: string | number;
+  id?: string;
   modele?: string;
   "xtr5 serial number"?: string;
   created_time?: string;
@@ -52,7 +50,7 @@ export interface AnchorResponse {
 const DEBUG = config.debug || config.environment === "development";
 const ANCHOR_URL = config.apiUrl + "/anchor";
 
-function dlog(...args: any[]) {
+function dlog(...args: any) {
   if (DEBUG) console.log(...args);
 }
 
@@ -79,106 +77,47 @@ export function buildAnchorData(
     anchored_at: new Date().toISOString(),
     trace,
   };
-  dlog("buildAnchorData: prepared for flight ", flight.id);
+  dlog("buildAnchorData: prepared for flight", flight.id);
   return data;
 }
 
-export async function captureMapImage(
-  mapDiv: HTMLElement | null = null,
-  scale = 3,
-  onUserError?: (msg: string) => void
-): Promise<Blob | null> {
-  if (!mapDiv) {
-    mapDiv = document.querySelector(".leaflet-container");
-  }
-  if (!mapDiv) {
-    const warning = "Carte introuvable (.leaflet-container)";
-    if (DEBUG) console.warn("[captureMapImage]", warning);
-    if (onUserError) onUserError(warning);
-    return null;
-  }
-  try {
-    dlog("[captureMapImage] Capture en cours...");
-    const canvas = await html2canvas(mapDiv, {
-      useCORS: true,
-      backgroundColor: null,
-      scale,
-    } as any);
-    return new Promise(resolve => canvas.toBlob(blob => resolve(blob)));
-  } catch (error) {
-    const errorMsg = `[captureMapImage] Erreur capture: ${(error as Error).message}`;
-    console.error(errorMsg);
-    if (onUserError) onUserError("Erreur lors de la capture de la carte");
-    return null;
-  }
-}
-
-export async function generateAnchorZip(
-  mapImageBlob: Blob | null,
-  trace: PositionPoint[],
-  imageName = "carte.png",
-  positionsName = "positions.json",
-  onUserWarning?: (msg: string) => void
-): Promise<Blob> {
+export async function generateZipFromData(
+  mapImageBlob: Blob,
+  trace: PositionPoint[]
+) {
   const zip = new JSZip();
 
   if (mapImageBlob && mapImageBlob.size > 0) {
-    zip.file(imageName, mapImageBlob);
-    dlog("[generateAnchorZip] Image ajoutée au ZIP");
+    zip.file("carte.png", mapImageBlob);
+    dlog("Image added to ZIP");
   } else {
-    const warningMsg = "Pas d'image fournie, ZIP vide";
-    console.warn("[generateAnchorZip]", warningMsg);
-    if (onUserWarning) onUserWarning(warningMsg);
+    dlog("No image provided to ZIP");
   }
 
-  if (trace && Array.isArray(trace) && trace.length > 0) {
-    zip.file(positionsName, JSON.stringify(trace, null, 2));
-    dlog("[generateAnchorZip] Positions ajoutées au ZIP");
-  } else {
-    const warningMsg = "Positions vides ou non fournies";
-    console.warn("[generateAnchorZip]", warningMsg);
-    if (onUserWarning) onUserWarning(warningMsg);
+  if (trace && trace.length > 0) {
+    zip.file("trace.json", JSON.stringify(trace, null, 2));
+    dlog("Trace added to ZIP");
   }
 
-  return await zip.generateAsync({ type: "blob" });
+  return zip.generateAsync({ type: "blob" });
 }
 
-export async function sendAnchorToBackend(
+// Deprecated: Disable actual server sending until backend ready
+/*
+export async function sendAnchorData(
   anchorData: AnchorData,
-  zipBlob: Blob,
-  onUserError?: (msg: string) => void
-): Promise<AnchorResponse> {
-  if (!zipBlob || zipBlob.size === 0) {
-    const errMsg = "Le fichier ZIP de preuve est vide ou invalide";
-    if (onUserError) onUserError(errMsg);
-    throw new Error(errMsg);
-  }
+  zipBlob: Blob
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("anchorData", JSON.stringify(anchorData));
+  formData.append("proofZip", zipBlob, `anchor_${Date.now()}.zip`);
 
-  const safeId = String(anchorData.id ?? "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const fileName = `preuve_${safeId}_${Date.now()}.zip`;
-
-  try {
-    dlog("[sendAnchorToBackend] Envoi en cours vers:", ANCHOR_URL);
-    const formData = new FormData();
-    formData.append("anchorData", JSON.stringify(anchorData));
-    formData.append("proofZip", zipBlob, fileName);
-
-    const response = await fetch(ANCHOR_URL, { method: "POST", body: formData });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errMsg = `Erreur serveur ${response.status} : ${errorText || response.statusText}`;
-      if (onUserError) onUserError(errMsg);
-      throw new Error(errMsg);
-    }
-
-    const result: AnchorResponse = await response.json();
-    dlog("[sendAnchorToBackend] Réponse:", result);
-    return result;
-  } catch (error) {
-    const errMsg = `[sendAnchorToBackend] Échec d’envoi: ${(error as Error).message}`;
-    console.error(errMsg);
-    if (onUserError) onUserError(errMsg);
-    throw error;
+  const response = await fetch(ANCHOR_URL, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`Server error: ${response.statusText}`);
   }
 }
+*/

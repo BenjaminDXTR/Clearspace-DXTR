@@ -16,14 +16,18 @@
 - Garder uniquement responsabilité affichage, interactions UI pures.
 
 
+voici l'objectif d'ancrage actuel:
 l'objectif est le suivant, gérer la fonctionnalité principale du frontend : la création des fichiers d'ancrage.
-les composententes "anchored" était prévu à l'origine pour vérifier dans une blockchain api les vol archivées 
-(le backend s'occupe des requets et fournit les résulatt) et compare aux historiques locaux. mais comme le backend 
-aura lui meme l'historique et l'accès à la blockchain api, faut il toujour effectuer la comparaison des donées dans le back et adapter l'historique en ajoutantle tag dans le json "isAnchored" .
- au final le but est d'empecher de pouvoir ancrer dans la blockchain un vol déjà pésent dans la blockchain.
-Coté frontend, les composentes anchor, useAnchorModal etc... doivent se charger de permettre à l'utilisateur, une fois un vol slectionné dans l'historique, de choisi d'ancrer, c'est à dire crééer les fichier qui seront envoyés dans la blockchain. l'utilisateur pourra visualisé le json qui sera enregisré (le json contien des champs définits spécialment pour l'ancrage afin de correspondre à la frome attendue dans l'api blockchain) et pouur ajouter un commentair. coté carte, il pourra visualiser le tracé et ajouter des capture de la carte via un bouton qui capturera le rendu actuellement consulté et stockera une fois l'ancrage valde les images dans un dosier zippé. ce dossier zipé continet toutes les pruves, images captures mais aussi la litse complete des trace avec la date de départ et leur valeur de temps associé.
-
-Pour commencer nous analyserons les anciens fichier obselets afin de faire le tri et de refactoriser le tout pour correspondre à la logique attendue
+Coté frontend, les composantes Anchor, useAnchorModal etc... doivent se charger de permettre à l'utilisateur, une fois un vol sélectionné dans l'historique,
+de choisi d'ancrer, c'est à dire créer les fichier qui seront envoyés dans la blockchain.
+l'utilisateur pourra visualisé le json qui sera enregistré (le json contiens des champs définit spécialement pour l'ancrage afin de correspondre à la frome
+attendue dans l'api blockchain) et pour ajouter un commentaire.
+coté carte,  elle est positionnée à l'ouverture sur la zone du vol (comme sur la carte principale ) il pourra visualiser le tracé et déplacer la carte pour
+choisir quelle partie sera passé au moment de la capture. 
+Lors de la validation de l'ancrage, un dossier nommé de façon cohérente (date , id etc...) est créé et contiens le json d'ancrage, et un dossier zippé,
+ce dossier zippé contient toutes les preuves, images capturées mais aussi la liste complète des trace avec la date de départ et leur valeur de temps associé.
+pour la partie backend, une fois un enregistrement validé et le dossier créé, le front enverra le nom du dossier par une route afin que le backend gère
+une liste des dossier à ancrer une fois une connexion internet disponible et connexion à la blockchain établie.
 
 
 

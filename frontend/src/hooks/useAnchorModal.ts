@@ -1,15 +1,18 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/models";
-import { buildAnchorData, generateAnchorZip, sendAnchorToBackend } from "../services/anchorService";
+import { buildAnchorData, generateZipFromData /* , sendAnchorData */ } from "../services/anchorService";
 import html2canvas from "html2canvas";
 import { config } from "../config";
 
-interface UseAnchorModalResult {
+interface UseAnchorModal {
   anchorModal: AnchorModal | null;
   anchorDescription: string;
   isZipping: boolean;
-  setAnchorModal: (modal: AnchorModal | null) => void;
+  mapReady: boolean;
   setAnchorDescription: (desc: string) => void;
+  setAnchorModal: (modal: AnchorModal | null) => void;
+  setMapContainer: (container: HTMLElement | null) => void;
+  setMapReady: (ready: boolean) => void;
   onValidate: () => Promise<void>;
   onCancel: () => void;
   openModal: (flight: Flight, trace?: LatLng[]) => void;
@@ -22,49 +25,15 @@ interface UseAnchorModalOptions {
   debug?: boolean;
 }
 
-function getRefCurrent(ref: React.Ref<HTMLElement | null>): HTMLElement | null {
-  if (!ref) return null;
-  if (typeof ref === "function") {
-    return null;
-  }
-  return ref.current ?? null;
-}
-
-function waitForStableRef(
-  ref: React.RefObject<HTMLElement>,
-  timeoutMs = 7000,
-  stableDelayMs = 200
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let elapsed = 0;
-    let lastPresence = 0;
-    const interval = 50;
-    const check = () => {
-      if (ref.current) {
-        if (lastPresence === 0) lastPresence = elapsed;
-        else if (elapsed - lastPresence >= stableDelayMs) {
-          resolve();
-          return;
-        }
-      } else {
-        lastPresence = 0; // Reset if ref disappears
-      }
-      elapsed += interval;
-      if (elapsed >= timeoutMs) reject(new Error("Timeout waiting for stable ref"));
-      else setTimeout(check, interval);
-    };
-    check();
-  });
-}
-
 export default function useAnchorModal({
   handleSelect,
   debug = config.debug || config.environment === "development",
-}: UseAnchorModalOptions = {}): UseAnchorModalResult {
+}: UseAnchorModalOptions = {}): UseAnchorModal {
   const [anchorModal, setAnchorModal] = useState<AnchorModal | null>(null);
   const [anchorDescription, setAnchorDescription] = useState("");
   const [isZipping, setIsZipping] = useState(false);
   const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorData> | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const traceRef = useRef<LatLng[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
 
@@ -79,103 +48,111 @@ export default function useAnchorModal({
   );
 
   const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
-    dlog("Ouverture modal pour vol :", flight.id);
+    dlog("Open modal for flight", flight.id);
     traceRef.current = trace;
     setAnchorModal({ flight });
     setAnchorDescription("");
+    setMapReady(false);
     if (handleSelect) {
-      dlog("Appel de handleSelect avec vol id:", flight.id);
       handleSelect({ ...flight, _type: "local" });
     }
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
     setAnchorDataPreview(buildAnchorData(flight, "", traceConverted));
   }, [convertTrace, dlog, handleSelect]);
 
+  const setMapContainer = useCallback((node: HTMLElement | null) => {
+    mapDivRef.current = node;
+  }, []);
+
   useEffect(() => {
     if (!anchorModal?.flight) return;
     const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
-    const newAnchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
-    dlog("Mise à jour des données d’ancrage avec description:", anchorDescription);
-    setAnchorDataPreview(newAnchorData);
+    const newData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
+    setAnchorDataPreview(newData);
+    dlog("Updated anchor data with description", anchorDescription);
   }, [anchorDescription, anchorModal, convertTrace, dlog]);
 
   const onCancel = useCallback(() => {
-    dlog("Fermeture du modal");
+    dlog("Cancel anchor modal");
     setAnchorModal(null);
     setAnchorDescription("");
     traceRef.current = [];
     setAnchorDataPreview(null);
+    setMapReady(false);
   }, [dlog]);
 
   const captureMap = useCallback(async (): Promise<Blob> => {
-    dlog("Attente ref stable pour capture");
-    await waitForStableRef(mapDivRef, 7000, 300);
-    await new Promise(res => setTimeout(res, 300)); // Temps supplémentaire avant capture
-    const currentRef = mapDivRef.current;
-    if (!currentRef) throw new Error("Ref non disponible au moment de la capture");
-    dlog("Capture du container prête", currentRef);
-    const canvas = await html2canvas(currentRef, {
+    if (!mapReady) throw new Error("Map is not ready for capture");
+    const node = mapDivRef.current;
+    if (!node) throw new Error("Map container not found");
+    dlog("Ready for capture:", node);
+    await new Promise(res => setTimeout(res, 300));
+    const canvas = await html2canvas(node, {
       useCORS: true,
       allowTaint: true,
-      backgroundColor: "#fff",
+      backgroundColor: "white",
       scale: 2,
       logging: false,
     } as any);
     return new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        blob => {
-          dlog(blob ? "Capture réalisée avec succès." : "Capture échouée.");
-          blob ? resolve(blob) : reject(new Error("Impossible de capturer la carte"));
-        },
-        "image/png",
-        1.0
-      );
+      canvas.toBlob((blob) => {
+        if (blob) {
+          dlog("Capture succeeded");
+          resolve(blob);
+        } else {
+          dlog("Capture failed");
+          reject(new Error("Failed to capture map image"));
+        }
+      }, "image/png", 1.0);
     });
-  }, [dlog, mapDivRef]);
+  }, [mapReady, mapDivRef, dlog]);
 
   const onValidate = useCallback(async () => {
-    if (!anchorModal) {
-      dlog("Validation ignorée, aucun modal actif.");
-      return;
-    }
+    if (!anchorModal) return;
     setIsZipping(true);
-    dlog("Début validation pour vol id:", anchorModal.flight.id);
     try {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      dlog("Lancement capture de la carte...");
-      const mapImageBlob = await captureMap();
-      dlog("Construction des données JSON d'ancrage...");
+      await new Promise(res => setTimeout(res, 650));
+      dlog("Starting capture");
+      const imgBlob = await captureMap();
+      dlog("Building anchor data");
       const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
       const anchorData = buildAnchorData(anchorModal.flight, anchorDescription, traceConverted);
-      dlog("Création du ZIP avec image et positions...");
-      const zipBlob = await generateAnchorZip(mapImageBlob, traceConverted);
-      dlog("Envoi des données au backend...");
-      await sendAnchorToBackend(anchorData, zipBlob);
-      dlog("Ancrage signalé avec succès.");
+      dlog("Generating ZIP");
+      const zipBlob = await generateZipFromData(imgBlob, traceConverted);
+      const zipFileName = `anchor_${anchorData.id ?? "unknown"}_${new Date().toISOString()}.zip`;
+
+      dlog("Zip creation done. Filename:", zipFileName);
+      // NOTE: Backend upload temporarily disabled, store info locally if needed.
+      // To implement later when backend ready.
+
+      // Old sending code:
+      // await sendAnchorData(anchorData, zipBlob);
+
       if (handleSelect) {
-        dlog("Mise à jour sélection vol ancré via handleSelect.");
         handleSelect({ ...anchorModal.flight, _type: "local" });
       }
       onCancel();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erreur inconnue";
-      dlog("[useAnchorModal] Erreur lors de la validation:", e);
-      alert("Erreur lors de l'ancrage : " + message);
+    } catch (e) {
+      alert("Error during anchoring: " + (e instanceof Error ? e.message : "Unknown error"));
+      dlog("Error during anchoring:", e);
     } finally {
       setIsZipping(false);
     }
-  }, [anchorModal, anchorDescription, captureMap, convertTrace, dlog, handleSelect, onCancel]);
+  }, [anchorModal, anchorDescription, captureMap, convertTrace, handleSelect, onCancel, dlog]);
 
   return {
     anchorModal,
     anchorDescription,
     isZipping,
-    setAnchorModal,
+    mapReady,
     setAnchorDescription,
+    setAnchorModal,
     onValidate,
     onCancel,
     openModal,
     anchorDataPreview,
     mapDivRef,
+    setMapContainer,
+    setMapReady,
   };
 }

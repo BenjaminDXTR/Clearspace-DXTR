@@ -12,7 +12,6 @@ import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
 import {
   getFlightTrace,
-  stripTimestampFromTrace,
   isLatLng,
 } from "../../utils/coords";
 import { config } from "../../config";
@@ -31,6 +30,9 @@ interface AnchorModalLayoutProps {
   debug?: boolean;
   children?: ReactNode;
   mapDivRef: React.RefObject<HTMLDivElement>;
+  mapReady: boolean;
+  setMapReady: (ready: boolean) => void;
+  setMapContainer?: (container: HTMLElement | null) => void;
 }
 
 function getRefCurrent<T>(ref: React.RefObject<T>): T | null {
@@ -49,6 +51,9 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   debug = config.debug || config.environment === "development",
   children,
   mapDivRef,
+  mapReady,
+  setMapReady,
+  setMapContainer,
 }, ref) => {
   const dlog = useCallback((...args: unknown[]) => {
     if (debug) console.log("[AnchorModal]", ...args);
@@ -57,17 +62,12 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   const modalContentRef = useRef<HTMLDivElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Prise en compte du fallback center et zoom si manquants
   const { points: trace, center: rawCenter, zoom: rawZoom } = useFlightData(anchorModal?.flight ?? null, 1);
-  const center = rawCenter ?? [48.8584, 2.2945]; // fallback Paris
+  const center = rawCenter ?? [48.8584, 2.2945];
   const zoom = rawZoom ?? 13;
 
-  dlog("useFlightData points and center", trace.length, center);
-
   const hasValidTrace = trace.length > 0 && trace.every(isLatLng);
-  const disableValidation = isZipping || !hasValidTrace;
-
-  dlog("disableValidation:", disableValidation, "isZipping:", isZipping, "hasValidTrace:", hasValidTrace);
+  const disableValidation = isZipping || !hasValidTrace || !mapReady;
 
   useEffect(() => {
     if (anchorModal?.flight) {
@@ -76,13 +76,14 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
         modalContentRef.current.scrollTop = 0;
         dlog("Scrolled modal to top");
       }
+      setMapReady(false);
     }
-  }, [anchorModal, dlog]);
+  }, [anchorModal, dlog, setMapReady]);
 
   useEffect(() => {
     const current = getRefCurrent(mapDivRef);
     if (current) {
-      dlog("mapDivRef current:", current);
+      dlog("mapDivRef current:", current, "dimensions:", current.offsetWidth, current.offsetHeight);
     } else {
       dlog("mapDivRef current is null or not stable");
     }
@@ -111,7 +112,12 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   const handleValidate = async () => {
     dlog("Validate clicked");
     setErrorMsg(null);
+    if (!mapReady) {
+      setErrorMsg("La carte n'est pas encore prête à la capture.");
+      return;
+    }
     try {
+      await new Promise(res => setTimeout(res, 800));
       await onValidate();
       dlog("Validate finished without error");
     } catch (error) {
@@ -162,8 +168,14 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
               showMarkers
               center={center}
               zoom={zoom}
-              className="modal-map"
-              flyToTrigger={1}
+              className="modal-map-capture"
+              onMapReady={(container) => {
+                dlog("Carte prête et stable", container);
+                setMapReady(true);
+                if (setMapContainer) {
+                  setMapContainer(container);
+                }
+              }}
             />
             {!hasValidTrace && (
               <div className="anchor-modal-warning" role="alert">

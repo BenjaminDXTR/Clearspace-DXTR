@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, CSSProperties } from "react";
+import React, { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo, CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -43,6 +43,7 @@ interface FlightMapProps {
   livePosition?: LatLngLiteral | LatLngTuple | null;
   startPosition?: LatLngLiteral | LatLngTuple | null;
   flyToTrigger?: number;
+  onMapReady?: (container: HTMLElement) => void; // Callback event prop added
 }
 
 const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
@@ -62,6 +63,7 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
   livePosition = null,
   startPosition = null,
   flyToTrigger,
+  onMapReady,
 }, ref) => {
   const mapRef = useRef<LeafletMap | null>(null);
 
@@ -74,26 +76,47 @@ const FlightMap = forwardRef<HTMLDivElement, FlightMapProps>(({
   useImperativeHandle(ref, () => {
     if (mapRef.current) {
       const container = mapRef.current.getContainer();
-      dlog("[FlightMap] Expose container ref", container);
+      dlog("[FlightMap][imperativeHandle] expose container ref", container, "size:", container.offsetWidth, container.offsetHeight, "children:", container.childElementCount);
       return container as HTMLDivElement;
     }
     dlog("[FlightMap] Ref container non définie");
     return null as unknown as HTMLDivElement;
-  }, [mapRef.current]);
+  }, [mapRef.current, dlog]);
 
-  const validTrace = trace.filter(isLatLng);
+  const validTrace = useMemo(() => trace.filter(isLatLng), [trace]);
   const hasTrace = validTrace.length > 0;
 
-  const computedCenter: [number, number] =
-    center ??
-    (hasTrace
-      ? (validTrace[Math.floor(validTrace.length / 2)] as [number, number])
-      : [48.8584, 2.2945]);
+  const computedCenter: [number, number] = useMemo(() => {
+    if (center) return center;
+    if (hasTrace) return validTrace[Math.floor(validTrace.length / 2)] as [number, number];
+    return [48.8584, 2.2945];
+  }, [center, hasTrace, validTrace]);
 
   useEffect(() => {
     dlog(`flyToTrigger reçu: ${flyToTrigger}`);
     dlog(`Position passée à FlyToPosition: ${JSON.stringify(toLatLngTuple(livePosition ?? startPosition))}`);
   }, [flyToTrigger, livePosition, startPosition, dlog]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const leafletMap = mapRef.current;
+
+    const onReady = () => {
+      dlog("[FlightMap] map whenReady triggered");
+      if (onMapReady) {
+        const container = leafletMap.getContainer();
+        onMapReady(container);
+      }
+    };
+
+    leafletMap.whenReady(onReady);
+
+    leafletMap.on("moveend", onReady);
+
+    return () => {
+      leafletMap.off("moveend", onReady);
+    };
+  }, [onMapReady, dlog]);
 
   return (
     <MapContainer

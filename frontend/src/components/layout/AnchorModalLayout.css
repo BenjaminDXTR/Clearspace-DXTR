@@ -89,12 +89,6 @@
   border-radius: 12px;
   border: 1.7px solid #dbe4ee;
   margin-bottom: 12px;
-  background-color: rgba(0, 0, 255, 0.1);
-
-}
-
-.modal-map {
-   background-color: rgba(0, 0, 255, 0.1);
 }
 
 .modal-map-capture {
@@ -108,8 +102,6 @@
   aspect-ratio: 1 / 1;
   display: block;
   box-sizing: border-box;
-  background-color: rgba(0, 0, 255, 0.1);
-
 }
 
 /* Description textarea spacieuse */

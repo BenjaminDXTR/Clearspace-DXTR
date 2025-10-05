@@ -1,4 +1,3 @@
-// src/hooks/useAppLogic.ts
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useDrones } from "../contexts/DronesContext";
 import { useProcessedFlights } from "./useProcessedFlights";
@@ -144,34 +143,35 @@ export default function useAppLogic() {
     dlog(`[useAppLogic] Selected flight trace changed, current flyTrigger=${flyTrigger}`);
   }, [selected?.trace, flyTrigger, dlog]);
 
-	const getTraceForFlight = useCallback(
-		(flight: Flight): LatLngTimestamp[] => {
-			let trace: LatLngTimestamp[] = [];
+  const getTraceForFlight = useCallback(
+    (flight: Flight): LatLngTimestamp[] => {
+      let trace: LatLngTimestamp[] = [];
 
-			if (flight.type === "live") {
-				trace = (liveTraces[flight.id] as { trace: LatLngTimestamp[] } | undefined)?.trace ?? [];
-			} else if (flight.type === "local") {
-				const raw = (flight as any).trace ?? [];
-				if (raw.length > 0) {
-					if (raw[0].length === 3) {
-						trace = raw as LatLngTimestamp[];
-					} else if (raw[0].length === 2) {
-						trace = raw.map((pt: any[]) => [pt[0], pt[1], 0]);
-					}
-				}
-			}
-
-			dlog(`[getTraceFlight] Flight id: ${flight.id} trace length: ${trace.length}`);
-			return trace;
-		},
-		[liveTraces, dlog]
-	);
-
+      if (flight.type === "live") {
+        trace = (liveTraces[flight.id] as { trace: LatLngTimestamp[] } | undefined)?.trace ?? [];
+      } else if (flight.type === "local") {
+        const raw = (flight as any).trace ?? [];
+        if (raw.length > 0) {
+          if (raw[0].length === 3) {
+            trace = raw as LatLngTimestamp[];
+          } else if (raw[0].length === 2) {
+            trace = raw.map((pt: any[]) => [pt[0], pt[1], 0]);
+          }
+        }
+      }
+      dlog(`[getTraceFlight] Flight id: ${flight.id} trace length: ${trace.length}`);
+      return trace;
+    },
+    [liveTraces, dlog]
+  );
 
   const {
     anchorModal,
     anchorDescription,
     isZipping,
+    mapReady,
+    setMapReady,
+    setMapContainer,
     setAnchorDescription,
     openModal,
     onValidate,
@@ -265,6 +265,9 @@ export default function useAppLogic() {
     anchorModal,
     anchorDescription,
     isZipping,
+    mapReady,
+    setMapReady,
+    setMapContainer,
     setAnchorDescription,
     openModal,
     onValidate,

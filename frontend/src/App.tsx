@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo } from "react";
 import "./App.css";
 
 import { DronesProvider } from "./contexts/DronesContext";
@@ -11,16 +11,16 @@ import ErrorPanel from "./components/common/ErrorPanel";
 import HistoryFileSelector from "./components/common/HistoryFileSelector";
 import DetailsPanel from "./components/flights/DetailsPanel";
 
-import { LIVE_FIELDS, LOCAL_FIELDS, LIVE_DETAILS } from "./utils/constants";
+import { LIVE_FIELDS, LOCAL_FIELDS } from "./utils/constants";
 import useAppLogic from "./hooks/useAppLogic";
 
 function AppContent() {
   const logic = useAppLogic();
 
-  // La ref est créée une seule fois et stable sur toute la vie du composant
+  // Ref stable pour la carte dans modal ancrage
   const mapDivRef = useRef<HTMLDivElement | null>(null);
 
-  console.log("AppContent mapDivRef initial:", mapDivRef.current);
+  const memoAnchorModal = useMemo(() => logic.anchorModal, [logic.anchorModal?.flight?.id]);
 
   return (
     <div>
@@ -90,9 +90,9 @@ function AppContent() {
         </div>
       </div>
 
-      {logic.anchorModal && (
+      {memoAnchorModal && (
         <AnchorModalLayout
-          anchorModal={logic.anchorModal}
+          anchorModal={memoAnchorModal}
           anchorDataPreview={logic.anchorDataPreview}
           anchorDescription={logic.anchorDescription}
           setAnchorDescription={logic.setAnchorDescription}
@@ -101,7 +101,10 @@ function AppContent() {
           onValidate={logic.onValidate}
           onCancel={logic.onCancel}
           mapDivRef={mapDivRef}
-          key={logic.anchorModal?.flight?.id}
+          mapReady={logic.mapReady}
+          setMapReady={logic.setMapReady}
+          setMapContainer={logic.setMapContainer}
+          key={memoAnchorModal?.flight?.id}
         />
       )}
     </div>

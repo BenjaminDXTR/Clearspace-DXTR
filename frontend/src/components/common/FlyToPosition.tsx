@@ -9,11 +9,11 @@ interface FlyToPositionProps {
   position?: LatLngTuple | null;
   /** Niveau de zoom lors du déplacement */
   zoom?: number;
-  /** Durée de l’animation (en secondes) */
+  /** Durée de l'animation */
   duration?: number;
-  /** Logs console debug (par défaut désactivé en prod) */
+  /** Logs console debug (default off in prod) */
   debug?: boolean;
-  /** Trigger pour savoir quand déclencher le flyTo */
+  /** Trigger pour démarrer le flyTo */
   flyToTrigger?: number;
 }
 
@@ -34,22 +34,24 @@ export default function FlyToPosition({
     dlog(`useEffect triggered with flyToTrigger=${flyToTrigger}`);
 
     if (flyToTrigger === undefined) {
-      dlog("flyToTrigger is undefined, skipping flyTo animation");
+      dlog("flyToTrigger is undefined, skipping flyTo");
       return;
     }
-
     if (!isLatLng(position)) {
-      dlog("Invalid position, skipping flyTo animation", position);
+      dlog("Invalid position, skipping flyTo", position);
       return;
     }
 
     const timer = setTimeout(() => {
+      dlog(`Executing flyTo at position=${JSON.stringify(position)} zoom=${zoom} duration=${duration}`);
       map.flyTo(position!, zoom, { duration });
-      dlog("map.flyTo called");
     }, 50);
 
-    return () => clearTimeout(timer);
-  }, [flyToTrigger]); // <- uniquement flyToTrigger comme dépendance
+    return () => {
+      dlog("Clearing flyTo timeout");
+      clearTimeout(timer);
+    };
+  }, [flyToTrigger]);  // seul flyToTrigger déclenche l'effet, évitant les reruns inutiles
 
   return null;
 }
