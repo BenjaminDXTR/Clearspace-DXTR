@@ -1,4 +1,20 @@
 backend
+  anchored
+    anchor_1748CLONEHMG924501040_2025-10-05T20-18-15-067Z
+      ancrage.json
+      carte.png
+      preuve.json
+      preuve.zip
+    anchor_1748FEV3HMG924501040_2025-10-05T19-51-05-734Z
+      ancrage.json
+      carte.png
+      preuve.json
+      preuve.zip
+    anchor_1748FEV3HMG924501040_2025-10-05T19-54-07-029Z
+      ancrage.json
+      carte.png
+      preuve.json
+      preuve.zip
   flightsManager
     fileOperations.js
     flightsController.js
@@ -9,7 +25,7 @@ backend
     state.js
     utils.js
   history
-    history-2025-09-28_to_2025-10-04.json
+    history-2025-10-05_to_2025-10-11.json
   middleware
     errorHandler.js
     notFoundHandler.js
@@ -136,7 +152,6 @@ arborescences.txt
 env.exemple
 env.prod
 envBureau
-notePlan.txt
 package-lock.json
 README.md
 start-servers.bat
