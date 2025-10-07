@@ -18,6 +18,7 @@ import { config } from "../../config";
 import "./AnchorModalLayout.css";
 import useFlightData from "../../hooks/useFlightMapData";
 
+
 interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
   anchorDescription: string;
@@ -35,9 +36,11 @@ interface AnchorModalLayoutProps {
   setMapContainer?: (container: HTMLElement | null) => void;
 }
 
+
 function getRefCurrent<T>(ref: React.RefObject<T>): T | null {
   return ref.current ?? null;
 }
+
 
 const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   anchorModal,
@@ -62,7 +65,10 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   const modalContentRef = useRef<HTMLDivElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { points: trace, center: rawCenter, zoom: rawZoom } = useFlightData(anchorModal?.flight ?? null, 1);
+  // Ajout du trigger dynamique pour le flyTo
+  const [flyToTrigger, setFlyToTrigger] = useState(0);
+
+  const { points: trace, center: rawCenter, zoom: rawZoom } = useFlightData(anchorModal?.flight ?? null, flyToTrigger);
   const center = rawCenter ?? [48.8584, 2.2945];
   const zoom = rawZoom ?? 13;
 
@@ -77,6 +83,9 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
         dlog("Scrolled modal to top");
       }
       setMapReady(false);
+
+      // Incrémenter flyToTrigger pour forcer le recentrage à chaque ouverture
+      setFlyToTrigger(ft => ft + 1);
     }
   }, [anchorModal, dlog, setMapReady]);
 
@@ -169,6 +178,7 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
               center={center}
               zoom={zoom}
               className="modal-map-capture"
+              flyToTrigger={flyToTrigger} /* ajout */
               onMapReady={(container) => {
                 dlog("Carte prête et stable", container);
                 setMapReady(true);
@@ -211,6 +221,7 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
     </div>
   );
 });
+
 
 AnchorModalLayout.displayName = "AnchorModalLayout";
 
