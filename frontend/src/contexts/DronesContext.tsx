@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import type { Flight } from '../types/models';
 import { fetchHistoryFile } from '../api/history';
+import { config } from '../config';
 
 interface DronesContextValue {
   drones: Flight[];
@@ -44,7 +45,8 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const lastError = useRef<{ msg: string; time: number } | null>(null);
   const errorThrottle = 5000;
 
-  const websocketUrl = `ws://${window.location.hostname}:3200`;
+  const websocketUrl = config.websocketUrl;
+
 
   function clearTimeouts() {
     if (pingTimeout.current) {
