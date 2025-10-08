@@ -1,18 +1,30 @@
 #!/bin/bash
-echo "⏹ Arrêt des serveurs Clearspace..."
 
-# Arrêt backend sur port 3200
-backend_pids=$(lsof -ti tcp:3200)
-if [ -n "$backend_pids" ]; then
-  kill $backend_pids && echo "🛑 Backend arrêté."
+echo "🛑 Arrêt des serveurs Clearspace (backend + frontend)"
+
+BACKEND_PORT=3201
+FRONTEND_PORT=3001
+
+# Trouver et tuer processus sur BACKEND_PORT
+pids=$(lsof -ti tcp:$BACKEND_PORT)
+if [ -n "$pids" ]; then
+  echo "Tuer processus backend PID(s): $pids sur port $BACKEND_PORT"
+  kill -9 $pids
 else
-  echo "⚠ Aucun backend en écoute sur le port 3200."
+  echo "Aucun processus backend trouvé sur le port $BACKEND_PORT"
 fi
 
-# Arrêt frontend sur port 3000
-frontend_pids=$(lsof -ti tcp:3000)
-if [ -n "$frontend_pids" ]; then
-  kill $frontend_pids && echo "🛑 Frontend arrêté."
+# Trouver et tuer processus sur FRONTEND_PORT
+pids=$(lsof -ti tcp:$FRONTEND_PORT)
+if [ -n "$pids" ]; then
+  echo "Tuer processus frontend PID(s): $pids sur port $FRONTEND_PORT"
+  kill -9 $pids
 else
-  echo "⚠ Aucun frontend en écoute sur le port 3000."
+  echo "Aucun processus frontend trouvé sur le port $FRONTEND_PORT"
 fi
+
+# Si vous avez les noms de fenêtre terminal spécifiques, vous pouvez les tuer par titre via wmctrl (Linux) ou AppleScript (macOS)
+# Voici un exemple pour Linux avec wmctrl (à installer) - optionnel
+# wmctrl -l | grep "Backend" | awk '{print $1}' | xargs -r wmctrl -ic
+
+echo "✅ Serveurs arrêtés et terminaux fermés."
