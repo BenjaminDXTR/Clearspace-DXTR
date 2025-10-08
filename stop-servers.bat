@@ -1,22 +1,31 @@
 @echo off
-echo ⏹ Arrêt des serveurs Clearspace...
+SETLOCAL ENABLEDELAYEDEXPANSION ENABLEEXTENSIONS
 
-REM Arrêt backend sur port 3200
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3200') do set PIDBACK=%%a
-if defined PIDBACK (
-  taskkill /F /PID %PIDBACK%
-  echo 🛑 Backend arrêté (PID %PIDBACK%)
-) else (
-  echo ⚠ Aucun backend trouvé sur le port 3200.
+echo 🛑 Arrêt des serveurs Clearspace (backend + frontend)
+
+REM Ports utilisés (doivent correspondre à ceux dans .env)
+set BACKEND_PORT=3201
+set FRONTEND_PORT=3001
+
+REM Vérifier et tuer processus backend sur BACKEND_PORT
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%BACKEND_PORT% ^| findstr LISTENING') do (
+  echo Tuer processus backend PID: %%a sur port %BACKEND_PORT%
+  taskkill /PID %%a /F >nul 2>&1
 )
 
-REM Arrêt frontend sur port 3000
-for /f "tokens=5" %%b in ('netstat -ano ^| findstr :3000') do set PIDFRONT=%%b
-if defined PIDFRONT (
-  taskkill /F /PID %PIDFRONT%
-  echo 🛑 Frontend arrêté (PID %PIDFRONT%)
-) else (
-  echo ⚠ Aucun frontend trouvé sur le port 3000.
+REM Vérifier et tuer processus frontend sur FRONTEND_PORT
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%FRONTEND_PORT% ^| findstr LISTENING') do (
+  echo Tuer processus frontend PID: %%a sur port %FRONTEND_PORT%
+  taskkill /PID %%a /F >nul 2>&1
 )
 
-pause
+REM Tuer toutes les fenêtres de terminal "Backend" ouvertes (adapté si vous avez lancé avec ce titre)
+taskkill /FI "WINDOWTITLE eq Backend" /T /F >nul 2>&1
+
+REM Tuer toutes les fenêtres de terminal "Frontend" ouvertes
+taskkill /FI "WINDOWTITLE eq Frontend" /T /F >nul 2>&1
+
+
+echo ✅ Serveurs arrêtés et terminaux fermés.
+
+ENDLOCAL

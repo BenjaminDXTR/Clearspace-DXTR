@@ -1,6 +1,5 @@
 import type { Flight } from "../types/models";
-
-const baseApiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3200";
+import { config } from "../config";
 
 /**
  * Wrapper fetch avec gestion de retry en cas d'erreur réseau.
@@ -27,6 +26,8 @@ async function fetchWithRetry(
   }
   throw new Error("Fetch échoué après plusieurs tentatives");
 }
+
+const baseApiUrl = config.apiUrl;
 
 export async function fetchHistoryFile(filename: string): Promise<Flight[]> {
   if (!filename) {
@@ -72,4 +73,3 @@ export async function fetchHistoryFlight(filename: string, flightId: string): Pr
   console.log(`[fetchHistoryFlight] Parsed flight with id=${flightId}`, json);
   return json as Flight;
 }
-
