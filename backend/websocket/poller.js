@@ -6,6 +6,7 @@ const { flightTraces } = require('../flightsManager/state');
 const { clients } = require('./connections');
 const updateTrace = require('./updateTrace');
 const { config } = require('../config');
+const { applyTimeOffset } = require('../utils/dateUtils');
 
 let isPolling = false;
 
@@ -62,6 +63,14 @@ async function poller() {
             if (!drone.id) {
                 log.warn('[poller] Drone without ID skipped');
                 continue;
+            }
+
+            // Appliquer décalage horaire configurable sur les timestamps ISO
+            if (drone.created_time) {
+                drone.created_time = applyTimeOffset(drone.created_time, config.backend.timeOffsetHours);
+            }
+            if (drone.lastseen_time) {
+                drone.lastseen_time = applyTimeOffset(drone.lastseen_time, config.backend.timeOffsetHours);
             }
 
             await updateTrace(drone);

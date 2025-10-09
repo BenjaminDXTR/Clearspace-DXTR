@@ -65,4 +65,64 @@ async function flushAllCache() {
   log.info('[flushAllCache] All cache flushed successfully');
 }
 
-module.exports = { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache };
+// --- Nouvelle fonction pour recherche/création fichier historique ---
+const DATE_REGEX = /^history-(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})\.json$/;
+
+function parseDate(str) {
+  return new Date(str + 'T00:00:00Z');
+}
+
+function formatDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Recherche dans le dossier history un fichier couvrant la date donnée,
+ * ou crée un nouveau fichier couvrant la période de 7 jours glissants à partir de cette date.
+ *
+ * @param {string} dateStr date au format ISO "YYYY-MM-DD" ou iso string
+ * @returns {string} nom fichier historique
+ */
+async function findOrCreateHistoryFile(dateStr) {
+  await ensureHistoryDirExists();
+
+  const files = await fs.readdir(historyBaseDir);
+  const date = parseDate(dateStr.slice(0, 10)); // garantir format date iso YYYY-MM-DD
+
+  // Chercher fichier couvrant la date
+  for (const file of files) {
+    const match = file.match(DATE_REGEX);
+    if (match) {
+      const start = parseDate(match[1]);
+      const end = parseDate(match[2]);
+      if (date >= start && date <= end) {
+        log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
+        return file;
+      }
+    }
+  }
+
+  // Aucun fichier couvrant la date, créer une nouvelle période glissante 7 jours
+  const start = date;
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const newFile = `history-${formatDate(start)}_to_${formatDate(end)}.json`;
+  log.info(`[historyCache] No existing file for date ${dateStr}, creating new file ${newFile}`);
+
+  // Initialise fichier vide dans cache pour ce nouveau fichier (créé à la sauvegarde)
+  if (!historyCache.has(newFile)) {
+    historyCache.set(newFile, []);
+  }
+
+  return newFile;
+}
+
+// --- Exporter la nouvelle fonction ---
+module.exports = {
+  loadHistoryToCache,
+  flushCacheToDisk,
+  flushAllCache,
+  historyCache,
+  findOrCreateHistoryFile
+};
