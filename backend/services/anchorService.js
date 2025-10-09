@@ -95,7 +95,7 @@ async function handlePostAnchor(req, res) {
       return res.status(400).json({ error: 'anchorData invalide (JSON mal formé)' });
     }
 
-    if (!anchorData.id || !anchorData.created_time) {
+    if (!anchorData.extra?.id || !anchorData.time) {
       log.warn('id ou created_time manquant');
       return res.status(400).json({ error: 'id et created_time requis' });
     }

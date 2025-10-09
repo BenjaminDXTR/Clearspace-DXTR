@@ -20,25 +20,21 @@ export interface PositionPoint {
 }
 
 export interface AnchorData {
-  type: "drone";
-  id?: string;
-  modele?: string;
-  "xtr5 serial number"?: string;
-  created_time?: string;
+  time: string;
   positionCible: {
-    latitude: number;
-    longitude: number;
-    altitude: number;
-    distance: number;
+    lat: string;
+    lon: string;
+    alt: string;
   };
   positionVehicule: {
-    latitude: number;
-    longitude: number;
-    altitude: number;
+    lat: string;
+    lon: string;
+    alt: string;
   };
+  type: string;
+  siteId: string;
   comment: string;
-  anchored_at: string;
-  // Ne plus inclure trace dans l'objet principal
+  extra?: Record<string, any>;
 }
 
 export interface AnchorResponse {
@@ -76,27 +72,34 @@ export const AnchorJsonModel = {
 };
 
 // Construction du JSON principal sans trace
-export function buildAnchorDataPrincipal(flight: Flight, comment = ""): AnchorData {
+export function buildAnchorDataPrincipal(
+  flight: Flight,
+  comment = "",
+  siteId = "3"
+): AnchorData {
   const nowISO = new Date().toISOString();
   return {
-    type: AnchorJsonModel.type,
-    id: flight.id ?? AnchorJsonModel.id,
-    modele: flight.name || flight.drone_type || AnchorJsonModel.modele,
-    "xtr5 serial number": AnchorJsonModel["xtr5 serial number"],
-    created_time: flight.created_time ? flight.created_time.toString() : AnchorJsonModel.created_time,
+    time: flight.created_time ? flight.created_time.toString() : nowISO,
+
     positionCible: {
-      latitude: flight.latitude ?? AnchorJsonModel.positionCible.latitude,
-      longitude: flight.longitude ?? AnchorJsonModel.positionCible.longitude,
-      altitude: flight.altitude ?? AnchorJsonModel.positionCible.altitude,
-      distance: flight.distance ?? AnchorJsonModel.positionCible.distance,
+      lat: (flight.latitude ?? 0).toString(),
+      lon: (flight.longitude ?? 0).toString(),
+      alt: (flight.altitude ?? 0).toString(),
     },
     positionVehicule: {
-      latitude: AnchorJsonModel.positionVehicule.latitude,
-      longitude: AnchorJsonModel.positionVehicule.longitude,
-      altitude: AnchorJsonModel.positionVehicule.altitude,
+      lat: "0",
+      lon: "0",
+      alt: "0",
     },
+    type: "2", // ex drone = "2"
+    siteId,
     comment,
-    anchored_at: nowISO,
+    extra: {
+      id: flight.id,
+      modele: flight.name || flight.drone_type,
+      serialNumber: flight.serial || "",
+      anchored_at: nowISO,
+    },
   };
 }
 

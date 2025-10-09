@@ -124,7 +124,7 @@ export default function useAnchorModal({
       const rawData = buildRawData(anchorModal.flight, traceConverted, anchorDescription);
       dlog("Generating ZIP with proof JSON");
       const zipBlob = await generateZipFromDataWithProof(imgBlob, rawData);
-      const zipFileName = `anchor_${anchorData.id ?? "unknown"}_${new Date().toISOString()}.zip`;
+      const zipFileName = `anchor_${anchorData.extra?.id ?? "unknown"}_${new Date().toISOString()}.zip`;
 
       dlog("Sending anchor data and proof to backend...");
       const formData = new FormData();
