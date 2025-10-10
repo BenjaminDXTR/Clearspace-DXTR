@@ -7,7 +7,7 @@ async function loadHistoryFile(filePath) {
     await fs.access(filePath);
   } catch (e) {
     if (e.code === 'ENOENT') {
-      log.info(`[loadHistoryFile] File not found, returning empty array for ${filePath}`);
+      //log.info(`[loadHistoryFile] File not found, returning empty array for ${filePath}`);
       return [];
     } else {
       log.error(`[loadHistoryFile] Error accessing file ${filePath}: ${e.message}`);
@@ -18,7 +18,7 @@ async function loadHistoryFile(filePath) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
     const data = JSON.parse(raw);
-    log.info(`[loadHistoryFile] Loaded file ${filePath} with ${data.length} entries`);
+    //log.info(`[loadHistoryFile] Loaded file ${filePath} with ${data.length} entries`);
     return data;
   } catch (e) {
     log.error(`[loadHistoryFile] Error reading or parsing file ${filePath}: ${e.message}`);
@@ -32,7 +32,7 @@ async function saveHistoryFile(filePath, data) {
     return;
   }
   if (data.length === 0) {
-    log.info(`[saveHistoryFile] Empty data array, skipping save for file ${filePath}`);
+    //log.info(`[saveHistoryFile] Empty data array, skipping save for file ${filePath}`);
     return;
   }
 
@@ -51,7 +51,7 @@ async function saveHistoryFile(filePath, data) {
   try {
     await fs.writeFile(tempFilePath, JSON.stringify(data, null, 2));
     await fs.rename(tempFilePath, filePath);
-    log.info(`[saveHistoryFile] Atomically saved file ${filePath} with ${data.length} entries`);
+    //log.info(`[saveHistoryFile] Atomically saved file ${filePath} with ${data.length} entries`);
   } catch (e) {
     log.error(`[saveHistoryFile] Error saving file atomically ${filePath}: ${e.message}`);
     throw e;

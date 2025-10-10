@@ -54,9 +54,9 @@ const simulatedPath2 = [
   [49.5309, 0.0920], [49.5305, 0.0922], [49.5301, 0.0924], [49.5298, 0.0926]
 ];
 
-let situationIndex = 0; // 0 or 1
+let situationIndex = 0; // 0 ou 1
 let stepIndex = 0;
-let cycleCreatedTime = null;
+let cycleCreatedTime = null;   // <--- Maintenir une date unique pour la situation courante
 let currentSimDrones = [];
 let interruptionTimeout = null;
 let droneCounter = 1;
@@ -65,7 +65,7 @@ function buildDrone(position, createdTime, now, base, idSuffix) {
   const d = JSON.parse(JSON.stringify(base));
   d.latitude = position[0];
   d.longitude = position[1];
-  d.created_time = createdTime;
+  d.created_time = createdTime;  // datetime fixe pour la situation
   d.lastseen_time = now;
   d.id = `SIM_DRONE_${idSuffix.toString().padStart(3, '0')}`;
   d.name = `SIMULATED DRONE ${idSuffix}`;
@@ -75,26 +75,26 @@ function buildDrone(position, createdTime, now, base, idSuffix) {
 function sendSimulationStep() {
   const now = new Date().toISOString();
 
-  // Récupérer la bonne trajectoire selon la situation
   const currentPath = situationIndex === 0 ? simulatedPath1 : simulatedPath2;
 
   if (stepIndex >= currentPath.length) {
     stepIndex = 0;
 
-    // Pause 30 secondes entre situations
+    // Pause 30s entre situations
     setTimeout(() => {
       situationIndex = (situationIndex + 1) % 2;
       droneCounter++;
-      cycleCreatedTime = null;
+      cycleCreatedTime = null;  // Réinitialiser la date pour la nouvelle situation
       currentSimDrones = [];
       sendSimulationStep();
     }, 30000);
 
-    // Envoyer tableau vide pour pause
+    // Envoyer tableau vide pendant pause
     currentSimDrones = [{ data: { drone: [] } }];
     return;
   }
 
+  // Initialiser cycleCreatedTime si c’est la première étape
   if (!cycleCreatedTime) {
     cycleCreatedTime = new Date().toISOString();
   }
@@ -103,10 +103,9 @@ function sendSimulationStep() {
 
   switch (situationIndex) {
     case 0:
-      // Situation 1 : vol complet avec pause
       {
         let drone = buildDrone(pos, cycleCreatedTime, now, testDrone, droneCounter);
-        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone.id);
+        currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id);
         currentSimDrones.push(drone);
         stepIndex++;
         setTimeout(sendSimulationStep, 2000);
@@ -114,7 +113,6 @@ function sendSimulationStep() {
       break;
 
     case 1:
-      // Situation 2 : vol avec interruption 5s (~2 steps)
       {
         if (stepIndex === 5) {
           currentSimDrones = [{ data: { drone: [] } }];
@@ -129,7 +127,7 @@ function sendSimulationStep() {
         }
 
         let drone = buildDrone(pos, cycleCreatedTime, now, testDrone, droneCounter);
-        currentSimDrones = currentSimDrones.filter((d) => d.id !== drone.id);
+        currentSimDrones = currentSimDrones.filter(d => d.id !== drone.id);
         currentSimDrones.push(drone);
         stepIndex++;
         setTimeout(sendSimulationStep, 2000);

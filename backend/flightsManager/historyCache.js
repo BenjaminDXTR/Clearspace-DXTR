@@ -24,11 +24,11 @@ async function loadHistoryToCache(filename) {
   await ensureHistoryDirExists();
   if (!historyCache.has(filename)) {
     const filePath = path.join(historyBaseDir, filename);
-    log.info(`[loadHistoryToCache] Loading ${filename} into cache from ${filePath}`);
+    //log.info(`[loadHistoryToCache] Loading ${filename} into cache from ${filePath}`);
     try {
       const data = await loadHistoryFile(filePath);
       historyCache.set(filename, data);
-      log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
+      //log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
     } catch (e) {
       log.error(`[loadHistoryToCache] Error loading ${filename}: ${e.message}`);
       historyCache.set(filename, []);
@@ -48,9 +48,9 @@ async function flushCacheToDisk(filename) {
   const data = historyCache.get(filename);
   const filePath = path.join(historyBaseDir, filename);
   try {
-    log.info(`[flushCacheToDisk] Saving cache to disk for file ${filename} at ${filePath} with ${data.length} entries`);
+    //log.info(`[flushCacheToDisk] Saving cache to disk for file ${filename} at ${filePath} with ${data.length} entries`);
     await saveHistoryFile(filePath, data);
-    log.info(`[flushCacheToDisk] Successfully saved cache for file ${filename}`);
+    //log.info(`[flushCacheToDisk] Successfully saved cache for file ${filename}`);
   } catch (e) {
     log.error(`[flushCacheToDisk] Error saving cache for file ${filename}: ${e.message}`);
   }
@@ -58,19 +58,32 @@ async function flushCacheToDisk(filename) {
 
 async function flushAllCache() {
   const filenames = Array.from(historyCache.keys());
-  log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
+  //log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
   for (const filename of filenames) {
     await flushCacheToDisk(filename);
   }
-  log.info('[flushAllCache] All cache flushed successfully');
+  //log.info('[flushAllCache] All cache flushed successfully');
 }
 
-// --- Nouvelle fonction pour recherche/création fichier historique ---
 const DATE_REGEX = /^history-(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})\.json$/;
 
-function parseDate(str) {
-  return new Date(str + 'T00:00:00Z');
+// Parses input date safely from string or Date object
+function parseDateInput(dateInput) {
+  if (!dateInput) {
+    log.warn('[parseDateInput] Date input is null or undefined, defaulting to now');
+    return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+  }
+  
+  if (typeof dateInput === 'string') {
+    return new Date(dateInput.slice(0, 10) + 'T00:00:00Z');
+  } else if (dateInput instanceof Date) {
+    return new Date(dateInput.toISOString().slice(0, 10) + 'T00:00:00Z');
+  } else {
+    log.warn('[parseDateInput] Unknown date input type, defaulting to now');
+    return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+  }
 }
+
 
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
@@ -80,29 +93,27 @@ function formatDate(date) {
  * Recherche dans le dossier history un fichier couvrant la date donnée,
  * ou crée un nouveau fichier couvrant la période de 7 jours glissants à partir de cette date.
  *
- * @param {string} dateStr date au format ISO "YYYY-MM-DD" ou iso string
+ * @param {string|Date} dateStr date au format ISO "YYYY-MM-DD", iso string, ou Date objet
  * @returns {string} nom fichier historique
  */
 async function findOrCreateHistoryFile(dateStr) {
   await ensureHistoryDirExists();
 
   const files = await fs.readdir(historyBaseDir);
-  const date = parseDate(dateStr.slice(0, 10)); // garantir format date iso YYYY-MM-DD
+  const date = parseDateInput(dateStr);
 
-  // Chercher fichier couvrant la date
   for (const file of files) {
     const match = file.match(DATE_REGEX);
     if (match) {
-      const start = parseDate(match[1]);
-      const end = parseDate(match[2]);
+      const start = new Date(match[1] + 'T00:00:00Z');
+      const end = new Date(match[2] + 'T00:00:00Z');
       if (date >= start && date <= end) {
-        log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
+        //log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
         return file;
       }
     }
   }
 
-  // Aucun fichier couvrant la date, créer une nouvelle période glissante 7 jours
   const start = date;
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
@@ -110,7 +121,6 @@ async function findOrCreateHistoryFile(dateStr) {
   const newFile = `history-${formatDate(start)}_to_${formatDate(end)}.json`;
   log.info(`[historyCache] No existing file for date ${dateStr}, creating new file ${newFile}`);
 
-  // Initialise fichier vide dans cache pour ce nouveau fichier (créé à la sauvegarde)
   if (!historyCache.has(newFile)) {
     historyCache.set(newFile, []);
   }
@@ -118,11 +128,10 @@ async function findOrCreateHistoryFile(dateStr) {
   return newFile;
 }
 
-// --- Exporter la nouvelle fonction ---
 module.exports = {
   loadHistoryToCache,
   flushCacheToDisk,
   flushAllCache,
   historyCache,
-  findOrCreateHistoryFile
+  findOrCreateHistoryFile,
 };

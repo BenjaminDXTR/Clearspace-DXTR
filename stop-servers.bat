@@ -4,8 +4,8 @@ SETLOCAL ENABLEDELAYEDEXPANSION ENABLEEXTENSIONS
 echo 🛑 Arrêt des serveurs Clearspace (backend + frontend)
 
 REM Ports utilisés (doivent correspondre à ceux dans .env)
-set BACKEND_PORT=3201
-set FRONTEND_PORT=3001
+set BACKEND_PORT=3200
+set FRONTEND_PORT=3000
 
 REM Vérifier et tuer processus backend sur BACKEND_PORT
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%BACKEND_PORT% ^| findstr LISTENING') do (

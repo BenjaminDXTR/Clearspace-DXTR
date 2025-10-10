@@ -16,7 +16,7 @@ const server = http.createServer(app);
 
 if (config.backend.ignoreTlsErrors) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  log.warn('⚠️ TLS désactivé (IGNORE_TLS_ERRORS=true)');
+  log.warn('TLS désactivé (IGNORE_TLS_ERRORS=true)');
 }
 
 app.use(cors({ origin: config.backend.corsOrigin }));
@@ -107,6 +107,6 @@ process.on('unhandledRejection', (reason) => {
 
 const port = config.backend.port || 3200;
 server.listen(port, () => {
-  log.info(`✅ Backend DroneWeb démarré sur http://localhost:${port}`);
+  log.info(`Backend DroneWeb démarré sur http://localhost:${port}`);
   log.info(`Config backend active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
 });

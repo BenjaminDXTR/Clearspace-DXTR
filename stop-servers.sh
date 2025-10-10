@@ -2,8 +2,8 @@
 
 echo "🛑 Arrêt des serveurs Clearspace (backend + frontend)"
 
-BACKEND_PORT=3201
-FRONTEND_PORT=3001
+BACKEND_PORT=3200
+FRONTEND_PORT=300
 
 # Trouver et tuer processus sur BACKEND_PORT
 pids=$(lsof -ti tcp:$BACKEND_PORT)
