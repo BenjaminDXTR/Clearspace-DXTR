@@ -6,6 +6,15 @@ interface HistoryFileSelectorProps {
   onSelectFile: (filename: string) => void;
 }
 
+// Fonction pour extraire la période sous forme "YYYY-MM-DD to YYYY-MM-DD"
+function extractPeriodFromFilename(filename: string): string {
+  const match = filename.match(/history-(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})\.json/);
+  if (match) {
+    return `${match[1]} to ${match[2]}`;
+  }
+  return filename; // Retourne le fichier complet si format non reconnu
+}
+
 export default function HistoryFileSelector({ historyFiles, currentFile, onSelectFile }: HistoryFileSelectorProps) {
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -21,7 +30,7 @@ export default function HistoryFileSelector({ historyFiles, currentFile, onSelec
         <option value="" disabled>-- Sélectionnez un fichier --</option>
         {historyFiles.map((file) => (
           <option key={file} value={file}>
-            {file}
+            {extractPeriodFromFilename(file)}
           </option>
         ))}
       </select>
