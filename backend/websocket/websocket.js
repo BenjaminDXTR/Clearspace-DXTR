@@ -17,7 +17,7 @@ function broadcast(data, filterLocal = false) {
   }
   let filteredData = data;
   if (filterLocal && Array.isArray(data)) {
-    filteredData = data.filter(flight => flight.type !== 'local');
+    filteredData = data.filter(flight => flight.state !== 'local');
     log.debug(`[broadcast] Filtering out ${data.length - filteredData.length} local flights from broadcast`);
   }
   try {

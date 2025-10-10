@@ -45,7 +45,7 @@ export default function TablesLive({
 
   const liveDrones = useMemo(() => {
     const filtered = drones.filter(
-      (d) => d.type === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d.state === "live" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     dlog(`Nombre drones live filtrés: ${filtered.length}`);
     return filtered;

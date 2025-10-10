@@ -58,7 +58,7 @@ export default function useAnchorModal({
     setAnchorDescription("");
     setMapReady(false);
     if (handleSelect) {
-      handleSelect({ ...flight, _type: "local" });
+      handleSelect({ ...flight, state: "local" });
     }
     const traceConverted = convertTrace(trace, flight.altitude ?? 0);
     setAnchorDataPreview(buildAnchorDataPrincipal(flight, ""));
@@ -145,7 +145,7 @@ export default function useAnchorModal({
       dlog("Anchor saved successfully on backend, folder:", result.folder);
 
       if (handleSelect) {
-        handleSelect({ ...anchorModal.flight, _type: "local" });
+        handleSelect({ ...anchorModal.flight, state: "local" });
       }
       onCancel();
     } catch (e) {

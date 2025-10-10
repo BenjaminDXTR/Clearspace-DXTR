@@ -11,20 +11,20 @@ const WAITING_THRESHOLD = 10000; // 10s attente avant passage en waiting
 const LOCAL_THRESHOLD = config.backend.inactiveTimeoutMs; // ex : 2 min avant archivage
 
 // Map en mémoire pour gérer état et dernier seen des vols
-// Structure : id -> { lastSeen: timestamp, type: "live" | "waiting" | "local" }
+// Structure : id -> { lastSeen: timestamp, state: "live" | "waiting" | "local" }
 const flightStates = new Map();
 
 async function saveFlightToHistory(flight) {
   try {
-    log.info(`[saveFlightToHistory] Début traitement vol id=${flight.id}, type=${flight.type || 'live'}`);
+    log.info(`[saveFlightToHistory] Début traitement vol id=${flight.id}, state=${flight.state || 'live'}`);
 
     if (!flight.id) {
       log.error('[saveFlightToHistory] flight.id manquant, abandon');
       throw new Error('flight.id est requis');
     }
 
-    // Par défaut on considère le vol comme "live" si type non défini
-    if (!flight.type) flight.type = 'live';
+    // Par défaut on considère le vol comme "live" si state non défini
+    if (!flight.state) flight.state = 'live';
 
     // Chercher/creer fichier historique selon date de création vol
     const filename = await findOrCreateHistoryFile(flight.created_time || new Date().toISOString());
@@ -37,10 +37,10 @@ async function saveFlightToHistory(flight) {
     const now = Date.now();
 
     // Mise à jour flightStates : état et dernier seen
-    if (flight.type === 'live' || !flight.type) {
+    if (flight.state === 'live' || !flight.state) {
       // Vol actif détecté : mise à jour état live et dernier seen
-      flightStates.set(flight.id, { lastSeen: now, type: 'live' });
-      flight.type = 'live'; // Forcer type
+      flightStates.set(flight.id, { lastSeen: now, state: 'live' });
+      flight.state = 'live'; // Forcer state
       lastSeenMap.set(flight.id, now);
     }
 
@@ -50,26 +50,26 @@ async function saveFlightToHistory(flight) {
         const timeSinceLastSeen = now - state.lastSeen;
 
         // Passage de live à waiting après délai WAITING_THRESHOLD
-        if (state.type === 'live' && timeSinceLastSeen > WAITING_THRESHOLD) {
-          state.type = 'waiting';
+        if (state.state === 'live' && timeSinceLastSeen > WAITING_THRESHOLD) {
+          state.state = 'waiting';
           log.info(`[saveFlightToHistory] Vol ${id} passé en état 'waiting'`);
           // Mettre à jour dans le cache historique si besoin
-          const idx = historyData.findIndex(f => f.id === id && f.type === 'live');
+          const idx = historyData.findIndex(f => f.id === id && f.state === 'live');
           if (idx !== -1) {
-            historyData[idx].type = 'waiting';
+            historyData[idx].state = 'waiting';
           }
         }
 
         // Passage de waiting à local (archivé) après délai LOCAL_THRESHOLD
-        if (state.type === 'waiting' && timeSinceLastSeen > LOCAL_THRESHOLD) {
-          state.type = 'local';
+        if (state.state === 'waiting' && timeSinceLastSeen > LOCAL_THRESHOLD) {
+          state.state = 'local';
           flightStates.delete(id);
           lastSeenMap.delete(id);
           log.info(`[saveFlightToHistory] Vol ${id} passé en état 'local'`);
           // Mettre à jour historique local
-          const idx = historyData.findIndex(f => f.id === id && (f.type === 'live' || f.type === 'waiting'));
+          const idx = historyData.findIndex(f => f.id === id && (f.state === 'live' || f.state === 'waiting'));
           if (idx !== -1) {
-            historyData[idx].type = 'local';
+            historyData[idx].state = 'local';
             // Vérifier présence d'ancrage blockchain
             try {
               const anchored = await checkIfAnchored(id, historyData[idx].created_time);
@@ -88,13 +88,13 @@ async function saveFlightToHistory(flight) {
 
     // Appliquer l'état courant du vol dans l'objet avant sauvegarde
     if (flightStates.has(flight.id)) {
-      flight.type = flightStates.get(flight.id).type;
+      flight.state = flightStates.get(flight.id).state;
     }
 
     // Gestion old session / nouvelle session
     const INACTIVE_TIMEOUT = config.backend.inactiveTimeoutMs;
     const lastSeen = lastSeenMap.get(flight.id) || 0;
-    const liveIdx = historyData.findIndex(f => f.id === flight.id && f.type === 'live');
+    const liveIdx = historyData.findIndex(f => f.id === flight.id && f.state === 'live');
     let newSession = true;
 
     if (liveIdx !== -1 && (now - lastSeen) <= INACTIVE_TIMEOUT) {
@@ -107,10 +107,10 @@ async function saveFlightToHistory(flight) {
         log.info(`[saveFlightToHistory] Timeout ou nouvelle session, trace backend supprimée pour drone ${flight.id}`);
       }
 
-      if (liveIdx !== -1 && historyData[liveIdx].type !== 'local') {
+      if (liveIdx !== -1 && historyData[liveIdx].state !== 'local') {
         // Passage en mode local si pas déjà fait
-        historyData[liveIdx].type = 'local';
-        log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, type changé en 'local'`);
+        historyData[liveIdx].state = 'local';
+        log.warn(`[saveFlightToHistory] Vol ${flight.id} ancien timeout, state changé en 'local'`);
 
         try {
           const anchored = await checkIfAnchored(flight.id, historyData[liveIdx].created_time);
@@ -127,7 +127,7 @@ async function saveFlightToHistory(flight) {
     }
 
     // Enlever lastSeen pour vols archivés
-    if (flight.type === 'local') {
+    if (flight.state === 'local') {
       lastSeenMap.delete(flight.id);
       log.info(`[saveFlightToHistory] Vol ${flight.id} archivé, entrée lastSeen supprimée`);
     }

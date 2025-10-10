@@ -10,8 +10,8 @@ interface UseProcessedFlightsOptions {
 }
 
 interface UseProcessedFlightsResult {
-    liveFlights: (Flight & { _type: "live" })[];
-    localFlights: (Flight & { _type: "local" })[];
+    liveFlights: (Flight & { state: "live" })[];
+    localFlights: (Flight & { state: "local" })[];
     localPage: number;
     setLocalPage: (page: number) => void;
     localMaxPage: number;
@@ -67,7 +67,7 @@ export function useProcessedFlights(
     }, [localHistoryError, onUserError]);
 
     const liveFlights = useMemo(() => {
-        const filtered: (Flight & { _type: "live" })[] = rawLiveFlights
+        const filtered: (Flight & { state: "live" })[] = rawLiveFlights
             .filter((flight) =>
                 typeof flight.latitude === "number" &&
                 typeof flight.longitude === "number" &&
@@ -75,13 +75,13 @@ export function useProcessedFlights(
                 flight.longitude !== 0 &&
                 !!flight.id
             )
-            .map((flight) => ({ ...flight, _type: "live" }));
+            .map((flight) => ({ ...flight, state: "live" }));
         debugLog(`Vols live filtrés: ${filtered.length}`);
         return filtered;
     }, [rawLiveFlights, debugLog]);
 
     const localFlights = useMemo(() => {
-        const filtered: (Flight & { _type: "local" })[] = localPageData
+        const filtered: (Flight & { state: "local" })[] = localPageData
             .filter((flight) =>
                 flight !== null &&
                 typeof flight.latitude === "number" &&
@@ -90,7 +90,7 @@ export function useProcessedFlights(
                 flight.longitude !== 0 &&
                 !!flight.id
             )
-            .map((flight) => ({ ...flight, _type: "local" }));
+            .map((flight) => ({ ...flight, state: "local" }));
         debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
         return filtered;
     }, [localPageData, localPage, debugLog]);

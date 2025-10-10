@@ -143,7 +143,7 @@ export default function useAppLogic() {
     (flight: Flight): LatLngTimestamp[] => {
       let trace: LatLngTimestamp[] = [];
 
-      if (flight.type === "live") {
+      if (flight.state === "live") {
         trace = (liveTraces[flight.id] as { trace: LatLngTimestamp[] } | undefined)?.trace ?? [];
       } else if (flight.type === "local") {
         const raw = (flight as any).trace ?? [];
@@ -195,8 +195,8 @@ export default function useAppLogic() {
 
   const selectedTracePoints = useMemo(() => {
     if (!selected) return [];
-    if (selected.type === "live") return liveTraces[selected.id]?.trace ?? [];
-    if (selected.type === "local") return (selected as any).trace ?? [];
+    if (selected.state === "live") return liveTraces[selected.id]?.trace ?? [];
+    if (selected.state === "local") return (selected as any).trace ?? [];
     return [];
   }, [selected, liveTraces]);
 
@@ -204,7 +204,7 @@ export default function useAppLogic() {
 
   const detailFields = useMemo(() => {
     if (!selected) return [];
-    return selected.type === "event" ? [] : LIVE_DETAILS;
+    return selected.state === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
   const isAnchored = useCallback(

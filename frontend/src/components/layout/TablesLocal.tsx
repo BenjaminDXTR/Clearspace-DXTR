@@ -60,7 +60,7 @@ export default function TablesLocal({
 
   const archivedDrones = useMemo(() => {
     const filtered = localPageData.filter(
-      (d) => d.type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
+      (d) => d.state === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
     // Tri du plus récent au plus ancien
     const sorted = [...filtered].sort(

@@ -52,7 +52,7 @@ async function updateTrace(update) {
 
   if (config.backend.useTest) {
     try {
-      const fullFlight = { ...update, trace: trace.slice(), type: 'live' };
+      const fullFlight = { ...update, trace: trace.slice(), state: 'live' };
       await saveFlightToHistory(fullFlight);
       log.info(`[updateTrace] Saved flight in simulation for drone ${id}`);
     } catch (error) {

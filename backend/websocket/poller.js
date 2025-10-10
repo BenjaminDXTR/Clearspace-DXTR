@@ -86,7 +86,7 @@ async function poller() {
             const fullDroneData = {
                 ...drone,
                 trace,
-                type: drone.type || 'live',
+                state: drone.state || 'live',
             };
 
             fullDrones.push(fullDroneData);
@@ -96,7 +96,7 @@ async function poller() {
         }
 
         // Filtrer les drones locaux pour ne pas les renvoyer en live
-        const filteredFullDrones = fullDrones.filter(flight => flight.type !== 'local');
+        const filteredFullDrones = fullDrones.filter(flight => flight.state !== 'local');
         log.info(`[poller] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
 
         broadcast(filteredFullDrones, clients, true);

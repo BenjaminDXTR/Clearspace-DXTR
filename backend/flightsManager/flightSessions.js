@@ -19,7 +19,7 @@ function addOrUpdateFlightInFile(flight, historyFile) {
 
     const timeDiff = Math.abs(incomingCreated - sessionCreated);
 
-    if (timeDiff <= INACTIVE_TIMEOUT && session.type === 'live') {
+    if (timeDiff <= INACTIVE_TIMEOUT && session.state === 'live') {
       if (sessionCreated < new Date(selectedCreatedTime).getTime()) {
         selectedCreatedTime = session.created_time;
       }
