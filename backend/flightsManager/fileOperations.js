@@ -36,7 +36,7 @@ async function saveHistoryFile(filePath, data) {
     return;
   }
 
-  log.info(`[saveHistoryFile] Saving data to file ${filePath} with ${data.length} entries`);
+  //log.info(`[saveHistoryFile] Saving data to file ${filePath} with ${data.length} entries`);
 
   const dir = path.dirname(filePath);
   try {

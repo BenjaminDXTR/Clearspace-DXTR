@@ -34,7 +34,7 @@ async function loadHistoryToCache(filename) {
       historyCache.set(filename, []);
     }
   } else {
-    log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
+    //log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
   }
   return historyCache.get(filename);
 }

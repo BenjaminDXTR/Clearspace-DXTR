@@ -100,7 +100,7 @@ async function saveFlightToHistory(flight) {
 }
 
     const filename = await findOrCreateHistoryFile(flight.created_time || new Date().toISOString());
-    log.info(`[saveFlightToHistory] Vol drone ${flight.id} dans fichier : ${filename}`);
+    //log.info(`[saveFlightToHistory] Vol drone ${flight.id} dans fichier : ${filename}`);
 
     const historyData = await loadHistoryToCache(filename);
     //log.info(`[saveFlightToHistory] Cache chargé pour ${filename} avec ${historyData.length} entrées`);
@@ -137,7 +137,7 @@ async function saveFlightToHistory(flight) {
 
     if (fileChanged) {
       await flushCacheToDisk(filename);
-      log.info(`[saveFlightToHistory] Cache sauvegardé disque pour fichier ${filename}`);
+      //log.info(`[saveFlightToHistory] Cache sauvegardé disque pour fichier ${filename}`);
     }
 
     return filename;

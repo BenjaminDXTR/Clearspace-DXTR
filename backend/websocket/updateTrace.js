@@ -30,7 +30,7 @@ async function updateTrace(update) {
         trace[trace.length - 1][1] !== longitude
       ) {
         trace.push([latitude, longitude, relativeTime]);
-        log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}`);
+       //log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}`);
       } else {
         // Limiter ce log car redondant
         // log.debug(`[updateTrace] Duplicate point ignored for drone ${id}`);

@@ -20,7 +20,7 @@ function setupConnection(ws, broadcastFn) {
   log.info(`[connections] New client connected. Total clients: ${clients.size}`);
 
   ws.on('message', async message => {
-    log.debug(`[connections] Message received from client: ${message.length} bytes`);
+    //log.debug(`[connections] Message received from client: ${message.length} bytes`);
 
     try {
       const data = JSON.parse(message);
@@ -28,7 +28,7 @@ function setupConnection(ws, broadcastFn) {
       // Filtrer et répondre aux pings proprement ici
       if (data && data.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
-        log.debug('[connections] Pong envoyé en réponse au ping');
+        //log.debug('[connections] Pong envoyé en réponse au ping');
         return;
       }
 

@@ -91,10 +91,10 @@ async function poller() {
             await updateTrace(drone);
 
             const trace = flightTraces.get(drone.id) || [];
-            log.debug(`[poller] Drone ${drone.id} trace length: ${trace.length}`);
+            //log.debug(`[poller] Drone ${drone.id} trace length: ${trace.length}`);
 
             if (trace.length > 5) {
-                log.debug(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
+                //log.debug(`[poller] Drone ${drone.id} trace sample: ${JSON.stringify(trace.slice(0, 5))}`);
             }
 
             const fullDroneData = {
@@ -105,17 +105,17 @@ async function poller() {
 
             fullDrones.push(fullDroneData);
 
-            log.info(`[poller] Saving flight history for drone ${drone.id} with ${fullDroneData.trace.length} trace points`);
+            //log.info(`[poller] Saving flight history for drone ${drone.id} with ${fullDroneData.trace.length} trace points`);
             await saveFlightToHistory(fullDroneData, detectedIds);
-            log.info(`[poller] Saved flight history for drone ${drone.id}`);
+            //log.info(`[poller] Saved flight history for drone ${drone.id}`);
         }
 
         const filteredFullDrones = fullDrones.filter(flight => flight.state !== 'local');
-        log.info(`[poller] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
+        //log.info(`[poller] Broadcasting ${filteredFullDrones.length} drones after filtering local`);
 
         broadcast(filteredFullDrones, clients, true);
 
-        log.info('[poller] Broadcast to clients complete');
+        //log.info('[poller] Broadcast to clients complete');
     } catch (err) {
         log.error(`[poller] Error during polling: ${err.stack || err.message || err}`);
     } finally {
