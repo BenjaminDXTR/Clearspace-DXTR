@@ -1,12 +1,10 @@
 const { config } = require('../config');
-const { getWeekPeriod } = require('./utils');
 const { addOrUpdateFlightInFile } = require('./flightSessions');
-const { loadHistoryToCache, flushCacheToDisk } = require('./historyCache');
+const { loadHistoryToCache, flushCacheToDisk, findOrCreateHistoryFile } = require('./historyCache');
 const { notifyUpdate } = require('./notification');
 const { lastSeenMap, flightTraces } = require('./state');
 const log = require('../utils/logger');
 const { checkIfAnchored } = require('../services/blockchainService'); // Import de la fonction d’interrogation blockchain
-
 
 async function saveFlightToHistory(flight) {
   try {
@@ -19,8 +17,8 @@ async function saveFlightToHistory(flight) {
 
     if (!flight.type) flight.type = 'live';
 
-    const period = getWeekPeriod(flight.created_time || new Date().toISOString());
-    const filename = period.filename;
+    // Utilisation de la nouvelle fonction pour déterminer le fichier historique à utiliser
+    const filename = await findOrCreateHistoryFile(flight.created_time || new Date().toISOString());
 
     log.info(`[saveFlightToHistory] Traitement vol drone ${flight.id} dans fichier : ${filename}`);
 

@@ -84,6 +84,7 @@ const config = {
     apiProtocol: process.env.API_PROTOCOL || 'https',
     apiHost: process.env.API_HOST || 'clearspace.databeam.eu',
     apiPort: process.env.API_PORT || '',
+    timeOffsetHours: parseIntOrDefault(process.env.TIME_OFFSET_HOURS, 0),
 
     // Constantes internes
     inactiveTimeoutMs: 10000,
