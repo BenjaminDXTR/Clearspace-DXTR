@@ -62,8 +62,12 @@ export default function TablesLocal({
     const filtered = localPageData.filter(
       (d) => d.type === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
     );
-    dlog(`Nombre drones archivés filtrés: ${filtered.length}`);
-    return filtered;
+    // Tri du plus récent au plus ancien
+    const sorted = [...filtered].sort(
+      (a, b) => new Date(b.created_time ?? "").getTime() - new Date(a.created_time ?? "").getTime()
+    );
+    dlog(`Nombre drones archivés filtrés: ${sorted.length}`);
+    return sorted;
   }, [localPageData]);
 
   return (
