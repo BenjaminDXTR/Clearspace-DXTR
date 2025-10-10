@@ -139,10 +139,8 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         console.log(`[DronesContext][${new Date().toISOString()}] WS message received:`, data);
 
         if (Array.isArray(data)) {
-          if (data.length > 0) {
             setDrones(data);
             console.log(`[DronesContext][${new Date().toISOString()}] Drones updated, count: ${data.length}`);
-          }
           return;
         }
 
