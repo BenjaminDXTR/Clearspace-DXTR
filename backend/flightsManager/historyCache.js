@@ -3,9 +3,15 @@ const fs = require('fs').promises;
 const log = require('../utils/logger');
 const { loadHistoryFile, saveHistoryFile } = require('./fileOperations');
 
+// Cache mémoire des historiques chargés
 const historyCache = new Map();
+
+// Chemin racine du dossier historique
 const historyBaseDir = path.resolve(__dirname, '../history');
 
+/**
+ * Vérifie et crée le dossier d'historique s'il n'existe pas.
+ */
 async function ensureHistoryDirExists() {
   try {
     await fs.access(historyBaseDir);
@@ -20,25 +26,35 @@ async function ensureHistoryDirExists() {
   }
 }
 
+/**
+ * Charge un fichier historique en cache, si pas déjà chargé.
+ * Renvoie le tableau des sessions vol chargées.
+ * @param {string} filename Nom fichier historique
+ * @returns {Promise<Array>} Données en cache
+ */
 async function loadHistoryToCache(filename) {
   await ensureHistoryDirExists();
   if (!historyCache.has(filename)) {
     const filePath = path.join(historyBaseDir, filename);
-    //log.info(`[loadHistoryToCache] Loading ${filename} into cache from ${filePath}`);
     try {
       const data = await loadHistoryFile(filePath);
       historyCache.set(filename, data);
-      //log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
+      log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
     } catch (e) {
       log.error(`[loadHistoryToCache] Error loading ${filename}: ${e.message}`);
+      // Init cache vide en cas d’erreur pour ce fichier
       historyCache.set(filename, []);
     }
   } else {
-    //log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
+    log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
   }
   return historyCache.get(filename);
 }
 
+/**
+ * Sauvegarde un cache mémoire sur disque pour le fichier historique donné.
+ * @param {string} filename Nom fichier historique
+ */
 async function flushCacheToDisk(filename) {
   await ensureHistoryDirExists();
   if (!historyCache.has(filename)) {
@@ -46,55 +62,70 @@ async function flushCacheToDisk(filename) {
     return;
   }
   const data = historyCache.get(filename);
+  if (!Array.isArray(data)) {
+    log.error(`[flushCacheToDisk] Cache data for ${filename} is not an array - potential corruption`);
+    return;
+  }
   const filePath = path.join(historyBaseDir, filename);
   try {
-    //log.info(`[flushCacheToDisk] Saving cache to disk for file ${filename} at ${filePath} with ${data.length} entries`);
+    log.info(`[flushCacheToDisk] Saving cache to disk for ${filename} at ${filePath} with ${data.length} entries`);
     await saveHistoryFile(filePath, data);
-    //log.info(`[flushCacheToDisk] Successfully saved cache for file ${filename}`);
+    log.info(`[flushCacheToDisk] Successfully saved cache for ${filename}`);
   } catch (e) {
     log.error(`[flushCacheToDisk] Error saving cache for file ${filename}: ${e.message}`);
   }
 }
 
+/**
+ * Sauvegarde tous les caches mémoire en fichiers historiques.
+ */
 async function flushAllCache() {
   const filenames = Array.from(historyCache.keys());
-  //log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
+  log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
   for (const filename of filenames) {
     await flushCacheToDisk(filename);
   }
-  //log.info('[flushAllCache] All cache flushed successfully');
+  log.info('[flushAllCache] All cache flushed successfully');
 }
 
+// Expression régulière pour les fichiers historique avec plage date
 const DATE_REGEX = /^history-(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})\.json$/;
 
-// Parses input date safely from string or Date object
+/**
+ * Parse en toute sécurité une entrée de date string ou Date() en Date UTC à minuit.
+ * @param {string|Date|null} dateInput
+ * @returns {Date} Date UTC minuit
+ */
 function parseDateInput(dateInput) {
   if (!dateInput) {
-    log.warn('[parseDateInput] Date input is null or undefined, defaulting to now');
+    log.warn('[parseDateInput] Date input is null or undefined, defaulting to today start');
     return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
   }
-  
+
   if (typeof dateInput === 'string') {
     return new Date(dateInput.slice(0, 10) + 'T00:00:00Z');
   } else if (dateInput instanceof Date) {
     return new Date(dateInput.toISOString().slice(0, 10) + 'T00:00:00Z');
   } else {
-    log.warn('[parseDateInput] Unknown date input type, defaulting to now');
+    log.warn('[parseDateInput] Unknown date input type, defaulting to today start');
     return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
   }
 }
 
-
+/**
+ * Formate une Date en chaîne ISO simple "YYYY-MM-DD"
+ * @param {Date} date
+ * @returns {string}
+ */
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
 /**
- * Recherche dans le dossier history un fichier couvrant la date donnée,
- * ou crée un nouveau fichier couvrant la période de 7 jours glissants à partir de cette date.
- *
- * @param {string|Date} dateStr date au format ISO "YYYY-MM-DD", iso string, ou Date objet
- * @returns {string} nom fichier historique
+ * Recherche un fichier historique couvrant la date désirée,
+ * ou crée un nouveau fichier couvrant 7 jours glissants depuis cette date.
+ * @param {string|Date} dateStr Date ISO, string ou objet Date
+ * @returns {string} Nom fichier trouvé ou créé
  */
 async function findOrCreateHistoryFile(dateStr) {
   await ensureHistoryDirExists();
@@ -108,12 +139,13 @@ async function findOrCreateHistoryFile(dateStr) {
       const start = new Date(match[1] + 'T00:00:00Z');
       const end = new Date(match[2] + 'T00:00:00Z');
       if (date >= start && date <= end) {
-        //log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
+        log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
         return file;
       }
     }
   }
 
+  // Pas de fichier existant, on crée le nouveau fichier sur 7 jours glissants
   const start = date;
   const end = new Date(start);
   end.setDate(start.getDate() + 6);

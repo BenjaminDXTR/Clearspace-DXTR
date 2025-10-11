@@ -24,13 +24,15 @@ async function updateTrace(update) {
       const nowTimestamp = Date.now();
       const relativeTime = nowTimestamp - createdTimestamp;
 
+      log.info(`[updateTrace] Drone ${id} created_time UTC: ${created_time}, timestamp: ${createdTimestamp}, relativeTime: ${relativeTime} ms`);
+
       if (
         trace.length === 0 ||
         trace[trace.length - 1][0] !== latitude ||
         trace[trace.length - 1][1] !== longitude
       ) {
         trace.push([latitude, longitude, relativeTime]);
-       //log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}`);
+        log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}, [lat, lng, relativeTime]: [${latitude}, ${longitude}, ${relativeTime}]`);
       } else {
         // Limiter ce log car redondant
         // log.debug(`[updateTrace] Duplicate point ignored for drone ${id}`);

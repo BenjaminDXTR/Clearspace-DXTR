@@ -1,5 +1,5 @@
 const { loadHistoryFile, saveHistoryFile } = require('./fileOperations');
-const { saveFlightToHistory, archiveInactiveFlights, updateFlightStates } = require('./flightsController');
+const { saveFlightToHistory, updateFlightStates } = require('./flightsController');
 const { addOrUpdateFlightInFile } = require('./flightSessions');
 const { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache } = require('./historyCache');
 const { lastSeenMap, createdTimeMap, flightTraces } = require('./state');
@@ -15,7 +15,6 @@ module.exports = {
   // Gestion historique vols
   saveFlightToHistory,
   updateFlightStates,
-  archiveInactiveFlights,
 
 
   // Gestion session de vol

@@ -84,7 +84,6 @@ const config = {
     apiProtocol: process.env.API_PROTOCOL || 'https',
     apiHost: process.env.API_HOST || 'clearspace.databeam.eu',
     apiPort: process.env.API_PORT || '',
-    timeOffsetHours: parseIntOrDefault(process.env.TIME_OFFSET_HOURS, 0),
 
     // Constantes internes
     inactiveTimeoutMs: 10000,
@@ -97,7 +96,7 @@ const config = {
     websocketSaveIntervalMs: parseIntOrDefault(process.env.WEBSOCKET_SAVE_INTERVAL_MS, 60000),
     websocketInactiveTimeoutMs: parseIntOrDefault(process.env.WEBSOCKET_INACTIVE_TIMEOUT_MS, 60000),
     archiveCheckIntervalMs: 15000,
-    pollingIntervalMs: 2000,
+    pollingIntervalMs: 1000,
     maxCachedFlights: 1000,
   }
 };

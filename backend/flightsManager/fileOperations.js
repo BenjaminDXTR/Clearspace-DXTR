@@ -2,12 +2,17 @@ const fs = require('fs').promises;
 const path = require('path');
 const log = require('../utils/logger');
 
+/**
+ * Charge un fichier JSON d'historique depuis le chemin donné.
+ * @param {string} filePath Chemin complet du fichier
+ * @returns {Promise<Array>} Données JSON lues, ou tableau vide si fichier absent
+ */
 async function loadHistoryFile(filePath) {
   try {
     await fs.access(filePath);
   } catch (e) {
     if (e.code === 'ENOENT') {
-      //log.info(`[loadHistoryFile] File not found, returning empty array for ${filePath}`);
+      log.info(`[loadHistoryFile] File not found, returning empty array for ${filePath}`);
       return [];
     } else {
       log.error(`[loadHistoryFile] Error accessing file ${filePath}: ${e.message}`);
@@ -18,7 +23,7 @@ async function loadHistoryFile(filePath) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
     const data = JSON.parse(raw);
-    //log.info(`[loadHistoryFile] Loaded file ${filePath} with ${data.length} entries`);
+    log.info(`[loadHistoryFile] Loaded file ${filePath} with ${data.length} entries`);
     return data;
   } catch (e) {
     log.error(`[loadHistoryFile] Error reading or parsing file ${filePath}: ${e.message}`);
@@ -26,17 +31,22 @@ async function loadHistoryFile(filePath) {
   }
 }
 
+/**
+ * Sauvegarde des données JSON dans un fichier de manière atomique (via fichier temporaire)
+ * @param {string} filePath Chemin complet du fichier
+ * @param {Array} data Données JSON à sauvegarder
+ */
 async function saveHistoryFile(filePath, data) {
   if (!Array.isArray(data)) {
     log.error(`[saveHistoryFile] Attempted to save non-array data to file ${filePath}`);
     return;
   }
   if (data.length === 0) {
-    //log.info(`[saveHistoryFile] Empty data array, skipping save for file ${filePath}`);
+    log.info(`[saveHistoryFile] Empty data array, skipping save for file ${filePath}`);
     return;
   }
 
-  //log.info(`[saveHistoryFile] Saving data to file ${filePath} with ${data.length} entries`);
+  log.info(`[saveHistoryFile] Saving data to file ${filePath} with ${data.length} entries`);
 
   const dir = path.dirname(filePath);
   try {
@@ -51,7 +61,7 @@ async function saveHistoryFile(filePath, data) {
   try {
     await fs.writeFile(tempFilePath, JSON.stringify(data, null, 2));
     await fs.rename(tempFilePath, filePath);
-    //log.info(`[saveHistoryFile] Atomically saved file ${filePath} with ${data.length} entries`);
+    log.info(`[saveHistoryFile] Atomically saved file ${filePath} with ${data.length} entries`);
   } catch (e) {
     log.error(`[saveHistoryFile] Error saving file atomically ${filePath}: ${e.message}`);
     throw e;

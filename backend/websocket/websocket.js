@@ -3,13 +3,17 @@ const log = require('../utils/logger');
 const { setupConnection } = require('./connections');
 const clients = require('./clients'); // Import singleton clients
 const poller = require('./poller');
-const { archiveInactiveFlights } = require('../flightsManager');
 const { config } = require('../config');
 const fs = require('fs').promises;
 const path = require('path');
 
 let wss;
 
+/**
+ * Envoi message JSON à tous clients connectés, option filtrage des vols locaux.
+ * @param {Array|Object} data Données à envoyer (array ou objet)
+ * @param {boolean} filterLocal Сacher vols en état 'local'
+ */
 function broadcast(data, filterLocal = false) {
   if (!clients || !(clients instanceof Set)) {
     log.error('[broadcast] clients Set undefined or invalid, aborting broadcast');
@@ -39,6 +43,10 @@ function broadcast(data, filterLocal = false) {
   }
 }
 
+/**
+ * Boucle infinie de polling pour récupérer et traiter les vols périodiquement.
+ * @param {number} intervalMs Intervalle en ms
+ */
 async function startPollingLoop(intervalMs) {
   log.info(`[pollerLoop] Starting WebSocket poll loop with interval ${intervalMs} ms`);
   while (true) {
@@ -51,8 +59,13 @@ async function startPollingLoop(intervalMs) {
   }
 }
 
+/**
+ * Initialise serveur WebSocket avec gestion des connexions client.
+ * @param {http.Server} server Serveur HTTP attaché
+ * @returns {WebSocket.Server} Instance serveur ws
+ */
 function setup(server) {
-  if (wss) return wss;
+  if (wss) return wss; // Evite double initialisation
 
   wss = new WebSocket.Server({ server });
   log.info('[websocket] WebSocket server initialized');
@@ -81,25 +94,15 @@ function setup(server) {
     ws.send(JSON.stringify([]));
   });
 
+  // Start the polling loop
   startPollingLoop(config.backend.pollingIntervalMs);
-
-  setInterval(async () => {
-    try {
-      const updatedFiles = await archiveInactiveFlights();
-      const timestamp = new Date().toISOString();
-      if (updatedFiles && updatedFiles.length > 0) {
-        log.info(`[${timestamp}] [websocket] Automatic archiving completed for files: ${updatedFiles.join(', ')}`);
-      } else {
-        log.debug(`[${timestamp}] [websocket] Automatic archiving: no flights archived`);
-      }
-    } catch (e) {
-      log.error(`[websocket] Error during automatic archiving: ${e.message}`);
-    }
-  }, config.backend.archiveCheckIntervalMs);
 
   return wss;
 }
 
+/**
+ * Arrêt propre du serveur WebSocket et nettoyage des clients.
+ */
 function stopPolling() {
   if (wss) {
     wss.close();
