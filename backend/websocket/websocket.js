@@ -1,19 +1,16 @@
 const WebSocket = require('ws');
 const log = require('../utils/logger');
 const { setupConnection } = require('./connections');
-const clients = require('./clients'); // Import singleton clients
+const clients = require('./clients');
 const poller = require('./poller');
 const { config } = require('../config');
 const fs = require('fs').promises;
 const path = require('path');
 
 let wss;
+let pollingActive = false;       // Flag pour contrôler polling
+let pollingLoopPromise = null;   // Pour stocker la Promise de la boucle polling
 
-/**
- * Envoi message JSON à tous clients connectés, option filtrage des vols locaux.
- * @param {Array|Object} data Données à envoyer (array ou objet)
- * @param {boolean} filterLocal Сacher vols en état 'local'
- */
 function broadcast(data, filterLocal = false) {
   if (!clients || !(clients instanceof Set)) {
     log.error('[broadcast] clients Set undefined or invalid, aborting broadcast');
@@ -43,29 +40,55 @@ function broadcast(data, filterLocal = false) {
   }
 }
 
-/**
- * Boucle infinie de polling pour récupérer et traiter les vols périodiquement.
- * @param {number} intervalMs Intervalle en ms
- */
-async function startPollingLoop(intervalMs) {
+async function pollingLoop(intervalMs) {
   log.info(`[pollerLoop] Starting WebSocket poll loop with interval ${intervalMs} ms`);
-  while (true) {
-    try {
-      await poller();
-    } catch (err) {
-      log.error(`[pollerLoop] Error during poll: ${err.message}`);
+  pollingActive = true;
+  try {
+    while (pollingActive) {
+      try {
+        await poller();
+      } catch (err) {
+        log.error(`[pollerLoop] Error during poll: ${err.message}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
     }
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
+    log.info('[pollerLoop] Polling loop stopped');
+  } catch (fatalErr) {
+    log.error(`[pollerLoop] Fatal error: ${fatalErr.message}`);
   }
 }
 
-/**
- * Initialise serveur WebSocket avec gestion des connexions client.
- * @param {http.Server} server Serveur HTTP attaché
- * @returns {WebSocket.Server} Instance serveur ws
- */
+function startPollingLoop(intervalMs = 1000) {
+  if (pollingLoopPromise) {
+    log.warn('[pollerLoop] Poll loop already running');
+    return pollingLoopPromise;
+  }
+  pollingLoopPromise = pollingLoop(intervalMs);
+  return pollingLoopPromise;
+}
+
+async function stopPolling() {
+  if (!pollingActive) {
+    log.warn('[stopPolling] Polling is not active');
+    return;
+  }
+  pollingActive = false;
+  if (wss) {
+    wss.close();
+    wss = null;
+  }
+  clients.clear();
+  log.info('[websocket] Polling stopped and server closed.');
+  // Optionnel : attendre la fin de pollingLoopPromise si besoin
+  if (pollingLoopPromise) {
+    await pollingLoopPromise;
+    pollingLoopPromise = null;
+    log.info('[stopPolling] Polling loop promise resolved');
+  }
+}
+
 function setup(server) {
-  if (wss) return wss; // Evite double initialisation
+  if (wss) return wss;
 
   wss = new WebSocket.Server({ server });
   log.info('[websocket] WebSocket server initialized');
@@ -94,22 +117,9 @@ function setup(server) {
     ws.send(JSON.stringify([]));
   });
 
-  // Start the polling loop
   startPollingLoop(config.backend.pollingIntervalMs);
 
   return wss;
-}
-
-/**
- * Arrêt propre du serveur WebSocket et nettoyage des clients.
- */
-function stopPolling() {
-  if (wss) {
-    wss.close();
-    wss = null;
-  }
-  clients.clear();
-  log.info('[websocket] Polling stopped and server closed.');
 }
 
 module.exports = {

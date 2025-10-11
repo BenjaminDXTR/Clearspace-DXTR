@@ -116,7 +116,7 @@ function sendSimulationStep() {
   currentSimDrones.push(drone);
 
   stepIndex++;
-  setTimeout(sendSimulationStep, 2000); // 2 secondes entre étapes
+  setTimeout(sendSimulationStep, 1000); // 1 secondes entre étapes
 }
 
 function getCurrentSimulationData() {

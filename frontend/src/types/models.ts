@@ -28,7 +28,7 @@ export interface Flight {
   tracing?: {
     points?: LatLng[];
   };
-  state?: "live" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
+  state?: "live" | "waiting" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
   isAnchored?: boolean;
   [key: string]: any;
 }

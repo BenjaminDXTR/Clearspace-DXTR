@@ -153,4 +153,4 @@ async function saveFlightToHistory(flight) {
   }
 }
 
-module.exports = { saveFlightToHistory, updateFlightStates };
+module.exports = { saveFlightToHistory, updateFlightStates, flightStates };

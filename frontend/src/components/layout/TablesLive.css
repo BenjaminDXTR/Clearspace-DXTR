@@ -59,15 +59,47 @@
     cursor: pointer;
 }
 
+/* Effet hover sur ligne clickable */
 .clickable-row:hover {
     background-color: #f5faff;
 }
 
-.anchor-cell {
-    text-align: center;
-    min-width: 58px;
+/* Effet visuel spécifique pour les vols en état "waiting" */
+.row-waiting {
+    background-color: #fff8e1; /* Fond jaune clair */
+    font-style: italic;
+    color: #b37f00;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
 }
 
+.row-waiting:hover {
+    background-color: #fff3b0; /* Effet hover légèrement plus saturé */
+}
+
+/* Cellule statut attente */
+.status-cell {
+    text-align: center;
+}
+
+.status-waiting {
+    color: #b37f00;
+    font-weight: 700;
+    font-style: italic;
+    animation: blink 1.5s linear infinite;
+}
+
+/* Animation clignotante */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Responsive pour mob/tablette */
 @media (max-width: 800px) {
     .table-title {
         font-size: 1rem;
