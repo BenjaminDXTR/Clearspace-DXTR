@@ -38,7 +38,11 @@ export default function TablesLive({
 }: TablesLiveProps) {
   // Log à chaque changement de drones reçus
   useEffect(() => {
-    console.log("TablesLive drones prop:", drones);
+    console.log(`[TablesLive][${new Date().toISOString()}] drones prop:`, drones);
+
+    // Log distinct des vols avec état 'waiting'
+    const waitingFlights = drones.filter(d => d.state === "waiting");
+    console.log(`[TablesLive][${new Date().toISOString()}] Vols en état 'waiting' reçus: ${waitingFlights.length}`, waitingFlights);
   }, [drones]);
 
   // Callback pour sélection d'un vol par l'utilisateur
@@ -63,7 +67,7 @@ export default function TablesLive({
         d.latitude !== 0 &&
         d.longitude !== 0
     );
-    dlog(`Nombre drones live ou waiting filtrés: ${filtered.length}`);
+    dlog(`[TablesLive][${new Date().toISOString()}] Nombre drones live ou waiting filtrés: ${filtered.length}`);
     return filtered;
   }, [drones, dlog]);
 
