@@ -138,14 +138,24 @@ export default function useLocalHistory({
     }
   }, [historyFiles, currentHistoryFile, log]);
 
+  // Trier localHistory par created_time décroissant (plus récent en premier)
+  const sortedLocalHistory = useMemo(() => {
+    return [...localHistory].sort((a, b) => {
+      const dateA = new Date(a.created_time ?? "").getTime();
+      const dateB = new Date(b.created_time ?? "").getTime();
+      return dateB - dateA; // décroissant
+    });
+  }, [localHistory]);
+
+  const localMaxPage = useMemo(() => Math.max(1, Math.ceil(sortedLocalHistory.length / PER_PAGE)), [sortedLocalHistory]);
+
+  const localPageData = useMemo(() => sortedLocalHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [sortedLocalHistory, localPage]);
+
   const setLocalHistoryManual = useCallback((flights: Flight[]) => {
     setLocalHistory([...flights]); // Forcer nouvelle référence
     setLocalPage(1);
     log(`Manually set localHistory with ${flights.length} flights`);
   }, [log]);
-
-  const localMaxPage = useMemo(() => Math.max(1, Math.ceil(localHistory.length / PER_PAGE)), [localHistory]);
-  const localPageData = useMemo(() => localHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [localHistory, localPage]);
 
   return {
     currentHistoryFile,

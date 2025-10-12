@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import type { Flight, IsAnchoredFn, RenderAnchorCellFn, HandleSelectFn } from "../../types/models";
 import { prettyValue } from "../../utils/format";
 import { config } from "../../config";
@@ -9,13 +9,13 @@ interface TablesLocalProps {
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
-  localPageData: Flight[];
+  localPageData: Flight[]; // données déjà filtrées, triées et paginées
   LOCAL_FIELDS: string[];
   isAnchored: IsAnchoredFn;
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
-  openModal: (flight: Flight, trace: any[]) => void; // ajoute cette prop
-  getTraceForFlight: (flight: Flight) => any[]; // ajoute cette prop
+  openModal: (flight: Flight, trace: any[]) => void;
+  getTraceForFlight: (flight: Flight) => any[];
   debug?: boolean;
 }
 
@@ -43,6 +43,7 @@ export default function TablesLocal({
   getTraceForFlight,
   debug = DEBUG,
 }: TablesLocalProps) {
+
   useEffect(() => {
     console.log("TablesLocal localPageData prop:", localPageData);
   }, [localPageData]);
@@ -58,22 +59,13 @@ export default function TablesLocal({
   const genKey = (item: { id?: string | number; created_time?: string | number }, idx: number) =>
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
-  const archivedDrones = useMemo(() => {
-    const filtered = localPageData.filter(
-      (d) => d.state === "local" && d.id && d.latitude !== 0 && d.longitude !== 0
-    );
-    // Tri du plus récent au plus ancien
-    const sorted = [...filtered].sort(
-      (a, b) => new Date(b.created_time ?? "").getTime() - new Date(a.created_time ?? "").getTime()
-    );
-    dlog(`Nombre drones archivés filtrés: ${sorted.length}`);
-    return sorted;
-  }, [localPageData]);
+  // localPageData est censé être déjà filtré, trié et paginé en amont via useLocalHistory
+  // Le composant n'effectue plus de tri ici pour éviter incohérence et surcharge
 
   return (
     <section className="table-container" aria-label="Vols archivés (local)">
       <h2 className="table-title">Vols archivés (local)</h2>
-      {archivedDrones.length === 0 ? (
+      {localPageData.length === 0 ? (
         <p className="table-empty">Aucun vol.</p>
       ) : (
         <>
@@ -87,7 +79,7 @@ export default function TablesLocal({
               </tr>
             </thead>
             <tbody>
-              {archivedDrones.map((item, idx) => {
+              {localPageData.map((item, idx) => {
                 const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
                 return (
                   <tr
