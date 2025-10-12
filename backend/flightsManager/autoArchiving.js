@@ -1,11 +1,8 @@
 const path = require('path');
 const log = require('../utils/logger');
 const { config } = require('../config');
-const {
-    notifyUpdate,
-    loadHistoryToCache,
-    flushCacheToDisk,
-} = require('./');
+const {notifyUpdate} = require('./notification');
+const { loadHistoryToCache,flushCacheToDisk,} = require ('./historyCache');
 const { flightStates, saveFlightToHistory } = require('./flightsController'); // Import direct pour éviter undefined
 const fs = require('fs').promises;
 
