@@ -4,9 +4,9 @@ const http = require('http');
 
 const log = require('./utils/logger');
 const { config } = require('./config');
-const { setup, stopPolling } = require('./websocket/websocket');
-const { flushAllCache, archiveInactiveFlights } = require('./flightsManager');
-
+const { setup } = require('./websocket/websocket');
+const { flushAllCache, archiveAllLiveAndWaitingAsLocal } = require('./flightsManager');
+const { gracefulShutdown, setServerAndIntervals } = require('./middleware/shutdownHandler');
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
@@ -14,28 +14,24 @@ const apiRoutes = require('./routes');
 const app = express();
 const server = http.createServer(app);
 
+// Export uniquement le serveur HTTP
+module.exports = { server };
+
+// Désactivation TLS si besoin (dev local)
 if (config.backend.ignoreTlsErrors) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  log.warn('⚠️ TLS désactivé (IGNORE_TLS_ERRORS=true)');
+  log.warn('TLS désactivé (IGNORE_TLS_ERRORS=true)');
 }
 
+// Middlewares
 app.use(cors({ origin: config.backend.corsOrigin }));
 app.use(express.json({ limit: config.backend.maxJsonSize }));
 app.use(apiRoutes);
-
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const wss = setup(server);
-
-
-if (config.backend.useTestSim) {
-  const simulation = require('./simulation');
-  simulation.startSimulation();
-}
-
+// Gestion des intervalles
 let flushIntervalId;
-let archiveIntervalId;
 
 function startIntervals() {
   flushIntervalId = setInterval(async () => {
@@ -46,67 +42,48 @@ function startIntervals() {
       log.error(`[flushAllCache] Erreur flush périodique : ${e.message}`);
     }
   }, 60000);
-
-  archiveIntervalId = setInterval(async () => {
-    try {
-      await archiveInactiveFlights();
-      log.info('[interval] Archivage automatique vols inactifs OK');
-    } catch (e) {
-      log.error(`[interval] Erreur archivage vols : ${e.message}`);
-    }
-  }, config.backend.archiveCheckIntervalMs);
 }
 
 function clearIntervals() {
   if (flushIntervalId) clearInterval(flushIntervalId);
-  if (archiveIntervalId) clearInterval(archiveIntervalId);
   flushIntervalId = null;
-  archiveIntervalId = null;
 }
 
-startIntervals();
-
-
-async function gracefulShutdown() {
-  log.info('Début arrêt serveur : arrêt polling, flush cache en cours...');
+// Initialisation principale
+(async () => {
   try {
-    await stopPolling();
-    log.info('Polling arrêté avec succès');
-  } catch (e) {
-    log.error(`Erreur arrêt polling : ${e.message}`);
-  }
-  clearIntervals();
-  try {
-    await flushAllCache();
-    log.info('Flush final du cache réussi');
-  } catch (e) {
-    log.error(`Erreur flush cache à l'arrêt : ${e.message}`);
-  }
-  server.close(() => {
-    log.info('Serveur HTTP arrêté, sortie du process');
-    process.exit(0);
-  });
+    // Archivage en local avant démarrage polling / simulation
+    await archiveAllLiveAndWaitingAsLocal();
+    log.info('[server] Archivage live/waiting -> local au démarrage OK');
 
-  setTimeout(() => {
-    log.warn('Forçage sortie process après timeout');
+    // Initialiser websocket et polling
+    setup(server);
+
+    startIntervals();
+
+    setServerAndIntervals(server, clearIntervals);
+
+    // Lancer simulation ou polling seulement APRÈS archivage
+    if (config.backend.useTestSim) {
+      const simulation = require('./simulation');
+      simulation.startSimulation();
+      log.info('[server] Simulation démarrée');
+    }
+    // Sinon vous pouvez démarrer ici aussi votre polling si pas simulation
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+
+    process.on('uncaughtException', err => log.error(`uncaughtException: ${err.stack || err}`));
+    process.on('unhandledRejection', reason => log.error(`unhandledRejection: ${reason.stack || reason}`));
+
+    const port = config.backend.port || 3200;
+    server.listen(port, () => {
+      log.info(`Backend DroneWeb démarré sur http://localhost:${port}`);
+      log.info(`Config active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
+    });
+  } catch (e) {
+    log.error(`[server] Erreur au démarrage : ${e.message}`);
     process.exit(1);
-  }, 5000);
-}
-
-
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-
-process.on('uncaughtException', err => {
-  log.error(`uncaughtException: ${err.stack || err}`);
-});
-
-process.on('unhandledRejection', (reason) => {
-  log.error(`unhandledRejection: ${reason.stack || reason}`);
-});
-
-const port = config.backend.port || 3200;
-server.listen(port, () => {
-  log.info(`✅ Backend DroneWeb démarré sur http://localhost:${port}`);
-  log.info(`Config backend active: port=${port}, CORS origin=${config.backend.corsOrigin}, simulation=${config.backend.useTestSim}`);
-});
+  }
+})();

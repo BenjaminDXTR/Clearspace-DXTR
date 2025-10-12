@@ -17,7 +17,7 @@ export type LatLngTimestamp = [number, number, number];
  * Le champ `trace` peut contenir le tracé sous forme de tableau de points classiques,
  * tableau avec timestamps relatifs ou une chaîne JSON.
  * Le champ `tracing` est optionnel et stocke des informations supplémentaires sur le tracé.
- * Le champ `type` indique la nature du vol : "live" pour vol en temps réel,
+ * Le champ `state` indique la nature du vol : "live" pour vol en temps réel,
  * "local" pour vol archivé (historique), et "event" pour un événement associé.
  * Le champ `isAnchored` optionnel précise si le vol est ancré dans la blockchain.
  */
@@ -28,7 +28,7 @@ export interface Flight {
   tracing?: {
     points?: LatLng[];
   };
-  type?: "live" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
+  state?: "live" | "waiting" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
   isAnchored?: boolean;
   [key: string]: any;
 }

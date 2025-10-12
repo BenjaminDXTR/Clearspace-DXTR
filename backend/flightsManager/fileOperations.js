@@ -2,6 +2,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const log = require('../utils/logger');
 
+/**
+ * Charge un fichier JSON d'historique depuis le chemin donné.
+ * @param {string} filePath Chemin complet du fichier
+ * @returns {Promise<Array>} Données JSON lues, ou tableau vide si fichier absent
+ */
 async function loadHistoryFile(filePath) {
   try {
     await fs.access(filePath);
@@ -26,6 +31,11 @@ async function loadHistoryFile(filePath) {
   }
 }
 
+/**
+ * Sauvegarde des données JSON dans un fichier de manière atomique (via fichier temporaire)
+ * @param {string} filePath Chemin complet du fichier
+ * @param {Array} data Données JSON à sauvegarder
+ */
 async function saveHistoryFile(filePath, data) {
   if (!Array.isArray(data)) {
     log.error(`[saveHistoryFile] Attempted to save non-array data to file ${filePath}`);

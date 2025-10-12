@@ -8,11 +8,11 @@ const log = require('../utils/logger');
 function broadcast(data, clients, filterLocal = false) {
   let toSend = data;
   if (filterLocal && Array.isArray(data)) {
-    toSend = data.filter(d => d.type !== 'local');
+    toSend = data.filter(d => d.state !== 'local');
   }
   try {
     const message = JSON.stringify(toSend);
-    log.info(`[broadcast] Preparing broadcast to ${clients.size} clients, message size ${message.length} bytes`);
+    //log.info(`[broadcast] Preparing broadcast to ${clients.size} clients, message size ${message.length} bytes`);
     
     let sentCount = 0;
     let skippedCount = 0;
@@ -30,7 +30,7 @@ function broadcast(data, clients, filterLocal = false) {
       }
     }
     
-    log.info(`[broadcast] Broadcast complete: sent to ${sentCount}, skipped ${skippedCount} clients (not ready)`);
+    //log.info(`[broadcast] Broadcast complete: sent to ${sentCount}, skipped ${skippedCount} clients (not ready)`);
   } catch (err) {
     log.error(`[broadcast] JSON serialization error: ${err.message}`);
   }

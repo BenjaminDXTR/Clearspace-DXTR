@@ -22,7 +22,6 @@ export default function useLiveTraces(
 ) {
   const [liveTraces, setLiveTraces] = useState<Record<string, DroneTraceState>>({});
 
-  // Log helper with centralized debug logging
   const dlog = useDebugLogger(debug, "useLiveTraces");
 
   useEffect(() => {
@@ -42,23 +41,21 @@ export default function useLiveTraces(
             return;
           }
 
-          // Normaliser la trace, doit être tableau, sinon tableau vide
           const newTrace = Array.isArray(drone.trace) ? drone.trace : [];
-
-          // Précédentes traces stockées et vol pour comparaison
           const prevTrace = updated[drone.id]?.trace ?? [];
           const prevFlight = updated[drone.id]?.flight ?? {};
 
-          // Comparaison profonde pour éviter mise à jour inutile
-          if (!isEqual(newTrace, prevTrace) || !isEqual(drone, prevFlight)) {
+          // On force la mise à jour sur vol waiting OU si trace ou vol ont changé
+          if (drone.state === "waiting" || !isEqual(newTrace, prevTrace) || !isEqual(drone, prevFlight)) {
             updated[drone.id] = { flight: drone, trace: newTrace };
             changed = true;
-            dlog(`[useLiveTraces] Updated drone id=${drone.id} with trace points=${newTrace.length}`);
+            dlog(`[useLiveTraces] Updated drone id=${drone.id} state=${drone.state} with trace points=${newTrace.length}`);
             if (onUpdate) onUpdate(drone, newTrace);
           } else {
-            dlog(`[useLiveTraces] No update needed for drone id=${drone.id}`);
+            dlog(`[useLiveTraces] No update needed for drone id=${drone.id} state=${drone.state}`);
           }
         });
+
         return changed ? updated : prev;
       });
     } catch (e) {

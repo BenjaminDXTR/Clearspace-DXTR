@@ -41,3 +41,14 @@ export const DEFAULT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   minute: "2-digit",
   second: "2-digit",
 };
+
+/**
+ * Formate une date ISO UTC en chaîne lisible localisée.
+ * Utilise le locale et options par défaut définies.
+ * @param isoString Date ISO UTC à formater
+ * @returns chaîne formatée en date locale
+ */
+export function formatLocalDate(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleString(DEFAULT_DATE_LOCALE, DEFAULT_DATE_OPTIONS);
+}

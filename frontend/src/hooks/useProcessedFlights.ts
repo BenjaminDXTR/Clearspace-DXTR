@@ -10,8 +10,8 @@ interface UseProcessedFlightsOptions {
 }
 
 interface UseProcessedFlightsResult {
-    liveFlights: (Flight & { _type: "live" })[];
-    localFlights: (Flight & { _type: "local" })[];
+    liveFlights: (Flight & { state: "live" | "waiting" })[];
+    localFlights: (Flight & { state: "local" })[];
     localPage: number;
     setLocalPage: (page: number) => void;
     localMaxPage: number;
@@ -20,13 +20,14 @@ interface UseProcessedFlightsResult {
 
 /**
  * Hook métier pour traiter, filtrer et fusionner les vols live et locaux (historique).
+ * Inclut désormais vols en état "waiting" dans liveFlights.
  * 
- * @param rawLiveFlights Vols bruts en live reçus du backend via WebSocket.
- * @param rawLocalFlights Vols bruts locaux paginés chargés via useLocalHistory.
- * @param options Options debug et callback d’erreur utilisateur.
- * @param fetchHistory Fonction permettant de récupérer un historique par fichier.
- * @param historyFiles Liste des fichiers d’historique disponibles.
- * @returns Données traitées prêtes à être consommées par l’UI.
+ * @param rawLiveFlights Vols bruts live reçus du backend via WebSocket
+ * @param rawLocalFlights Vols historiques paginés chargés
+ * @param options Options debug et gestion erreur utilisateur
+ * @param fetchHistory Fonction récupération historique par fichier
+ * @param historyFiles Liste fichiers historique disponible
+ * @returns Données traitées pour consumption UI
  */
 export function useProcessedFlights(
     rawLiveFlights: Flight[],
@@ -37,9 +38,10 @@ export function useProcessedFlights(
 ): UseProcessedFlightsResult {
     const { debug = false, onUserError } = options;
 
-    // Utilisation de useDebugLogger pour debug conditionnel
+    // Logger conditionnel
     const debugLog = useDebugLogger(debug, "useProcessedFlights");
 
+    // Hook local history
     const {
         setLocalHistory,
         localPage,
@@ -52,6 +54,7 @@ export function useProcessedFlights(
     const prevRawLocalFlightsRef = useRef<Flight[] | null>(null);
 
     useEffect(() => {
+        // Optimisation : éviter mise à jour inutile si tableau local égal au précédent
         if (rawLocalFlights.length === 0 && prevRawLocalFlightsRef.current && prevRawLocalFlightsRef.current.length === 0) {
             return;
         }
@@ -66,22 +69,25 @@ export function useProcessedFlights(
         }
     }, [localHistoryError, onUserError]);
 
+    // Filtrer vols live incluant aussi "waiting"
     const liveFlights = useMemo(() => {
-        const filtered: (Flight & { _type: "live" })[] = rawLiveFlights
+        const filtered = rawLiveFlights
             .filter((flight) =>
-                typeof flight.latitude === "number" &&
-                typeof flight.longitude === "number" &&
-                flight.latitude !== 0 &&
-                flight.longitude !== 0 &&
-                !!flight.id
+            (flight.state === "live" || flight.state === "waiting") &&
+            typeof flight.latitude === "number" &&
+            typeof flight.longitude === "number" &&
+            flight.latitude !== 0 &&
+            flight.longitude !== 0 &&
+            !!flight.id
             )
-            .map((flight) => ({ ...flight, _type: "live" }));
-        debugLog(`Vols live filtrés: ${filtered.length}`);
+            .map((flight) => ({ ...flight, state: flight.state as "live" | "waiting" }));
+        debugLog(`Vols live et waiting filtrés: ${filtered.length}`);
         return filtered;
-    }, [rawLiveFlights, debugLog]);
+        }, [rawLiveFlights, debugLog]);
 
+    // Filtrer vols historiques locaux
     const localFlights = useMemo(() => {
-        const filtered: (Flight & { _type: "local" })[] = localPageData
+        const filtered: (Flight & { state: "local" })[] = localPageData
             .filter((flight) =>
                 flight !== null &&
                 typeof flight.latitude === "number" &&
@@ -90,7 +96,7 @@ export function useProcessedFlights(
                 flight.longitude !== 0 &&
                 !!flight.id
             )
-            .map((flight) => ({ ...flight, _type: "local" }));
+            .map((flight) => ({ ...flight, state: "local" }));
         debugLog(`Vols locaux page ${localPage} filtrés: ${filtered.length}`);
         return filtered;
     }, [localPageData, localPage, debugLog]);

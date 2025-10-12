@@ -47,7 +47,6 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const websocketUrl = config.websocketUrl;
 
-
   function clearTimeouts() {
     if (pingTimeout.current) {
       clearTimeout(pingTimeout.current);
@@ -93,7 +92,6 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     console.error(`[${new Date().toISOString()}][DronesContext] ${msg}`);
   }
 
-
   function connect() {
     if (ws.current) {
       if (ws.current.readyState === WS_STATES.OPEN || ws.current.readyState === WS_STATES.CONNECTING) {
@@ -112,9 +110,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       console.log(`[${new Date().toISOString()}][DronesContext] Reconnect already scheduled, ignoring new connect call`);
       return;
     }
-    console.log(`[${new Date().toISOString()}][DronesContext] Attempting WS connection to ${websocketUrl}`
-  );
-
+    console.log(`[${new Date().toISOString()}][DronesContext] Attempting WS connection to ${websocketUrl}`);
 
     setLoading('connecting');
     console.log(`[DronesContext][${new Date().toISOString()}] Opening WS connection to ${websocketUrl}`);
@@ -139,10 +135,12 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         console.log(`[DronesContext][${new Date().toISOString()}] WS message received:`, data);
 
         if (Array.isArray(data)) {
-          if (data.length > 0) {
-            setDrones(data);
-            console.log(`[DronesContext][${new Date().toISOString()}] Drones updated, count: ${data.length}`);
-          }
+          setDrones(data);
+          console.log(`[DronesContext][${new Date().toISOString()}] Drones updated, count: ${data.length}`);
+
+          // Log vols "waiting" reçus
+          const waitingFlights = data.filter((flight: Flight) => flight.state === 'waiting');
+          console.log(`[DronesContext][${new Date().toISOString()}] Waiting flights count: ${waitingFlights.length}`, waitingFlights);
           return;
         }
 

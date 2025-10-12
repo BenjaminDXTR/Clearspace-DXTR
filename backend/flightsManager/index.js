@@ -1,9 +1,15 @@
 const { loadHistoryFile, saveHistoryFile } = require('./fileOperations');
-const { saveFlightToHistory, archiveInactiveFlights } = require('./flightsController');
+const { saveFlightToHistory, updateFlightStates, flightStates } = require('./flightsController');
 const { addOrUpdateFlightInFile } = require('./flightSessions');
 const { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache } = require('./historyCache');
 const { lastSeenMap, createdTimeMap, flightTraces } = require('./state');
-const { getWeekPeriod } = require('./utils'); // à créer si utils contient des fonctions utilitaires
+const { getWeekPeriod } = require('./utils'); // toujours créer utils si utilisé
+
+// Import des fonctions d'archivage directement depuis le bon fichier
+const {
+  archiveAllLiveAndWaitingAsLocal,
+  archiveLiveFlightsOnShutdown,
+} = require('./autoArchiving');
 
 module.exports = {
   // Gestion fichiers
@@ -12,7 +18,8 @@ module.exports = {
 
   // Gestion historique vols
   saveFlightToHistory,
-  archiveInactiveFlights,
+  updateFlightStates,
+  flightStates,
 
   // Gestion session de vol
   addOrUpdateFlightInFile,
@@ -30,4 +37,8 @@ module.exports = {
 
   // Utilitaires
   getWeekPeriod,
+
+  // Archivage
+  archiveAllLiveAndWaitingAsLocal,
+  archiveLiveFlightsOnShutdown,
 };

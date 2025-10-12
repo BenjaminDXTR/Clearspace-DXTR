@@ -1,31 +1,48 @@
 @echo off
-SETLOCAL ENABLEDELAYEDEXPANSION ENABLEEXTENSIONS
+SETLOCAL ENABLEEXTENSIONS
 
-echo 🛑 Arrêt des serveurs Clearspace (backend + frontend)
+REM Extraction des ports depuis .env
+for /f "tokens=2 delims==" %%a in ('findstr "^BACKEND_PORT=" .env') do set BACKEND_PORT=%%a
+if "%BACKEND_PORT%"=="" set BACKEND_PORT=3200
 
-REM Ports utilisés (doivent correspondre à ceux dans .env)
-set BACKEND_PORT=3201
-set FRONTEND_PORT=3001
+for /f "tokens=2 delims==" %%a in ('findstr "^FRONTEND_PORT=" .env') do set FRONTEND_PORT=%%a
+if "%FRONTEND_PORT%"=="" set FRONTEND_PORT=3000
 
-REM Vérifier et tuer processus backend sur BACKEND_PORT
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%BACKEND_PORT% ^| findstr LISTENING') do (
-  echo Tuer processus backend PID: %%a sur port %BACKEND_PORT%
-  taskkill /PID %%a /F >nul 2>&1
-)
+echo Arret des serveurs Clearspace (frontend puis backend)
+echo Backend port: %BACKEND_PORT%
+echo Frontend port: %FRONTEND_PORT%
 
-REM Vérifier et tuer processus frontend sur FRONTEND_PORT
+REM Fermeture frontend (processus sur le port)
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%FRONTEND_PORT% ^| findstr LISTENING') do (
-  echo Tuer processus frontend PID: %%a sur port %FRONTEND_PORT%
+  echo Fermeture frontend - PID: %%a
   taskkill /PID %%a /F >nul 2>&1
 )
 
-REM Tuer toutes les fenêtres de terminal "Backend" ouvertes (adapté si vous avez lancé avec ce titre)
-taskkill /FI "WINDOWTITLE eq Backend" /T /F >nul 2>&1
+timeout /t 3 /nobreak >nul
 
-REM Tuer toutes les fenêtres de terminal "Frontend" ouvertes
+REM Envoi requête HTTP shutdown backend
+echo Envoi requete HTTP shutdown backend sur port %BACKEND_PORT%
+curl -m 10 -X POST http://localhost:%BACKEND_PORT%/shutdown >nul 2>&1
+set "CURL_RESULT=%ERRORLEVEL%"
+
+if "%CURL_RESULT%"=="0" (
+  echo Requete shutdown envoyee correctement.
+)
+
+if not "%CURL_RESULT%"=="0" (
+  echo Erreur lors de l'arret HTTP backend. Fermeture backend forcee.
+  for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%BACKEND_PORT% ^| findstr LISTENING') do (
+    echo Fermeture backend - PID: %%a
+    taskkill /PID %%a /F >nul 2>&1
+  )
+)
+
+timeout /t 5 /nobreak >nul
+
+REM Fermeture des fenêtres de terminal Backend et Frontend
+taskkill /FI "WINDOWTITLE eq Backend" /T /F >nul 2>&1
 taskkill /FI "WINDOWTITLE eq Frontend" /T /F >nul 2>&1
 
+echo Tous les serveurs sont arretes et fenetres fermees.
 
-echo ✅ Serveurs arrêtés et terminaux fermés.
-
-ENDLOCAL
+exit /b 0
