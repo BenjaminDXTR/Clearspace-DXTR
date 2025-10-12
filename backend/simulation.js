@@ -4,7 +4,7 @@ let stepIndex = 0; // position dans la trajectoire courante
 let cycleCreatedTime = null; // date créée fixe pour chaque simulation
 let currentSimDrones = [];
 let timeoutId = null; // timeout pour pauses entre simulations
-let droneCounter = 1; // incrémenté à chaque nouvelle simulation soumise
+let droneCounter = 1; // incrémenté une fois par situation complète
 
 // Trajectoires simulées
 const simulatedPath1 = [
@@ -16,7 +16,6 @@ const simulatedPath1 = [
   [49.5315, 0.0875], [49.5312, 0.0877], [49.5309, 0.0879], [49.5306, 0.0881],
   [49.5303, 0.0883], [49.5301, 0.0886], [49.5300, 0.0890]
 ];
-
 const simulatedPath2 = [
   [49.5295, 0.0930], [49.5298, 0.0932], [49.5301, 0.0936], [49.5304, 0.0940],
   [49.5308, 0.0943], [49.5311, 0.0947], [49.5315, 0.0950], [49.5318, 0.0952],
@@ -68,6 +67,8 @@ const testDrone = {
   whitelisted: false,
 };
 
+
+// Génération d’un drone simulé
 function buildDrone(position, createdTime, now, base, idSuffix) {
   const d = JSON.parse(JSON.stringify(base));
   d.latitude = position[0];
@@ -79,71 +80,65 @@ function buildDrone(position, createdTime, now, base, idSuffix) {
   return d;
 }
 
+
 function sendSimulationStep() {
   const now = new Date().toISOString();
 
-  // Gestion des deux situations alternantes
   if (situationIndex === 0) {
-    // Situation 1 : vol complet trajectoire 1
+    // Situation 1 vol complet
     if (stepIndex >= simulatedPath1.length) {
-      // Pause 15 secondes avant situation 2
       currentSimDrones = [{ data: { drone: [] } }];
+      // Pause 15s avant changement situation
       timeoutId = setTimeout(() => {
-        timeoutId = null;
         situationIndex = 1;
         stepIndex = 0;
         cycleCreatedTime = null;
+        // incrément ID drone à la vraie nouvelle situation
+        droneCounter++;
         sendSimulationStep();
       }, 15000);
       return;
     }
   } else {
-    // Situation 2 : vol jusqu'à la moitié de trajectoire 2
-    const halfLength = Math.floor(simulatedPath2.length / 2);
-    if (stepIndex === halfLength) {
-      // Pause 5 secondes simulation non détection
+    // Situation 2 : vol moitié puis pause et reprise seconde moitié
+    const half = Math.floor(simulatedPath2.length / 2);
+
+    if (stepIndex === half) {
       currentSimDrones = [{ data: { drone: [] } }];
+      // Pause 5s avant la seconde moitié
       timeoutId = setTimeout(() => {
-        timeoutId = null;
-        cycleCreatedTime = new Date().toISOString(); // Date nouvelle pour second vol
-        // Pas incrémenter idSuffix => même ID pour seconde partie
+        cycleCreatedTime = new Date().toISOString(); // nouveau created_time mais même ID
         sendSimulationStep();
       }, 5000);
       stepIndex++;
       return;
     }
+
     if (stepIndex >= simulatedPath2.length) {
-      // Pause 15 secondes avant revenir situation 1
       currentSimDrones = [{ data: { drone: [] } }];
+      // Pause 15s avant retour situation 1
       timeoutId = setTimeout(() => {
-        timeoutId = null;
         situationIndex = 0;
         stepIndex = 0;
         cycleCreatedTime = null;
-        droneCounter++; // Nouvelle ID simulation
+        droneCounter++; // incrément d’ID seulement à ce moment pour nouvelle situation
         sendSimulationStep();
       }, 15000);
       return;
     }
   }
 
-  // Position dans la trajectoire courante
   const currentPath = situationIndex === 0 ? simulatedPath1 : simulatedPath2;
   if (!cycleCreatedTime) {
     cycleCreatedTime = new Date().toISOString();
   }
 
-  // Générer drone simulé à cette position
   const pos = currentPath[stepIndex];
   const drone = buildDrone(pos, cycleCreatedTime, now, testDrone, droneCounter);
-
-  // Remplacer drone précédent et mettre le nouveau
   currentSimDrones = currentSimDrones.filter((d) => d.id !== drone.id);
   currentSimDrones.push(drone);
 
   stepIndex++;
-
-  // Relancer étape suivante après 1 sec
   setTimeout(sendSimulationStep, 1000);
 }
 

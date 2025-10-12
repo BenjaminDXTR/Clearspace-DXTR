@@ -143,9 +143,9 @@ export default function useAppLogic() {
     (flight: Flight): LatLngTimestamp[] => {
       let trace: LatLngTimestamp[] = [];
 
-      if (flight.state === "live") {
+      if (flight.state === "live" || flight.state === "waiting") {
         trace = (liveTraces[flight.id] as { trace: LatLngTimestamp[] } | undefined)?.trace ?? [];
-      } else if (flight.type === "local") {
+      } else if (flight.state === "local") {
         const raw = (flight as any).trace ?? [];
         if (raw.length > 0) {
           if (raw[0].length === 3) {
@@ -155,11 +155,13 @@ export default function useAppLogic() {
           }
         }
       }
-      dlog(`[getTraceFlight] Flight id: ${flight.id} trace length: ${trace.length}`);
+
+      dlog(`[getTraceFlight] Flight id: ${flight.id} state: ${flight.state} trace length: ${trace.length}`);
       return trace;
     },
     [liveTraces, dlog]
   );
+
 
   const {
     anchorModal,
