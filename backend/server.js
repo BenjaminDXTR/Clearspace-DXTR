@@ -52,20 +52,24 @@ function clearIntervals() {
 // Initialisation principale
 (async () => {
   try {
+    // Archivage en local avant démarrage polling / simulation
     await archiveAllLiveAndWaitingAsLocal();
     log.info('[server] Archivage live/waiting -> local au démarrage OK');
 
+    // Initialiser websocket et polling
     setup(server);
 
     startIntervals();
 
     setServerAndIntervals(server, clearIntervals);
 
+    // Lancer simulation ou polling seulement APRÈS archivage
     if (config.backend.useTestSim) {
       const simulation = require('./simulation');
       simulation.startSimulation();
       log.info('[server] Simulation démarrée');
     }
+    // Sinon vous pouvez démarrer ici aussi votre polling si pas simulation
 
     process.on('SIGINT', gracefulShutdown);
     process.on('SIGTERM', gracefulShutdown);

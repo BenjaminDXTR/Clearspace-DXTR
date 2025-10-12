@@ -140,13 +140,15 @@ export default function useLocalHistory({
 
   // Trier localHistory par created_time décroissant (plus récent en premier)
   const sortedLocalHistory = useMemo(() => {
-    return [...localHistory].sort((a, b) => {
-      const dateA = new Date(a.created_time ?? "").getTime();
-      const dateB = new Date(b.created_time ?? "").getTime();
-      return dateB - dateA; // décroissant
-    });
+    return [...localHistory]
+      .filter(flight => flight.state === 'local')  // Filtrage sur état 'local'
+      .sort((a, b) => {
+        const dateA = new Date(a.created_time ?? "").getTime();
+        const dateB = new Date(b.created_time ?? "").getTime();
+        return dateB - dateA; // décroissant (plus récent en premier)
+      });
   }, [localHistory]);
-
+  
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(sortedLocalHistory.length / PER_PAGE)), [sortedLocalHistory]);
 
   const localPageData = useMemo(() => sortedLocalHistory.slice((localPage - 1) * PER_PAGE, localPage * PER_PAGE), [sortedLocalHistory, localPage]);
