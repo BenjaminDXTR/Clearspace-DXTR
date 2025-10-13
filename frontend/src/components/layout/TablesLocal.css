@@ -66,7 +66,7 @@
     background-color: #d9f7be;
 }
 
-/* Optionnel : style pour vols en attente d'ancrage (jaune clair) */
+/* Style pour vols en attente d'ancrage (jaune clair) */
 .clickable-row.pending {
     background-color: #fff8dc; /* cornsilk clair */
 }
@@ -75,6 +75,31 @@
 .anchor-cell {
     text-align: center;
     min-width: 58px;
+}
+
+/* Texte à côté des icônes d'ancrage */
+.anchor-text {
+    margin-left: 4px;
+    font-size: 0.85rem;
+    vertical-align: middle;
+    color: #333;
+}
+
+/* Bouton grisé désactivé pour état pending */
+.anchor-btn-disabled {
+    margin-left: 6px;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+    color: #888;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: not-allowed;
+}
+
+.anchor-btn-disabled:hover {
+    color: #888;
+    background-color: #eee;
 }
 
 /* Pagination */
@@ -100,5 +125,10 @@
         padding: 4px 6px;
         font-size: 0.81rem;
         max-width: 88vw;
+    }
+
+    /* Masquer texte ancrage sur petits écrans */
+    .anchor-text {
+        display: none;
     }
 }

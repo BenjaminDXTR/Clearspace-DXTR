@@ -1,0 +1,22 @@
+{
+  "id": "SIM_DRONE_011",
+  "type": "Drone",
+  "created_time": "2025-10-13T21:34:51.130Z",
+  "time": "13 oct. 2025, 23:34:51",
+  "anchored_at": "2025-10-13T21:35:55.435Z",
+  "positionCible": {
+    "latitude": 49.53,
+    "longitude": 0.089,
+    "altitude": 100,
+    "distance": 0
+  },
+  "positionVehicule": {
+    "latitude": 0,
+    "longitude": 0,
+    "altitude": 0
+  },
+  "siteId": "3",
+  "modele": "SIMULATED DRONE 11",
+  "xtr5 serial number": "",
+  "comment": ""
+}

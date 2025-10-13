@@ -11,7 +11,7 @@ interface TablesLocalProps {
   localMaxPage: number;
   localPageData: Flight[]; // données déjà filtrées, triées et paginées
   LOCAL_FIELDS: string[];
-  isAnchored: IsAnchoredFn; // désormais retourne 'none' | 'pending' | 'anchored'
+  isAnchored: IsAnchoredFn; // retourne 'none' | 'pending' | 'anchored'
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
   openModal: (flight: Flight, trace: any[]) => void;
@@ -78,13 +78,20 @@ export default function TablesLocal({
             </thead>
             <tbody>
               {localPageData.map((item, idx) => {
+                // Récupérer l’état d’ancrage (none, pending, anchored)
                 const anchorState = isAnchored(item.id ?? "", item.created_time ?? "");
 
                 return (
                   <tr
                     key={genKey(item, idx)}
                     tabIndex={0}
-                    className={`clickable-row ${anchorState === "anchored" ? "anchored" : ""}`}
+                    className={`clickable-row ${
+                      anchorState === "anchored"
+                        ? "anchored"
+                        : anchorState === "pending"
+                        ? "pending"
+                        : ""
+                    }`}
                     onClick={() => onSelect(item)}
                     aria-selected="false"
                   >
@@ -93,11 +100,16 @@ export default function TablesLocal({
                     ))}
                     <td className="anchor-cell">
                       {anchorState === "anchored" ? (
-                        "✔️"
+                        <>
+                          ✔️ <span className="anchor-text">Ancré</span>
+                        </>
                       ) : anchorState === "pending" ? (
-                        <span title="En attente d’ancrage" aria-label="Ancrage en attente">
-                          ⏳
-                        </span>
+                        <>
+                          ⏳ <span className="anchor-text">En attente</span>{" "}
+                          <button className="anchor-btn-disabled" disabled title="En attente d'ancrage">
+                            Ancrer
+                          </button>
+                        </>
                       ) : renderAnchorCell ? (
                         renderAnchorCell(item)
                       ) : (
