@@ -13,7 +13,7 @@ async function updateTrace(update) {
 
   if (!flightTraces.has(id)) {
     flightTraces.set(id, []);
-    log.info(`[updateTrace] Initialized new trace array for drone ${id}`);
+    //log.info(`[updateTrace] Initialized new trace array for drone ${id}`);
   }
 
   const trace = flightTraces.get(id);
@@ -24,7 +24,7 @@ async function updateTrace(update) {
       const nowTimestamp = Date.now();
       const relativeTime = nowTimestamp - createdTimestamp;
 
-      log.info(`[updateTrace] Drone ${id} created_time UTC: ${created_time}, timestamp: ${createdTimestamp}, relativeTime: ${relativeTime} ms`);
+      //log.info(`[updateTrace] Drone ${id} created_time UTC: ${created_time}, timestamp: ${createdTimestamp}, relativeTime: ${relativeTime} ms`);
 
       if (
         trace.length === 0 ||
@@ -32,7 +32,7 @@ async function updateTrace(update) {
         trace[trace.length - 1][1] !== longitude
       ) {
         trace.push([latitude, longitude, relativeTime]);
-        log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}, [lat, lng, relativeTime]: [${latitude}, ${longitude}, ${relativeTime}]`);
+        //log.info(`[updateTrace] Point added for drone ${id}, total points: ${trace.length}, [lat, lng, relativeTime]: [${latitude}, ${longitude}, ${relativeTime}]`);
       } else {
         // Limiter ce log car redondant
         // log.debug(`[updateTrace] Duplicate point ignored for drone ${id}`);
@@ -46,17 +46,17 @@ async function updateTrace(update) {
 
   // Limiter fréquence d'affichage snapshot si trace très longue
   if (trace.length <= 10) {
-    log.debug(`[updateTrace] Trace snapshot for drone ${id}: ${JSON.stringify(trace)}`);
+    //log.debug(`[updateTrace] Trace snapshot for drone ${id}: ${JSON.stringify(trace)}`);
   } else if (trace.length % 10 === 0) {
-    log.info(`[updateTrace] Trace length for drone ${id} reached ${trace.length} points`);
-    log.debug(`[updateTrace] Trace snapshot tail: ${JSON.stringify(trace.slice(-5))}`);
+    //log.info(`[updateTrace] Trace length for drone ${id} reached ${trace.length} points`);
+    //log.debug(`[updateTrace] Trace snapshot tail: ${JSON.stringify(trace.slice(-5))}`);
   }
 
   if (config.backend.useTest) {
     try {
       const fullFlight = { ...update, trace: trace.slice(), state: 'live' };
       await saveFlightToHistory(fullFlight);
-      log.info(`[updateTrace] Saved flight in simulation for drone ${id}`);
+      //log.info(`[updateTrace] Saved flight in simulation for drone ${id}`);
     } catch (error) {
       log.error(`[updateTrace] Error saving drone ${id} in simulation: ${error.message}`);
     }

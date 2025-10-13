@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     let files = await fs.readdir(historyDir);
     files = files.filter(f => f.endsWith('.json')).sort();
     res.json(files);
-    log.info(`[history] Sent list of historical files (${files.length} files) to ${req.ip}`);
+    //log.info(`[history] Sent list of historical files (${files.length} files) to ${req.ip}`);
   } catch (error) {
     log.error(`[history] Error listing history files: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
@@ -37,7 +37,7 @@ router.get('/:filename', async (req, res) => {
     const data = await fs.readFile(filePath, 'utf8');
     const json = JSON.parse(data);
     res.json(json);
-    log.info(`[history] Sent historical file content: ${filename} to ${req.ip}, entries count: ${json.length || 'unknown'}`);
+    //log.info(`[history] Sent historical file content: ${filename} to ${req.ip}, entries count: ${json.length || 'unknown'}`);
   } catch (error) {
     log.error(`[history] Error reading historical file ${filename}: ${error.message}`);
     res.status(500).json({ error: 'Erreur serveur interne' });
@@ -72,7 +72,7 @@ router.get('/:filename/:flightId', async (req, res) => {
 
     // Retour du vol complet
     res.json(flight);
-    log.info(`[history] Sent flight id=${flightId} from file ${filename} to ${req.ip}`);
+    //log.info(`[history] Sent flight id=${flightId} from file ${filename} to ${req.ip}`);
 
   } catch (error) {
     log.error(`[history] Error reading historical file ${filename} or flight: ${error.message}`);

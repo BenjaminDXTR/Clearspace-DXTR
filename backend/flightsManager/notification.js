@@ -3,7 +3,7 @@ const clients = require('../websocket/clients');
 const log = require('../utils/logger');
 
 function notifyUpdate(filename) {
-  log.info(`[notifyUpdate] notifyUpdate called for file: ${filename || 'undefined or empty'}`);
+  //log.info(`[notifyUpdate] notifyUpdate called for file: ${filename || 'undefined or empty'}`);
 
   if (!filename) {
     log.warn('[notifyUpdate] No filename provided, skipping broadcast.');
@@ -14,7 +14,7 @@ function notifyUpdate(filename) {
     return;
   }
 
-  log.info(`[notifyUpdate] Broadcasting refresh notification for file: ${filename}`);
+  //log.info(`[notifyUpdate] Broadcasting refresh notification for file: ${filename}`);
 
   try {
     broadcast({ type: 'refresh', data: { filename } }, clients);

@@ -6,34 +6,37 @@ const { sendAnchorProof } = require('./blockchainService');
 
 async function retryPendingAnchors() {
     try {
-        const pendingList = await anchorService.getPendingList();
+        // Liste des dossiers existants dans le dossier pending
+        const pendingDir = anchorService.PENDING_DIR;
+        const dirents = await fsPromises.readdir(pendingDir, { withFileTypes: true });
+        const pendingList = dirents.filter(d => d.isDirectory()).map(d => d.name);
+
+        log.info(`RetryPending : ${pendingList.length} dossier(s) en attente trouvés`);
 
         for (const folderName of pendingList) {
             try {
-                log.info(`Tentative d’envoi de la preuve blockchain pour dossier en attente : ${folderName}`);
+                log.info(`Tentative d’envoi blockchain pour dossier en attente : ${folderName}`);
 
-                const proofZipPath = path.join(anchorService.ANCHORED_DIR, folderName, 'preuve.zip');
-                const ancrageJsonPath = path.join(anchorService.ANCHORED_DIR, folderName, 'ancrage.json');
+                const proofZipPath = path.join(pendingDir, folderName, 'preuve.zip');
+                const ancrageJsonPath = path.join(pendingDir, folderName, 'ancrage.json');
 
                 const zipBuffer = await fsPromises.readFile(proofZipPath);
                 const jsonBuffer = await fsPromises.readFile(ancrageJsonPath);
 
                 await sendAnchorProof(zipBuffer, jsonBuffer);
-                log.info(`Envoi réussi pour dossier ${folderName}`);
+                log.info(`Envoi blockchain réussi pour dossier ${folderName}`);
 
-                await anchorService.removePendingFolder(folderName);
-
-                // TODO: mettre à jour historique isAnchored ici si nécessaire
+                // Déplacer le dossier dans anchored après succès
+                await anchorService.moveFolderToAnchored(folderName);
 
             } catch (err) {
                 log.warn(`Échec envoi dossier ${folderName} : ${err.message}`);
-                // Ne pas supprimer le dossier, on réessaiera plus tard
+                // Dossier reste dans pending pour nouvelle tentative plus tard
             }
         }
     } catch (err) {
-        log.error(`Erreur lors du retry des envois différés : ${err.message}`);
+        log.error(`Erreur dans retryPendingAnchors : ${err.message}`);
     }
 }
 
-// Exports la fonction pour planification intervalle
 module.exports = { retryPendingAnchors };

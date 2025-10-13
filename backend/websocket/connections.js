@@ -17,7 +17,7 @@ function isValidTrace(trace) {
 
 function setupConnection(ws, broadcastFn) {
   clients.add(ws);
-  log.info(`[connections] New client connected. Total clients: ${clients.size}`);
+  //log.info(`[connections] New client connected. Total clients: ${clients.size}`);
 
   ws.on('message', async message => {
     //log.debug(`[connections] Message received from client: ${message.length} bytes`);
@@ -42,7 +42,7 @@ function setupConnection(ws, broadcastFn) {
         try {
           const filename = await saveFlight(data);
           broadcastFn([data], clients);
-          log.info(`[connections] Broadcasted updated flight id=${data.id}, saved in file ${filename}`);
+          //log.info(`[connections] Broadcasted updated flight id=${data.id}, saved in file ${filename}`);
         } catch (e) {
           log.error(`[connections] Error saving flight id=${data.id}: ${e.message}`);
         }
@@ -56,7 +56,7 @@ function setupConnection(ws, broadcastFn) {
 
   ws.on('close', () => {
     clients.delete(ws);
-    log.info(`[connections] Client disconnected. Total clients: ${clients.size}`);
+    //log.info(`[connections] Client disconnected. Total clients: ${clients.size}`);
   });
 
   ws.on('error', e => {

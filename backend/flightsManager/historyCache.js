@@ -18,7 +18,7 @@ async function ensureHistoryDirExists() {
   } catch {
     try {
       await fs.mkdir(historyBaseDir, { recursive: true });
-      log.info(`[historyCache] Created history directory at ${historyBaseDir}`);
+      //log.info(`[historyCache] Created history directory at ${historyBaseDir}`);
     } catch (e) {
       log.error(`[historyCache] Failed to create history directory: ${e.message}`);
       throw e;
@@ -39,14 +39,14 @@ async function loadHistoryToCache(filename) {
     try {
       const data = await loadHistoryFile(filePath);
       historyCache.set(filename, data);
-      log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
+      //log.info(`[loadHistoryToCache] Loaded ${data.length} entries into cache for ${filename}`);
     } catch (e) {
       log.error(`[loadHistoryToCache] Error loading ${filename}: ${e.message}`);
       // Init cache vide en cas d’erreur pour ce fichier
       historyCache.set(filename, []);
     }
   } else {
-    log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
+    //log.debug(`[loadHistoryToCache] Cache hit for ${filename} with ${historyCache.get(filename).length} entries`);
   }
   return historyCache.get(filename);
 }
@@ -68,9 +68,9 @@ async function flushCacheToDisk(filename) {
   }
   const filePath = path.join(historyBaseDir, filename);
   try {
-    log.info(`[flushCacheToDisk] Saving cache to disk for ${filename} at ${filePath} with ${data.length} entries`);
+    //log.info(`[flushCacheToDisk] Saving cache to disk for ${filename} at ${filePath} with ${data.length} entries`);
     await saveHistoryFile(filePath, data);
-    log.info(`[flushCacheToDisk] Successfully saved cache for ${filename}`);
+    //log.info(`[flushCacheToDisk] Successfully saved cache for ${filename}`);
   } catch (e) {
     log.error(`[flushCacheToDisk] Error saving cache for file ${filename}: ${e.message}`);
   }
@@ -81,11 +81,11 @@ async function flushCacheToDisk(filename) {
  */
 async function flushAllCache() {
   const filenames = Array.from(historyCache.keys());
-  log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
+  //log.info(`[flushAllCache] Flushing all caches (${filenames.length} files)`);
   for (const filename of filenames) {
     await flushCacheToDisk(filename);
   }
-  log.info('[flushAllCache] All cache flushed successfully');
+  //log.info('[flushAllCache] All cache flushed successfully');
 }
 
 // Expression régulière pour les fichiers historique avec plage date
@@ -139,7 +139,7 @@ async function findOrCreateHistoryFile(dateStr) {
       const start = new Date(match[1] + 'T00:00:00Z');
       const end = new Date(match[2] + 'T00:00:00Z');
       if (date >= start && date <= end) {
-        log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
+        //log.info(`[historyCache] Found existing history file ${file} covering date ${dateStr}`);
         return file;
       }
     }
@@ -151,7 +151,7 @@ async function findOrCreateHistoryFile(dateStr) {
   end.setDate(start.getDate() + 6);
 
   const newFile = `history-${formatDate(start)}_to_${formatDate(end)}.json`;
-  log.info(`[historyCache] No existing file for date ${dateStr}, creating new file ${newFile}`);
+  //   log.info(`[historyCache] No existing file for date ${dateStr}, creating new file ${newFile}`);
 
   if (!historyCache.has(newFile)) {
     historyCache.set(newFile, []);

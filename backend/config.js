@@ -87,7 +87,6 @@ const config = {
 
     // Constantes internes
     inactiveTimeoutMs: 10000,
-    maxTraceLength: 1000,
     distanceEpsilon: 0.00001,
 
     graphqlDroneQuery: graphqlDroneQuery,
