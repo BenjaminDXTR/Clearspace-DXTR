@@ -5,13 +5,17 @@ const path = require('path');
 const log = require('../utils/logger');
 const { config } = require('../config');
 
+// Répertoires configurables
 const rawAnchoredDir = config.backend.anchoredDir || 'anchored';
 const ANCHORED_DIR = path.isAbsolute(rawAnchoredDir)
   ? rawAnchoredDir
   : path.resolve(__dirname, '..', rawAnchoredDir);
 
+// Fichiers de suivi
 const ANCHOR_FILE = path.join(__dirname, '..', config.backend.anchorFile || 'anchored.json');
+const PENDING_FILE = path.join(__dirname, '..', config.backend.pendingFile || 'pendingAnchors.json');
 
+// Lit la liste des ancrages sauvegardés
 async function getAnchoredList() {
   try {
     if (!fs.existsSync(ANCHOR_FILE)) {
@@ -33,6 +37,7 @@ async function getAnchoredList() {
   }
 }
 
+// Sauvegarde la liste des ancrages
 async function saveAnchoredList(anchoredList) {
   try {
     await fsPromises.writeFile(ANCHOR_FILE, JSON.stringify(anchoredList, null, 2));
@@ -43,41 +48,104 @@ async function saveAnchoredList(anchoredList) {
   }
 }
 
+// Lit la liste des dossiers en attente d’envoi à la blockchain
+async function getPendingList() {
+  try {
+    if (!fs.existsSync(PENDING_FILE)) {
+      log.debug(`Fichier ${PENDING_FILE} inexistant → liste vide`);
+      return [];
+    }
+    const content = await fsPromises.readFile(PENDING_FILE, 'utf-8');
+    try {
+      const pendingList = JSON.parse(content);
+      log.info(`Liste pending chargée : ${pendingList.length} élément(s)`);
+      return pendingList;
+    } catch (parseErr) {
+      log.error(`Fichier ${PENDING_FILE} corrompu : ${parseErr.message}`);
+      return [];
+    }
+  } catch (error) {
+    log.error(`Lecture ${PENDING_FILE} échouée : ${error.message}`);
+    throw new Error('Impossible de lire la liste des envois différés.');
+  }
+}
+
+// Sauvegarde la liste des dossiers en attente
+async function savePendingList(pendingList) {
+  try {
+    await fsPromises.writeFile(PENDING_FILE, JSON.stringify(pendingList, null, 2));
+    log.info(`${PENDING_FILE} mis à jour (${pendingList.length} entrée(s))`);
+  } catch (error) {
+    log.error(`Sauvegarde ${PENDING_FILE} échouée : ${error.message}`);
+    throw new Error('Impossible de sauvegarder la liste des envois différés.');
+  }
+}
+
+// Ajoute un dossier dans la file d’attente si absent
+async function addPendingFolder(folderName) {
+  const pendingList = await getPendingList();
+  if (!pendingList.includes(folderName)) {
+    pendingList.push(folderName);
+    await savePendingList(pendingList);
+    log.info(`Ajout dossier en attente : ${folderName}`);
+  }
+}
+
+// Retire un dossier de la file d’attente
+async function removePendingFolder(folderName) {
+  let pendingList = await getPendingList();
+  pendingList = pendingList.filter(item => item !== folderName);
+  await savePendingList(pendingList);
+  log.info(`Suppression dossier de la file d’attente : ${folderName}`);
+}
+
+// Sauvegarde locale du dossier d’ancrage avec proof.zip et ancrage.json
 async function saveAnchorWithProof(anchorData, proofZip) {
   try {
     if (!proofZip) throw new Error('Fichier preuve.zip manquant.');
 
     const dateDir = new Date().toISOString().replace(/[:.]/g, '-');
-    const folderName = `anchor_${anchorData.id ?? "unknown"}_${dateDir}`;
+    const safeId = anchorData.id ? anchorData.id.replace(/[^a-zA-Z0-9_-]/g, '_') : 'unknown';
+    const folderName = `anchor_${safeId}_${dateDir}`;
     const destinationDir = path.join(ANCHORED_DIR, folderName);
 
     await fsPromises.mkdir(destinationDir, { recursive: true });
 
-    await fsPromises.writeFile(path.join(destinationDir, 'ancrage.json'), JSON.stringify(anchorData, null, 2));
+    const orderedAnchorData = {
+      _id: anchorData._id,
+      id: anchorData.id,
+      type: anchorData.type,
+      created_time: anchorData.created_time,
+      time: anchorData.time,
+      anchored_at: anchorData.anchored_at,
+      positionCible: anchorData.positionCible,
+      positionVehicule: anchorData.positionVehicule,
+      idSite: anchorData.idSite,
+      siteId: anchorData.siteId,
+      modele: anchorData.modele,
+      "xtr5 serial number": anchorData["xtr5 serial number"],
+      comment: anchorData.comment,
+      transactionHash: anchorData.transactionHash,
+      ...anchorData.extra,
+    };
+
+    await fsPromises.writeFile(
+      path.join(destinationDir, 'ancrage.json'),
+      JSON.stringify(orderedAnchorData, null, 2)
+    );
     log.debug(`ancrage.json sauvegardé dans ${destinationDir}`);
 
     await fsPromises.writeFile(path.join(destinationDir, 'preuve.zip'), proofZip);
     log.debug(`preuve.zip sauvegardé dans ${destinationDir}`);
 
-    return destinationDir;
+    return folderName;
   } catch (error) {
     log.error(`Échec saveAnchorWithProof : ${error.message}`);
     throw error;
   }
 }
 
-// Handlers Express
-
-async function handleGetAnchored(req, res) {
-  log.debug(`→ GET /anchored depuis ${req.ip}`);
-  try {
-    const list = await getAnchoredList();
-    return res.json(list);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-}
-
+// Gestionnaire POST /anchor (allégé ici, envoyer vers blockchain si possible en dehors)
 async function handlePostAnchor(req, res) {
   log.debug(`→ POST /anchor depuis ${req.ip}`);
 
@@ -95,9 +163,17 @@ async function handlePostAnchor(req, res) {
       return res.status(400).json({ error: 'anchorData invalide (JSON mal formé)' });
     }
 
-    if (!anchorData.extra?.id || !anchorData.time) {
-      log.warn('id ou created_time manquant');
-      return res.status(400).json({ error: 'id et created_time requis' });
+    if (!(anchorData.id || anchorData._id)) {
+      log.warn('Identifiant id ou _id manquant');
+      return res.status(400).json({ error: 'id ou _id requis' });
+    }
+    if (!anchorData.time) {
+      log.warn('Champ time manquant');
+      return res.status(400).json({ error: 'time requis' });
+    }
+    if (!anchorData.type) {
+      log.warn('Champ type manquant');
+      return res.status(400).json({ error: 'type requis' });
     }
 
     if (!req.file) {
@@ -105,8 +181,12 @@ async function handlePostAnchor(req, res) {
       return res.status(400).json({ error: 'Fichier preuve.zip manquant' });
     }
 
-    const savedFolder = await saveAnchorWithProof(anchorData, req.file.buffer);
-    return res.json({ ok: true, folder: savedFolder });
+    // Sauvegarde locale des fichiers ancrage et preuve
+    const folderName = await saveAnchorWithProof(anchorData, req.file.buffer);
+
+    // Renvoi nom dossier pour suivi côté client
+    return res.json({ ok: true, folder: folderName });
+
   } catch (error) {
     log.error(`/anchor - ${error.message}`);
     return res.status(500).json({ error: error.message });
@@ -116,7 +196,12 @@ async function handlePostAnchor(req, res) {
 module.exports = {
   getAnchoredList,
   saveAnchoredList,
+  getPendingList,
+  savePendingList,
+  addPendingFolder,
+  removePendingFolder,
   saveAnchorWithProof,
-  handleGetAnchored,
   handlePostAnchor,
+  ANCHORED_DIR,
+  PENDING_FILE,
 };
