@@ -2,7 +2,7 @@
 #           CONFIGURATION SERVEUR
 ##############################################
 # Port HTTP sur lequel le backend écoute
-BACKEND_PORT=3201
+BACKEND_PORT=3200
 
 # Domaine(s) autorisés par CORS
 CORS_ORIGIN=*
@@ -27,10 +27,10 @@ USE_TEST_SIM=true
 ##############################################
 
 # URL de l’API Blockchain
-BLOCKCHAIN_API_URL=
+BLOCKCHAIN_API_URL=https://clearspace.databeam.eu
 
 # Clé d’API ou secret Blockchain
-BLOCKCHAIN_API_KEY=
+BLOCKCHAIN_API_KEY=umrlpr278sh
 
 ########################
 # CONFIGURATION API XTR5
@@ -48,23 +48,13 @@ API_PORT=3200
 # Décalage horaire en heures à appliquer sur les timestamps (exemple 2 pour +2 heures)
 TIME_OFFSET_HOURS=2
 
-##############################################
-#        STOCKAGE LOCAL / ANCRAGE
-##############################################
-
-# Répertoire pour les fichiers d’ancrage des vols
-ANCHORED_DIR=anchored
-
-# Nom de fichier JSON listant les vols ancrés
-ANCHOR_FILE=anchored.json
 
 ##############################################
 #     CONFIGURATION FRONTEND
 ##############################################
 
 # Port sur lequel démarre le serveur frontend (Vite)
-FRONTEND_PORT=3001
-
+FRONTEND_PORT=3000
 # Active/désactive le debug frontend (true/false)
 VITE_DEBUG=true
 
