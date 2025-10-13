@@ -78,7 +78,7 @@ const config = {
     
     // Configuration API blockchain adaptée
     blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || 'https://clearspace.databeam.eu',
-    blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || 'admin_api_key',
+    blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || '',
 
     // Facultatif si besoin de composition manuelle URL API
     apiProtocol: process.env.API_PROTOCOL || 'https',

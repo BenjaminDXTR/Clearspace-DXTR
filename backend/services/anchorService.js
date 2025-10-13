@@ -4,6 +4,7 @@ const path = require('path');
 
 const log = require('../utils/logger');
 const { config } = require('../config');
+const { sendAnchorProof } = require('./blockchainService'); // Assurez-vous que ce fichier existe et exporte la fonction d'envoi
 
 // Répertoires configurables
 const rawAnchoredDir = config.backend.anchoredDir || 'anchored';
@@ -145,7 +146,7 @@ async function saveAnchorWithProof(anchorData, proofZip) {
   }
 }
 
-// Gestionnaire POST /anchor (allégé ici, envoyer vers blockchain si possible en dehors)
+// Gestionnaire POST /anchor avec tentative d'envoi blockchain et file d’attente en cas d’échec
 async function handlePostAnchor(req, res) {
   log.debug(`→ POST /anchor depuis ${req.ip}`);
 
@@ -184,9 +185,19 @@ async function handlePostAnchor(req, res) {
     // Sauvegarde locale des fichiers ancrage et preuve
     const folderName = await saveAnchorWithProof(anchorData, req.file.buffer);
 
-    // Renvoi nom dossier pour suivi côté client
-    return res.json({ ok: true, folder: folderName });
+    // Tentative d'envoi à la blockchain
+    const jsonBuffer = Buffer.from(JSON.stringify(anchorData, null, 2), 'utf-8');
 
+    try {
+      log.debug(`Tentative d’envoi blockchain pour dossier ${folderName}`);
+      await sendAnchorProof(req.file.buffer, jsonBuffer);
+      log.info(`Envoi blockchain réussi pour ${folderName}`);
+    } catch (sendErr) {
+      log.warn(`Échec envoi blockchain pour ${folderName} : ${sendErr.message}`);
+      await addPendingFolder(folderName);
+    }
+
+    return res.json({ ok: true, folder: folderName });
   } catch (error) {
     log.error(`/anchor - ${error.message}`);
     return res.status(500).json({ error: error.message });

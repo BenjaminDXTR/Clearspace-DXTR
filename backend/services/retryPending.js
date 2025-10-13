@@ -2,7 +2,7 @@ const path = require('path');
 const fsPromises = require('fs').promises;
 const log = require('../utils/logger');
 const anchorService = require('./anchorService');
-const { sendAnchorProof } = require('./blockchainSender'); // À créer séparément
+const { sendAnchorProof } = require('./blockchainService');
 
 async function retryPendingAnchors() {
     try {
