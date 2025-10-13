@@ -78,8 +78,8 @@ function AppContent() {
             localMaxPage={logic.localMaxPage}
             localPageData={logic.localPageData}
             LOCAL_FIELDS={LOCAL_FIELDS}
-            isAnchored={logic.isAnchored}
-            getTraceForFlight={logic.getTraceForFlight} // <-- Important ici
+            isAnchored={logic.getAnchorState}
+            getTraceForFlight={logic.getTraceForFlight}
             openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}

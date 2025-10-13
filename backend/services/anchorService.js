@@ -5,6 +5,8 @@ const path = require('path');
 const log = require('../utils/logger');
 const { config } = require('../config');
 const { sendAnchorProof } = require('./blockchainService');
+const { loadHistoryToCache, flushCacheToDisk, findOrCreateHistoryFile } = require('./historyCache');
+const { notifyUpdate } = require('./notification');
 
 // Répertoires physiques fixes
 const ANCHOR_DATA_DIR = path.resolve(__dirname, '..', 'anchorData');
@@ -39,7 +41,7 @@ async function saveAnchoredList(anchoredList) {
   }
 }
 
-// LISTE DES DOSSIERS DANS pending/ pour remplacer getPendingList()
+// Liste des dossiers dans pending/
 async function getPendingList() {
   try {
     if (!fs.existsSync(PENDING_DIR)) {
@@ -56,11 +58,9 @@ async function getPendingList() {
   }
 }
 
-// Plus besoin de savePendingList() — liste disque réelle
-
 // Ajoute dossier physique pending (juste log ici)
 async function addPendingFolder(folderName) {
-  // Le dossier est déjà créé en saveAnchorWithProof, on log ici uniquement
+  // Le dossier est déjà créé en saveAnchorWithProof, donc uniquement log
   log.info(`Dossier ajouté à en attente (physique) : ${folderName}`);
 }
 
@@ -77,6 +77,28 @@ async function removePendingFolder(folderName) {
   } catch (error) {
     log.error(`Erreur suppression dossier pending ${folderName} : ${error.message}`);
     throw error;
+  }
+}
+
+// Permet de mettre à jour le champ anchorState dans l’historique d’un vol selon id + created_time
+async function updateAnchorState(id, created_time, newState) {
+  try {
+    const filename = await findOrCreateHistoryFile(created_time);
+    const historyData = await loadHistoryToCache(filename);
+
+    const idx = historyData.findIndex(f => f.id === id && f.created_time === created_time);
+    if (idx === -1) {
+      log.warn(`[updateAnchorState] Vol non trouvé dans historique : id=${id}, created_time=${created_time}`);
+      return;
+    }
+
+    historyData[idx].anchorState = newState;
+    await flushCacheToDisk(filename);
+    notifyUpdate(filename);
+    log.info(`[updateAnchorState] anchorState mis à jour pour vol ${id} : ${newState}`);
+  } catch (err) {
+    log.error(`[updateAnchorState] Erreur mise à jour anchorState vol ${id} : ${err.message}`);
+    throw err;
   }
 }
 
@@ -136,9 +158,6 @@ async function moveFolderToAnchored(folderName) {
   const anchoredList = await getAnchoredList();
   anchoredList.push({ folderName, date: new Date().toISOString() });
   await saveAnchoredList(anchoredList);
-
-  // Suppression physique du dossier (déjà fait par déplacement)
-  // Pas besoin d'appeler removePendingFolder ici car renommé physiquement
 }
 
 // Gestionnaire POST /anchor complet
@@ -173,12 +192,18 @@ async function handlePostAnchor(req, res) {
       // Déplacer en anchored après succès
       await moveFolderToAnchored(folderName);
 
+      // Mettre à jour anchorState à "anchored"
+      await updateAnchorState(anchorData.id, anchorData.created_time, 'anchored');
+
       return res.json({ ok: true, message: 'Vol ancré avec succès dans la blockchain', folder: folderName });
     } catch (err) {
       log.warn(`Échec envoi blockchain, dossier reste en pending : ${folderName} - ${err.message}`);
 
       // On ne crée pas de liste JSON, dossier physique existe déjà
       await addPendingFolder(folderName);
+
+      // Mettre à jour anchorState à "pending"
+      await updateAnchorState(anchorData.id, anchorData.created_time, 'pending');
 
       return res.status(202).json({
         ok: false,
@@ -202,6 +227,7 @@ module.exports = {
   saveAnchorWithProof,
   moveFolderToAnchored,
   handlePostAnchor,
+  updateAnchorState,
   ANCHOR_DATA_DIR,
   PENDING_DIR,
   ANCHORED_DIR,

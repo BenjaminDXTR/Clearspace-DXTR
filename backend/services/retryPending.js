@@ -3,10 +3,10 @@ const fsPromises = require('fs').promises;
 const log = require('../utils/logger');
 const anchorService = require('./anchorService');
 const { sendAnchorProof } = require('./blockchainService');
+const { notifyUpdate } = require('../flightsManager');
 
 async function retryPendingAnchors() {
     try {
-        // Liste des dossiers existants dans le dossier pending
         const pendingDir = anchorService.PENDING_DIR;
         const dirents = await fsPromises.readdir(pendingDir, { withFileTypes: true });
         const pendingList = dirents.filter(d => d.isDirectory()).map(d => d.name);
@@ -29,9 +29,19 @@ async function retryPendingAnchors() {
                 // Déplacer le dossier dans anchored après succès
                 await anchorService.moveFolderToAnchored(folderName);
 
+                // Lire et parser le JSON d’ancrage
+                const anchorData = JSON.parse(jsonBuffer.toString('utf-8'));
+
+                // Mettre à jour anchorState dans l’historique
+                await anchorService.updateAnchorState(anchorData.id, anchorData.created_time, 'anchored');
+
+                // NOTIFIER la mise à jour via websocket
+                const filename = await anchorService.findOrCreateHistoryFile(anchorData.created_time);
+                notifyUpdate(filename);
+
             } catch (err) {
                 log.warn(`Échec envoi dossier ${folderName} : ${err.message}`);
-                // Dossier reste dans pending pour nouvelle tentative plus tard
+                // Dossier reste dans pending pour retry futur
             }
         }
     } catch (err) {

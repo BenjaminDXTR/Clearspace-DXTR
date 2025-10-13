@@ -18,8 +18,9 @@ export type LatLngTimestamp = [number, number, number];
  * tableau avec timestamps relatifs ou une chaîne JSON.
  * Le champ `tracing` est optionnel et stocke des informations supplémentaires sur le tracé.
  * Le champ `state` indique la nature du vol : "live" pour vol en temps réel,
- * "local" pour vol archivé (historique), et "event" pour un événement associé.
- * Le champ `isAnchored` optionnel précise si le vol est ancré dans la blockchain.
+ * "local" pour vol archivé (historique), "waiting" pour vol en attente d’ancrage,
+ * et "event" pour un événement associé.
+ * Le champ `anchorState` optionnel précise l’état d’ancrage : "none", "pending", ou "anchored".
  */
 export interface Flight {
   id: string;
@@ -28,8 +29,8 @@ export interface Flight {
   tracing?: {
     points?: LatLng[];
   };
-  state?: "live" | "waiting" | "local" | "event"; // Utiliser ce champ directement pour différencier les vols
-  isAnchored?: boolean;
+  state?: "live" | "waiting" | "local" | "event";
+  anchorState?: "none" | "pending" | "anchored";
   [key: string]: any;
 }
 
@@ -41,6 +42,7 @@ export interface Flight {
 export interface Detection {
   id: string;
   created_time?: string;
+  anchorState?: "none" | "pending" | "anchored";
   [key: string]: any;
 }
 
@@ -57,10 +59,14 @@ export interface Event {
 }
 
 /**
- * Type de fonction permettant de vérifier si un vol est ancré dans la blockchain.
- * Elle prend un `id` de vol et son `created_time`, tous deux chaînes, et retourne un booléen.
+ * Type de fonction permettant de vérifier l'état d'ancrage d’un vol.
+ * Elle prend un `id` de vol et son `created_time`, tous deux chaînes,
+ * et retourne un des trois états : "none", "pending" ou "anchored".
  */
-export type IsAnchoredFn = (id: string, created_time: string) => boolean;
+export type IsAnchoredFn = (
+  id: string,
+  created_time: string
+) => "none" | "pending" | "anchored";
 
 /**
  * Fonction de rendu d’une cellule d’ancrage dans les tableaux.

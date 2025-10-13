@@ -11,7 +11,7 @@ interface TablesLocalProps {
   localMaxPage: number;
   localPageData: Flight[]; // données déjà filtrées, triées et paginées
   LOCAL_FIELDS: string[];
-  isAnchored: IsAnchoredFn;
+  isAnchored: IsAnchoredFn; // désormais retourne 'none' | 'pending' | 'anchored'
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
   openModal: (flight: Flight, trace: any[]) => void;
@@ -43,7 +43,6 @@ export default function TablesLocal({
   getTraceForFlight,
   debug = DEBUG,
 }: TablesLocalProps) {
-
   useEffect(() => {
     console.log("TablesLocal localPageData prop:", localPageData);
   }, [localPageData]);
@@ -59,9 +58,6 @@ export default function TablesLocal({
   const genKey = (item: { id?: string | number; created_time?: string | number }, idx: number) =>
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
-  // localPageData est censé être déjà filtré, trié et paginé en amont via useLocalHistory
-  // Le composant n'effectue plus de tri ici pour éviter incohérence et surcharge
-
   return (
     <section className="table-container" aria-label="Vols archivés (local)">
       <h2 className="table-title">Vols archivés (local)</h2>
@@ -73,19 +69,22 @@ export default function TablesLocal({
             <thead>
               <tr>
                 {LOCAL_FIELDS.map((field) => (
-                  <th key={field} scope="col">{field}</th>
+                  <th key={field} scope="col">
+                    {field}
+                  </th>
                 ))}
                 <th scope="col">Ancrage</th>
               </tr>
             </thead>
             <tbody>
               {localPageData.map((item, idx) => {
-                const anchored = isAnchored(item.id ?? "", item.created_time ?? "");
+                const anchorState = isAnchored(item.id ?? "", item.created_time ?? "");
+
                 return (
                   <tr
                     key={genKey(item, idx)}
                     tabIndex={0}
-                    className={`clickable-row ${anchored ? "anchored" : ""}`}
+                    className={`clickable-row ${anchorState === "anchored" ? "anchored" : ""}`}
                     onClick={() => onSelect(item)}
                     aria-selected="false"
                   >
@@ -93,23 +92,25 @@ export default function TablesLocal({
                       <td key={field}>{prettyValue(field, (item as any)[field])}</td>
                     ))}
                     <td className="anchor-cell">
-                      {anchored ? (
+                      {anchorState === "anchored" ? (
                         "✔️"
+                      ) : anchorState === "pending" ? (
+                        <span title="En attente d’ancrage" aria-label="Ancrage en attente">
+                          ⏳
+                        </span>
+                      ) : renderAnchorCell ? (
+                        renderAnchorCell(item)
                       ) : (
-                        renderAnchorCell ? (
-                          renderAnchorCell(item)
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const trace = getTraceForFlight(item);
-                              openModal(item, trace);
-                            }}
-                            aria-label="Ancrer ce vol"
-                          >
-                            Ancrer
-                          </button>
-                        )
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const trace = getTraceForFlight(item);
+                            openModal(item, trace);
+                          }}
+                          aria-label="Ancrer ce vol"
+                        >
+                          Ancrer
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -117,12 +118,7 @@ export default function TablesLocal({
               })}
             </tbody>
           </table>
-          <Pagination
-            page={localPage}
-            maxPage={localMaxPage}
-            onPageChange={setLocalPage}
-            debug={debug}
-          />
+          <Pagination page={localPage} maxPage={localMaxPage} onPageChange={setLocalPage} debug={debug} />
         </>
       )}
     </section>

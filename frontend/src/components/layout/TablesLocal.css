@@ -61,11 +61,23 @@
     background-color: #f5faff;
 }
 
+/* Style spécifique pour vols ancrés (vert clair) */
+.clickable-row.anchored {
+    background-color: #d9f7be;
+}
+
+/* Optionnel : style pour vols en attente d'ancrage (jaune clair) */
+.clickable-row.pending {
+    background-color: #fff8dc; /* cornsilk clair */
+}
+
+/* Cellule ancrage centrée */
 .anchor-cell {
     text-align: center;
     min-width: 58px;
 }
 
+/* Pagination */
 .pagination {
     display: flex;
     align-items: center;
