@@ -5,8 +5,7 @@ const path = require('path');
 const log = require('../utils/logger');
 const { config } = require('../config');
 const { sendAnchorProof } = require('./blockchainService');
-const { loadHistoryToCache, flushCacheToDisk, findOrCreateHistoryFile } = require('./historyCache');
-const { notifyUpdate } = require('./notification');
+const { loadHistoryToCache, flushCacheToDisk, findOrCreateHistoryFile, notifyUpdate } = require('../flightsManager');
 
 // Répertoires physiques fixes
 const ANCHOR_DATA_DIR = path.resolve(__dirname, '..', 'anchorData');

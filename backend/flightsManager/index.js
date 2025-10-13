@@ -1,9 +1,9 @@
 const { loadHistoryFile, saveHistoryFile } = require('./fileOperations');
 const { saveFlightToHistory, updateFlightStates, flightStates } = require('./flightsController');
 const { addOrUpdateFlightInFile } = require('./flightSessions');
-const { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache } = require('./historyCache');
+const { loadHistoryToCache, flushCacheToDisk, flushAllCache, historyCache, findOrCreateHistoryFile } = require('./historyCache');
 const { lastSeenMap, createdTimeMap, flightTraces } = require('./state');
-const { getWeekPeriod } = require('./utils'); 
+const { getWeekPeriod } = require('./utils');
 const { notifyUpdate } = require('./notification');
 
 // Import des fonctions d'archivage directement depuis le bon fichier
@@ -21,6 +21,7 @@ module.exports = {
   saveFlightToHistory,
   updateFlightStates,
   flightStates,
+  findOrCreateHistoryFile,
 
   // Gestion session de vol
   addOrUpdateFlightInFile,
@@ -42,4 +43,5 @@ module.exports = {
   // Archivage
   archiveAllLiveAndWaitingAsLocal,
   archiveLiveFlightsOnShutdown,
+  notifyUpdate,
 };
