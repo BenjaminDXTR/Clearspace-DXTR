@@ -137,7 +137,7 @@ function setup(server) {
       const summaries = files.filter(f => f.endsWith('.json')).map(f => ({ filename: f })).sort();
 
       ws.send(JSON.stringify({ type: 'historySummaries', data: summaries }));
-      log.debug(`[connection] Sent ${summaries.length} history summaries`);
+      //log.debug(`[connection] Sent ${summaries.length} history summaries`);
     } catch (err) {
       ws.send(JSON.stringify({ type: 'historySummaries', data: [] }));
       log.warn('[connection] Error sending history summaries: ' + err.message);

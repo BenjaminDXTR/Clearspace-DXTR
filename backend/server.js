@@ -10,6 +10,7 @@ const { gracefulShutdown, setServerAndIntervals } = require('./middleware/shutdo
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
+const { retryPendingAnchors } = require('./services/retryPending'); // Service retry envois pending
 
 const app = express();
 const server = http.createServer(app);
@@ -32,6 +33,7 @@ app.use(errorHandler);
 
 // Gestion des intervalles
 let flushIntervalId;
+let retryIntervalId;
 
 function startIntervals() {
   flushIntervalId = setInterval(async () => {
@@ -42,11 +44,24 @@ function startIntervals() {
       log.error(`[flushAllCache] Erreur flush périodique : ${e.message}`);
     }
   }, 60000);
+
+  // Intervalle retry envois pending (ex: toutes les 5 minutes ou config)
+  const retryMs = (config.backend.retryIntervalMin || 5) * 60 * 1000;
+  retryIntervalId = setInterval(async () => {
+    log.info('Début tentative de renvoi des preuves en attente...');
+    try {
+      await retryPendingAnchors();
+    } catch (e) {
+      log.error(`Erreur lors du retry des preuves en attente : ${e.message}`);
+    }
+  }, retryMs);
 }
 
 function clearIntervals() {
   if (flushIntervalId) clearInterval(flushIntervalId);
+  if (retryIntervalId) clearInterval(retryIntervalId);
   flushIntervalId = null;
+  retryIntervalId = null;
 }
 
 // Initialisation principale

@@ -39,7 +39,7 @@ async function poller() {
     }
     isPolling = true;
 
-    log.info('[poller] Starting new poll cycle');
+    //log.info('[poller] Starting new poll cycle');
 
     try {
         let drones;
@@ -48,7 +48,7 @@ async function poller() {
             const simulation = require('../simulation');
             const simData = await simulation.getCurrentSimulationData();
             drones = simData.data?.drone || [];
-            log.info(`[poller] Simulation data retrieved: ${JSON.stringify(drones, null, 2)}`);
+            //log.info(`[poller] Simulation data retrieved: ${JSON.stringify(drones, null, 2)}`);
         } else {
             const data = await fetchWithRetry(fetchDroneData, 5, 1000);
             drones = data?.data?.drone
@@ -56,21 +56,22 @@ async function poller() {
                     ? data.data.drone
                     : [data.data.drone]
                 : [];
-            log.info(`[poller] API data retrieved: ${JSON.stringify(drones, null, 2)}`);
+            //log.info(`[poller] API data retrieved: ${JSON.stringify(drones, null, 2)}`);
         }
 
         const detectedIds = getDetectedIds(drones || []);
-        log.info(`[poller] Detected drone IDs: ${detectedIds.join(', ')}`);
+        //log.info(`[poller] Detected drone IDs: ${detectedIds.join(', ')}`);
 
-        log.info(`[poller] Before updateFlightStates - drones timestamps snapshot: ${JSON.stringify(
+        /*log.info(`[poller] Before updateFlightStates - drones timestamps snapshot: ${JSON.stringify(
             drones.map(d => ({ id: d.id, created_time: d.created_time, lastseen_time: d.lastseen_time }))
         )}`);
+        */
 
         await updateFlightStates(drones || []);
-        log.info('[poller] Flight states updated');
+        //log.info('[poller] Flight states updated');
 
         if (!drones || drones.length === 0) {
-            log.info('[poller] No drones detected, broadcasting empty list');
+            //log.info('[poller] No drones detected, broadcasting empty list');
             broadcast([], clients, true);
             isPolling = false;
             return;
@@ -80,7 +81,7 @@ async function poller() {
 
         for (const drone of drones) {
             if (drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0) {
-                log.debug('[poller] Empty drone data detected, ignoring this drone');
+                //log.debug('[poller] Empty drone data detected, ignoring this drone');
                 continue;
             }
             if (!drone.id) {
@@ -88,14 +89,14 @@ async function poller() {
                 continue;
             }
 
-            log.info(`[poller] Drone ${drone.id} timestamps: created_time=${drone.created_time}, lastseen_time=${drone.lastseen_time}`);
+            //log.info(`[poller] Drone ${drone.id} timestamps: created_time=${drone.created_time}, lastseen_time=${drone.lastseen_time}`);
 
             // Mise à jour trace du vol
-            log.info(`[poller] Mise à jour traces pour drone ${drone.id} avec created_time=${drone.created_time}`);
+            //log.info(`[poller] Mise à jour traces pour drone ${drone.id} avec created_time=${drone.created_time}`);
             await updateTrace(drone);
 
             const trace = flightTraces.get(drone.id) || [];
-            log.info(`[poller] Trace length pour drone ${drone.id}: ${trace.length}`);
+            //log.info(`[poller] Trace length pour drone ${drone.id}: ${trace.length}`);
 
             const fullDroneData = {
                 ...drone,
@@ -105,9 +106,9 @@ async function poller() {
 
             fullDrones.push(fullDroneData);
 
-            log.info(`[poller] Avant sauvegarde historique pour drone ${drone.id} avec created_time=${drone.created_time}`);
+            //log.info(`[poller] Avant sauvegarde historique pour drone ${drone.id} avec created_time=${drone.created_time}`);
             await saveFlightToHistory(fullDroneData, detectedIds);
-            log.info(`[poller] Sauvegarde historique terminée pour drone ${drone.id}`);
+            //log.info(`[poller] Sauvegarde historique terminée pour drone ${drone.id}`);
         }
 
         // Pour chaque vol (live + waiting), enrichir avec la trace correspondant à l'id
@@ -121,7 +122,7 @@ async function poller() {
             })
             .filter(f => f.state === 'live' || f.state === 'waiting');
 
-        log.info(`[poller] Broadcasting ${flightsToBroadcast.length} drones (live + waiting)`);
+        //log.info(`[poller] Broadcasting ${flightsToBroadcast.length} drones (live + waiting)`);
 
         broadcast(flightsToBroadcast, clients, true);
 
@@ -129,7 +130,7 @@ async function poller() {
         log.error(`[poller] Error during polling: ${err.stack || err.message || err}`);
     } finally {
         isPolling = false;
-        log.info('[poller] Poll cycle finished');
+        //log.info('[poller] Poll cycle finished');
     }
 }
 

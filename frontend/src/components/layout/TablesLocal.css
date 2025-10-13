@@ -61,11 +61,76 @@
     background-color: #f5faff;
 }
 
+/* Style spécifique pour vols ancrés (vert clair) */
+.clickable-row.anchored {
+    background-color: #d9f7be;
+}
+
+/* Style pour vols en attente d'ancrage (jaune clair) */
+.clickable-row.pending {
+    background-color: #fff8dc; /* cornsilk clair */
+}
+
+/* Cellule ancrage centrée */
 .anchor-cell {
     text-align: center;
     min-width: 58px;
 }
 
+/* Texte à côté des icônes d'ancrage */
+.anchor-text {
+    margin-left: 4px;
+    font-size: 0.85rem;
+    vertical-align: middle;
+    color: #333;
+}
+
+/* Style de base commun pour boutons actives et désactivés */
+.anchor-btn,
+.anchor-btn-disabled {
+    width: 85px;          /* largeur fixe */
+    padding: 6px 0;       /* padding vertical, pas de padding horizontal */
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* Bouton actif */
+.anchor-btn {
+    color: #fff;
+    background-color: #2563eb; /* bleu */
+    cursor: pointer;
+}
+
+.anchor-btn:hover:not(:disabled) {
+    background-color: #1d4ed8; /* bleu foncé */
+}
+
+/* Bouton désactivé grisé */
+.anchor-btn-disabled {
+    color: #666666;
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 1 !important; /* annule l’opacité par défaut */
+    pointer-events: none;  /* empêche interaction */
+}
+
+/* Empêcher hover sur bouton désactivé */
+.anchor-btn-disabled:hover {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+}
+
+/* Pagination */
 .pagination {
     display: flex;
     align-items: center;
@@ -73,6 +138,7 @@
     margin-top: 5px;
 }
 
+/* Responsive */
 @media (max-width: 800px) {
     .table-title {
         font-size: 1rem;
@@ -88,5 +154,10 @@
         padding: 4px 6px;
         font-size: 0.81rem;
         max-width: 88vw;
+    }
+
+    /* Masquer texte d’ancrage sur petits écrans */
+    .anchor-text {
+        display: none;
     }
 }

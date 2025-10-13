@@ -6,8 +6,8 @@ import useLiveTraces from "./useLiveTraces";
 import useAnchorModal from "./useAnchorModal";
 import { useErrorManager } from "./useErrorManager";
 import { config } from "../config";
-import type { Flight, HandleSelectFn, LatLng, LatLngTimestamp } from "../types/models";
-import { buildAnchorDataPrincipal, generateZipFromDataWithProof, buildRawData } from "../services/anchorService";
+import type { Flight, HandleSelectFn, LatLngTimestamp } from "../types/models";
+import { buildAnchorDataPrincipal } from "../services/anchorService";
 import { LIVE_DETAILS } from "../utils/constants";
 import useDebugLogger from "./useDebugLogger";
 
@@ -162,7 +162,6 @@ export default function useAppLogic() {
     [liveTraces, dlog]
   );
 
-
   const {
     anchorModal,
     anchorDescription,
@@ -209,9 +208,11 @@ export default function useAppLogic() {
     return selected.state === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
-  const isAnchored = useCallback(
-    (id: string, created_time: string) => {
-      return localFlights.some((f) => f.id === id && f.created_time === created_time && !!f.isAnchored);
+  // Nouvelle fonction pour retourner anchorState ("none" par défaut)
+  const getAnchorState = useCallback(
+    (id: string, created_time: string): "none" | "pending" | "anchored" => {
+      const flight = localFlights.find((f) => f.id === id && f.created_time === created_time);
+      return flight?.anchorState ?? "none";
     },
     [localFlights]
   );
@@ -256,7 +257,7 @@ export default function useAppLogic() {
     selectedTracePoints,
     selectedTraceRaw,
     detailFields,
-    isAnchored,
+    getAnchorState,
     dronesError,
   };
 }

@@ -114,14 +114,17 @@ export default function useAnchorModal({
   const onValidate = useCallback(async () => {
     if (!anchorModal) return;
     setIsZipping(true);
+
     try {
       await new Promise(res => setTimeout(res, 650));
       dlog("Starting capture");
       const imgBlob = await captureMap();
       dlog("Building anchor data");
+
       const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
       const anchorData = buildAnchorDataPrincipal(anchorModal.flight, anchorDescription);
       const rawData = buildRawData(anchorModal.flight, traceConverted, anchorDescription);
+
       dlog("Generating ZIP with proof JSON");
       const zipBlob = await generateZipFromDataWithProof(imgBlob, rawData);
       const zipFileName = `anchor_${anchorData.extra?.id ?? "unknown"}_${new Date().toISOString()}.zip`;
@@ -136,13 +139,25 @@ export default function useAnchorModal({
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur serveur ${response.status} : ${errorText || response.statusText}`);
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error(`Réponse invalide du serveur, status ${response.status}`);
       }
 
-      const result = await response.json();
-      dlog("Anchor saved successfully on backend, folder:", result.folder);
+      // Gestion sensible au statut HTTP et au champ ok
+      if (response.ok && result.ok) {
+        // Succès immédiat ancrage blockchain
+        dlog("Anchor saved and blockchain confirmed, folder:", result.folder);
+        alert("Vol ancré avec succès dans la blockchain");
+      } else if (response.status === 202 || (result.ok === false && response.status === 200)) {
+        // Enregistrement local, envoi différé
+        dlog("Anchor saved locally, blockchain envoi différé:", result.folder);
+        alert("Vol enregistré localement, envoi blockchain différé");
+      } else {
+        throw new Error(result.error || `Erreur serveur ${response.status}`);
+      }
 
       if (handleSelect) {
         handleSelect({ ...anchorModal.flight, state: "local" });
@@ -156,7 +171,7 @@ export default function useAnchorModal({
       setIsZipping(false);
     }
   }, [anchorModal, anchorDescription, captureMap, convertTrace, handleSelect, onCancel, dlog]);
-
+  
   return {
     anchorModal,
     anchorDescription,
