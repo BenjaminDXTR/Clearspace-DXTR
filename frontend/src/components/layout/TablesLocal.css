@@ -85,21 +85,49 @@
     color: #333;
 }
 
-/* Bouton grisé désactivé pour état pending */
+/* Style de base commun pour boutons actives et désactivés */
+.anchor-btn,
 .anchor-btn-disabled {
-    margin-left: 6px;
-    padding: 2px 8px;
-    font-size: 0.85rem;
-    color: #888;
-    background-color: #eee;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: not-allowed;
+    width: 85px;          /* largeur fixe */
+    padding: 6px 0;       /* padding vertical, pas de padding horizontal */
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
 }
 
+/* Bouton actif */
+.anchor-btn {
+    color: #fff;
+    background-color: #2563eb; /* bleu */
+    cursor: pointer;
+}
+
+.anchor-btn:hover:not(:disabled) {
+    background-color: #1d4ed8; /* bleu foncé */
+}
+
+/* Bouton désactivé grisé */
+.anchor-btn-disabled {
+    color: #666666;
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 1 !important; /* annule l’opacité par défaut */
+    pointer-events: none;  /* empêche interaction */
+}
+
+/* Empêcher hover sur bouton désactivé */
 .anchor-btn-disabled:hover {
-    color: #888;
-    background-color: #eee;
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
 }
 
 /* Pagination */
@@ -110,6 +138,7 @@
     margin-top: 5px;
 }
 
+/* Responsive */
 @media (max-width: 800px) {
     .table-title {
         font-size: 1rem;
@@ -127,7 +156,7 @@
         max-width: 88vw;
     }
 
-    /* Masquer texte ancrage sur petits écrans */
+    /* Masquer texte d’ancrage sur petits écrans */
     .anchor-text {
         display: none;
     }

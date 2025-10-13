@@ -105,9 +105,8 @@ export default function TablesLocal({
                         </>
                       ) : anchorState === "pending" ? (
                         <>
-                          ⏳ <span className="anchor-text">En attente</span>{" "}
-                          <button className="anchor-btn-disabled" disabled title="En attente d'ancrage">
-                            Ancrer
+                          <button className="anchor-btn anchor-btn-disabled" disabled title="En attente d'ancrage">
+                            ⏳En attente
                           </button>
                         </>
                       ) : renderAnchorCell ? (
