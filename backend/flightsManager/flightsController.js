@@ -49,7 +49,7 @@ async function updateFlightStates(detectedFlights) {
       }
     }
 
-    log.info(`[updateFlightStates] Vol ${flight.id} créé à ${flightStates.get(flight.id).createdTime}`);
+    //log.info(`[updateFlightStates] Vol ${flight.id} créé à ${flightStates.get(flight.id).createdTime}`);
 
     await saveFlightToHistory(flightStates.get(flight.id).data);
   }

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import type { AnchorModal, Flight, HandleSelectFn, LatLng } from "../types/models";
+import type { AnchorModal, Flight, HandleSelectFn, LatLngTimestamp } from "../types/models";
 import {
   buildAnchorDataPrincipal,
   buildRawData,
@@ -13,13 +13,15 @@ interface UseAnchorModal {
   anchorDescription: string;
   isZipping: boolean;
   mapReady: boolean;
+  message: string | null;
+  setMessage: React.Dispatch<React.SetStateAction<string | null>>;
   setAnchorDescription: (desc: string) => void;
   setAnchorModal: (modal: AnchorModal | null) => void;
   setMapContainer: (container: HTMLElement | null) => void;
   setMapReady: (ready: boolean) => void;
   onValidate: () => Promise<void>;
   onCancel: () => void;
-  openModal: (flight: Flight, trace?: LatLng[]) => void;
+  openModal: (flight: Flight, trace?: LatLngTimestamp[]) => void;
   anchorDataPreview: ReturnType<typeof buildAnchorDataPrincipal> | null;
   mapDivRef: React.MutableRefObject<HTMLElement | null>;
 }
@@ -27,6 +29,23 @@ interface UseAnchorModal {
 interface UseAnchorModalOptions {
   handleSelect?: HandleSelectFn;
   debug?: boolean;
+}
+
+function formatDateForZip(date: Date): string {
+  const pad = (num: number) => num.toString().padStart(2, "0");
+  return (
+    date.getFullYear() +
+    "_" +
+    pad(date.getMonth() + 1) +
+    "_" +
+    pad(date.getDate()) +
+    "-" +
+    pad(date.getHours()) +
+    "_" +
+    pad(date.getMinutes()) +
+    "_" +
+    pad(date.getSeconds())
+  );
 }
 
 export default function useAnchorModal({
@@ -38,31 +57,37 @@ export default function useAnchorModal({
   const [isZipping, setIsZipping] = useState(false);
   const [anchorDataPreview, setAnchorDataPreview] = useState<ReturnType<typeof buildAnchorDataPrincipal> | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const traceRef = useRef<LatLng[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const traceRef = useRef<LatLngTimestamp[]>([]);
   const mapDivRef = useRef<HTMLElement | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const dlog = useCallback((...args: any) => {
     if (debug) console.log("[useAnchorModal]", ...args);
   }, [debug]);
 
-  const convertTrace = useCallback(
-    (trace: LatLng[], altitude: number) =>
-      trace.map(([lat, lng]) => ({ latitude: lat, longitude: lng, altitude })),
+  const convertTraceRaw = useCallback(
+    (trace: LatLngTimestamp[]) =>
+      trace.map(([lat, lng, time]) => ({ latitude: lat, longitude: lng, time })),
     []
   );
 
-  const openModal = useCallback((flight: Flight, trace: LatLng[] = []) => {
+  const openModal = useCallback((flight: Flight, trace: LatLngTimestamp[] = []) => {
     dlog("Open modal for flight", flight.id);
     traceRef.current = trace;
     setAnchorModal({ flight });
     setAnchorDescription("");
     setMapReady(false);
+    setMessage(null);
     if (handleSelect) {
       handleSelect({ ...flight, state: "local" });
     }
-    const traceConverted = convertTrace(trace, flight.altitude ?? 0);
-    setAnchorDataPreview(buildAnchorDataPrincipal(flight, ""));
-  }, [convertTrace, dlog, handleSelect]);
+    const nowISO = new Date().toISOString();
+    const previewData = buildAnchorDataPrincipal(flight, "", "3");
+    previewData.extra.anchored_at = null;
+    previewData.extra.anchored_requested_at = nowISO;
+    setAnchorDataPreview(previewData);
+  }, [dlog, handleSelect]);
 
   const setMapContainer = useCallback((node: HTMLElement | null) => {
     mapDivRef.current = node;
@@ -70,19 +95,23 @@ export default function useAnchorModal({
 
   useEffect(() => {
     if (!anchorModal?.flight) return;
-    const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
     const newData = buildAnchorDataPrincipal(anchorModal.flight, anchorDescription);
-    dlog("Updated anchor data with description", anchorDescription);
+    newData.comment = anchorDescription;
     setAnchorDataPreview(newData);
-  }, [anchorDescription, anchorModal, convertTrace, dlog]);
+  }, [anchorDescription, anchorModal]);
 
   const onCancel = useCallback(() => {
     dlog("Cancel anchor modal");
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     setAnchorModal(null);
     setAnchorDescription("");
     traceRef.current = [];
     setAnchorDataPreview(null);
     setMapReady(false);
+    setMessage(null);
   }, [dlog]);
 
   const captureMap = useCallback(async (): Promise<Blob> => {
@@ -96,9 +125,8 @@ export default function useAnchorModal({
       allowTaint: true,
       backgroundColor: "white",
       scale: 2,
-      logging: false,
     } as any);
-    return new Promise<Blob>((resolve, reject) => {
+    return new Promise<Blob>((resolve, reject) =>
       canvas.toBlob((blob) => {
         if (blob) {
           dlog("Capture succeeded");
@@ -107,32 +135,44 @@ export default function useAnchorModal({
           dlog("Capture failed");
           reject(new Error("Failed to capture map image"));
         }
-      }, "image/png", 1.0);
-    });
+      }, "image/png", 1.0)
+    );
   }, [mapReady, mapDivRef, dlog]);
 
   const onValidate = useCallback(async () => {
     if (!anchorModal) return;
     setIsZipping(true);
-
+    setMessage(null);
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     try {
       await new Promise(res => setTimeout(res, 650));
       dlog("Starting capture");
       const imgBlob = await captureMap();
       dlog("Building anchor data");
 
-      const traceConverted = convertTrace(traceRef.current, anchorModal.flight.altitude ?? 0);
+      const traceConverted = convertTraceRaw(traceRef.current);
       const anchorData = buildAnchorDataPrincipal(anchorModal.flight, anchorDescription);
+
+      if (!anchorData.extra.anchored_at) anchorData.extra.anchored_at = null;
+      if (!anchorData.extra.anchored_requested_at) anchorData.extra.anchored_requested_at = new Date().toISOString();
+
       const rawData = buildRawData(anchorModal.flight, traceConverted, anchorDescription);
 
-      dlog("Generating ZIP with proof JSON");
       const zipBlob = await generateZipFromDataWithProof(imgBlob, rawData);
-      const zipFileName = `anchor_${anchorData.extra?.id ?? "unknown"}_${new Date().toISOString()}.zip`;
+
+      const flightId = anchorData.extra?.id || "unknown";
+      const zipNameVal = `preuves-${flightId}-${formatDateForZip(new Date())}`;
+      anchorData.zipName = zipNameVal;
+      rawData.zipName = zipNameVal;
 
       dlog("Sending anchor data and proof to backend...");
+
       const formData = new FormData();
       formData.append("anchorData", JSON.stringify(anchorData));
-      formData.append("proofZip", zipBlob, zipFileName);
+      formData.append("proofZip", zipBlob, `${zipNameVal}.zip`);
 
       const response = await fetch(config.apiUrl + "/anchor", {
         method: "POST",
@@ -146,15 +186,12 @@ export default function useAnchorModal({
         throw new Error(`Réponse invalide du serveur, status ${response.status}`);
       }
 
-      // Gestion sensible au statut HTTP et au champ ok
       if (response.ok && result.ok) {
-        // Succès immédiat ancrage blockchain
-        dlog("Anchor saved and blockchain confirmed, folder:", result.folder);
-        alert("Vol ancré avec succès dans la blockchain");
+        setMessage("Vol ancré avec succès dans la blockchain");
+      } else if (response.status === 403) {
+        setMessage("Accès refusé par la blockchain : ressource interdite (403).\nL'ancrage est mis en attente et sera envoyé automatiquement une fois le problème résolu.");
       } else if (response.status === 202 || (result.ok === false && response.status === 200)) {
-        // Enregistrement local, envoi différé
-        dlog("Anchor saved locally, blockchain envoi différé:", result.folder);
-        alert("Vol enregistré localement, envoi blockchain différé");
+        setMessage("Vol enregistré localement, envoi blockchain différé");
       } else {
         throw new Error(result.error || `Erreur serveur ${response.status}`);
       }
@@ -162,21 +199,29 @@ export default function useAnchorModal({
       if (handleSelect) {
         handleSelect({ ...anchorModal.flight, state: "local" });
       }
-      onCancel();
+
+      closeTimeoutRef.current = setTimeout(() => {
+        onCancel();
+      }, 3000);
+
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Erreur inconnue";
-      alert("Erreur lors de l'ancrage : " + message);
-      dlog("Error during anchoring:", e);
+      setMessage("Erreur lors de l'ancrage : " + (e instanceof Error ? e.message : "Inconnue"));
+
+      closeTimeoutRef.current = setTimeout(() => {
+        onCancel();
+      }, 5000);
     } finally {
       setIsZipping(false);
     }
-  }, [anchorModal, anchorDescription, captureMap, convertTrace, handleSelect, onCancel, dlog]);
-  
+  }, [anchorModal, anchorDescription, captureMap, handleSelect, onCancel, dlog, convertTraceRaw]);
+
   return {
     anchorModal,
     anchorDescription,
     isZipping,
     mapReady,
+    message,
+    setMessage,
     setAnchorDescription,
     setAnchorModal,
     onValidate,

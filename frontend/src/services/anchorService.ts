@@ -10,44 +10,29 @@ export interface Flight {
   name?: string;
   drone_type?: string;
   serial?: string;
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | string;
+  longitude?: number | string;
+  hash?: string;
+  zipName?: string;
+  anchored_at?: string;
+  anchored_requested_at?: string;
+  siteId?: string | number;
+  extra?: any;
   [key: string]: any;
 }
 
 export interface PositionPoint {
   latitude: number;
   longitude: number;
-  altitude: number;
+  time: number; // Temps réel et non altitude
 }
 
-export interface AnchorData {
-  _id?: string; // facultatif mais peut être ajouté si disponible
-  id?: string;
-  type: string;
-  created_time?: string;
-  time?: string;
-  anchored_at?: string;
-  positionCible: {
-    latitude: string | number;
-    longitude: string | number;
-    altitude: string | number;
-    localisation?: string; // ajouté par backend si dispo
-    distance?: number;
-  };
-  positionVehicule: {
-    latitude: string | number;
-    longitude: string | number;
-    altitude: string | number;
-    localisation?: string; // ajouté par backend si dispo
-  };
-  idSite?: string;
-  siteId?: string;
-  modele?: string;
-  "xtr5 serial number"?: string;
-  comment?: string;
-  transactionHash?: string;
-  [key: string]: any; // champs additionnels optionnels
+export interface RawData {
+  flight: Flight;
+  comment: string;
+  anchored_at: string;
+  trace: PositionPoint[];
+  zipName?: string;
 }
 
 export interface AnchorResponse {
@@ -63,15 +48,11 @@ function dlog(...args: any) {
   if (DEBUG) console.log(...args);
 }
 
-// Construction du JSON principal sans trace, avec ordre et noms stricts respectés
 export function buildAnchorDataPrincipal(
   flight: Flight,
   comment = "",
   siteId = "3"
-): AnchorData {
-  const nowISO = new Date().toISOString();
-
-  // Conversion lisible, exemple format français localisé
+): any {
   const readableTime = flight.created_time
     ? new Date(flight.created_time).toLocaleString("fr-FR", {
         year: "numeric",
@@ -81,7 +62,7 @@ export function buildAnchorDataPrincipal(
         minute: "2-digit",
         second: "2-digit",
       })
-    : new Date(nowISO).toLocaleString("fr-FR", {
+    : new Date().toLocaleString("fr-FR", {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -90,35 +71,42 @@ export function buildAnchorDataPrincipal(
         second: "2-digit",
       });
 
+  const extra = {
+    id: flight.id || "",
+    modele: flight.name || flight.drone_type || "",
+    created_time: flight.created_time || "",
+    anchored_at: flight.anchored_at || "",
+    anchored_requested_at: flight.anchored_requested_at || "",
+    "xtr5 serial number": flight.serial || "",
+    ...(flight.extra && typeof flight.extra === "object" ? flight.extra : {}),
+  };
+
   return {
-    _id: flight._id,
-    id: flight.id,
-    type: "Drone",
-    created_time: flight.created_time || nowISO,
     time: readableTime,
-    anchored_at: nowISO,
     positionCible: {
-      latitude: flight.latitude ?? 0,
-      longitude: flight.longitude ?? 0,
-      altitude: flight.altitude ?? 0,
-      distance: flight.distance,
+      latitude: String(flight.latitude ?? ""),
+      longitude: String(flight.longitude ?? ""),
+      altitude: String(flight.altitude ?? ""),
     },
     positionVehicule: {
-      latitude: 0,
-      longitude: 0,
-      altitude: 0,
+      latitude: "0",
+      longitude: "0",
+      altitude: "0",
     },
-    idSite: flight.siteId,
-    siteId: flight.siteId || siteId,
-    modele: flight.name || flight.drone_type,
-    "xtr5 serial number": flight.serial || "",
-    comment,
+    type: "Drone",
+    idSite: String(flight.siteId ?? siteId),
+    hash: flight.hash || "",
+    zipName: flight.zipName || "",
+    comment: comment || "",
+    extra,
   };
 }
 
-
-// Construction de la preuve complète avec trace (hors ordre fixe)
-export function buildRawData(flight: Flight, trace: PositionPoint[], comment = "") {
+export function buildRawData(
+  flight: Flight,
+  trace: PositionPoint[],
+  comment = ""
+): RawData {
   const { trace: _excluded, ...flightSansTrace } = flight;
   return {
     flight: flightSansTrace,
@@ -128,8 +116,10 @@ export function buildRawData(flight: Flight, trace: PositionPoint[], comment = "
   };
 }
 
-// Génération ZIP incluant preuve.json et image carte optionnelle
-export async function generateZipFromDataWithProof(mapImageBlob: Blob, rawData: any) {
+export async function generateZipFromDataWithProof(
+  mapImageBlob: Blob,
+  rawData: RawData
+): Promise<Blob> {
   const zip = new JSZip();
 
   if (mapImageBlob && mapImageBlob.size > 0) {

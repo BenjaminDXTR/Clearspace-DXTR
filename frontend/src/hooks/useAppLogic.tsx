@@ -174,6 +174,8 @@ export default function useAppLogic() {
     onValidate,
     onCancel,
     anchorDataPreview,
+    message,
+    setMessage,
   } = useAnchorModal({ handleSelect, debug });
 
   const exportJson = useCallback(() => {
@@ -259,5 +261,7 @@ export default function useAppLogic() {
     detailFields,
     getAnchorState,
     dronesError,
+    message,
+    setMessage,
   };
 }

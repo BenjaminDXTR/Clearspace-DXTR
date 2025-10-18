@@ -101,6 +101,7 @@ function AppContent() {
           mapReady={logic.mapReady}
           setMapReady={logic.setMapReady}
           setMapContainer={logic.setMapContainer}
+          message={logic.message} // <-- passer le message ici
           key={memoAnchorModal?.flight?.id}
         />
       )}

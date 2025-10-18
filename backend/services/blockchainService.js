@@ -4,10 +4,9 @@ const log = require('../utils/logger');
 const { config } = require('../config');
 
 /**
- * Envoie la preuve ZIP et le JSON ancrage vers l'API distante blockchain.
- * 
+ * Envoie la preuve ZIP et le JSON d'ancrage vers l'API distante blockchain.
  * @param {Buffer} zipBuffer - Contenu du fichier preuve.zip (Buffer)
- * @param {Buffer} jsonBuffer - Contenu du fichier ancrage.json (Buffer)
+ * @param {Buffer} jsonBuffer - Contenu du fichier JSON principal d'ancrage (Buffer)
  * @returns {Promise<Object>} - Réponse JSON de l'API blockchain
  */
 async function sendAnchorProof(zipBuffer, jsonBuffer) {
@@ -18,19 +17,17 @@ async function sendAnchorProof(zipBuffer, jsonBuffer) {
     throw new Error('API Blockchain URL ou clé API non configurées');
   }
 
-  // Construire le formulaire multipart/form-data
   const form = new FormData();
   form.append('file', zipBuffer, {
-    filename: 'preuve.zip',
+    filename: 'preuve.zip',     // nom du fichier ZIP envoyé (le backend blockchain attend un fichier ZIP)
     contentType: 'application/zip',
   });
   form.append('data', jsonBuffer, {
-    filename: 'ancrage.json',
+    filename: 'ancrage.json',   // nom du fichier JSON principal d’ancrage envoyé
     contentType: 'application/json',
   });
 
   try {
-    // Envoyer la requête POST avec Axios
     const response = await axios.post(apiUrl, form, {
       headers: {
         ...form.getHeaders(),
@@ -39,12 +36,16 @@ async function sendAnchorProof(zipBuffer, jsonBuffer) {
       },
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
+      timeout: 5000, // Timeout optionnel
     });
-
     log.info(`Preuve envoyée, statut HTTP: ${response.status}`);
     return response.data;
   } catch (error) {
-    log.error(`Erreur envoi preuve blockchain : ${error.message}`);
+    if (error.response) {
+      log.error(`Erreur API blockchain ${error.response.status}: ${JSON.stringify(error.response.data)}`);
+    } else {
+      log.error(`Erreur envoi preuve blockchain : ${error.message}`);
+    }
     throw error;
   }
 }

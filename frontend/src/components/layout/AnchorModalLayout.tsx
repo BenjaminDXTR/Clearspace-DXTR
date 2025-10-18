@@ -10,14 +10,10 @@ import {
 import FlightMap from "../common/FlightMap";
 import { historyIcon } from "../../utils/icons";
 import type { Flight, AnchorModal } from "../../types/models";
-import {
-  getFlightTrace,
-  isLatLng,
-} from "../../utils/coords";
+import { getFlightTrace, isLatLng } from "../../utils/coords";
 import { config } from "../../config";
 import "./AnchorModalLayout.css";
 import useFlightData from "../../hooks/useFlightMapData";
-
 
 interface AnchorModalLayoutProps {
   anchorModal: AnchorModal | null | undefined;
@@ -28,6 +24,7 @@ interface AnchorModalLayoutProps {
   onValidate: () => void | Promise<void>;
   onCancel: () => void;
   anchorDataPreview: unknown | null;
+  message?: string | null; // Nouveau champ message
   debug?: boolean;
   children?: ReactNode;
   mapDivRef: React.RefObject<HTMLDivElement>;
@@ -36,11 +33,9 @@ interface AnchorModalLayoutProps {
   setMapContainer?: (container: HTMLElement | null) => void;
 }
 
-
 function getRefCurrent<T>(ref: React.RefObject<T>): T | null {
   return ref.current ?? null;
 }
-
 
 const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   anchorModal,
@@ -51,6 +46,7 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
   onValidate,
   onCancel,
   anchorDataPreview,
+  message = null, // message par défaut
   debug = config.debug || config.environment === "development",
   children,
   mapDivRef,
@@ -167,6 +163,11 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
                 ⚠️ {errorMsg}
               </div>
             )}
+            {message && (
+              <div className="anchor-modal-message" role="alert" aria-live="polite">
+                {message}
+              </div>
+            )}
           </div>
           <div className="right-panel" id="anchorModalDesc">
             <div>Carte à ancrer :</div>
@@ -178,7 +179,7 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
               center={center}
               zoom={zoom}
               className="modal-map-capture"
-              flyToTrigger={flyToTrigger} /* ajout */
+              flyToTrigger={flyToTrigger}
               onMapReady={(container) => {
                 dlog("Carte prête et stable", container);
                 setMapReady(true);
@@ -221,7 +222,6 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
     </div>
   );
 });
-
 
 AnchorModalLayout.displayName = "AnchorModalLayout";
 

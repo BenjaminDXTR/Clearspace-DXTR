@@ -199,6 +199,19 @@
   margin-top: 14px;
 }
 
+/* Nouveau style message simple d’état */
+.anchor-modal-message {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background-color: #e0f3ff;
+  border: 1.4px solid #90c5ff;
+  color: #0c69c1;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Scroll and blur blocking fix */
 body.modal-open {
   overflow: hidden !important;
   touch-action: none;
