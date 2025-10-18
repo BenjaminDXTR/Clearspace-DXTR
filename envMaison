@@ -30,7 +30,7 @@ USE_TEST_SIM=true
 BLOCKCHAIN_API_URL=https://clearspace.databeam.eu
 
 # Clé d’API ou secret Blockchain
-BLOCKCHAIN_API_KEY=umrlpr278sh
+BLOCKCHAIN_API_KEY=8wdenxjb4ek
 
 ########################
 # CONFIGURATION API XTR5
@@ -44,9 +44,6 @@ API_HOST=192.168.1.100
 
 # Port de l’API GraphQL distante
 API_PORT=3200
-
-# Décalage horaire en heures à appliquer sur les timestamps (exemple 2 pour +2 heures)
-TIME_OFFSET_HOURS=2
 
 
 ##############################################
