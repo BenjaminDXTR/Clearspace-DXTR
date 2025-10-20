@@ -20,6 +20,7 @@ function AppContent() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const memoAnchorModal = useMemo(() => logic.anchorModal, [logic.anchorModal?.flight?.id]);
 
+  /*
   if (logic.loadingAccess) {
     return <div>Chargement...</div>;
   }
@@ -27,7 +28,7 @@ function AppContent() {
   if (logic.accessDenied && logic.errorHtml) {
     return <div dangerouslySetInnerHTML={{ __html: logic.errorHtml }} />;
   }
-
+*/
   return (
     <div>
       <Header />
