@@ -1,36 +1,47 @@
 ##############################################
-#           CONFIGURATION SERVEUR
+#           CONFIGURATION FRONTEND
 ##############################################
+
+# Port sur lequel démarre le serveur frontend (Vite)
+FRONTEND_PORT=3000
+
+# Active/désactive le debug frontend (true/false)
+VITE_DEBUG=true
+
+# (Optionnel) Nombre max d’éléments en mémoire locale dans frontend
+VITE_MAX_HISTORY_LENGTH=100
+
+# Timeout d’inactivité (ms)
+VITE_INACTIVE_TIMEOUT=10000
+
+
+##############################################
+#           CONFIGURATION BACKEND
+##############################################
+
 # Port HTTP sur lequel le backend écoute
 BACKEND_PORT=3200
 
-# Domaine(s) autorisés par CORS
-CORS_ORIGIN=*
+ALLOWED_IPS=localhost,clearspace-dxtr,127.0.0.1,192.168.1.42
+
+# Liste des domaines autorisés par CORS côté backend, afin de gérer les requêtes cross-origin
+ALLOWED_ORIGINS=http://localhost,http://clearspace-dxtr, http://192.168.1.42, http://192.168.1.191
 
 # Taille maximale acceptée pour les requêtes JSON
 MAX_JSON_SIZE=5mb
 
 # Désactiver la vérification TLS (dev uniquement !)
-IGNORE_TLS_ERRORS=false
+IGNORE_TLS_ERRORS=true
 
 # Environnement : development | production | test
 NODE_ENV=development
 
-# Niveau des logs : info | warn | error | debug
-LOG_LEVEL=debug
+# Niveau des logs : debug | info | warn | error
+LOG_LEVEL=error
 
 # Active ou désactive le mode test/simulation
 USE_TEST_SIM=true
 
-##############################################
-#     CONFIGURATION AVANCÉE / BLOCKCHAIN
-##############################################
-
-# URL de l’API Blockchain
-BLOCKCHAIN_API_URL=https://clearspace.databeam.eu
-
-# Clé d’API ou secret Blockchain
-BLOCKCHAIN_API_KEY=8wdenxjb4ek
 
 ########################
 # CONFIGURATION API XTR5
@@ -47,14 +58,11 @@ API_PORT=3200
 
 
 ##############################################
-#     CONFIGURATION FRONTEND
+#     CONFIGURATION AVANCÉE / BLOCKCHAIN
 ##############################################
 
-# Port sur lequel démarre le serveur frontend (Vite)
-FRONTEND_PORT=3000
-# Active/désactive le debug frontend (true/false)
-VITE_DEBUG=true
+# URL de l’API Blockchain
+BLOCKCHAIN_API_URL=https://clearspace.databeam.eu
 
-# (Optionnel) Nombre max d’éléments en mémoire locale dans frontend
-VITE_MAX_HISTORY_LENGTH=100
-VITE_INACTIVE_TIMEOUT=10000
+# Clé d’API ou secret Blockchain
+BLOCKCHAIN_API_KEY=8wdenxjb4ek
