@@ -7,9 +7,9 @@ const { config } = require('../config');
 const fs = require('fs').promises;
 const path = require('path');
 
-let wss = null; // Référence globale au serveur WebSocket
-let pollingActive = false; // Flag pour le contrôle du polling
-let pollingPromise = null; // Promise pour la boucle de polling
+let wss = null; // Instance WebSocket Server
+let pollingActive = false;
+let pollingPromise = null;
 
 /**
  * Diffuse les données en broadcast aux clients WebSocket connectés
@@ -111,7 +111,7 @@ async function stopPolling() {
 }
 
 /**
- * Initialise le serveur WebSocket attaché au serveur HTTP
+ * Initialise le serveur WebSocket attaché au serveur HTTP avec filtre IP
  * @param {http.Server} server Instance du serveur HTTP
  * @returns {WebSocket.Server} Instance du serveur WebSocket
  */
@@ -124,11 +124,23 @@ function setup(server) {
   wss = new WebSocket.Server({ server });
   log.info('[setup] WebSocket server initialized');
 
-  wss.on('connection', async ws => {
-    clients.add(ws);
-    log.info(`[connection] New client connected, total clients: ${clients.size}`);
+  wss.on('connection', async (ws, req) => {
+    // Récupération IP client réelle avec prise en compte de proxy
+    const clientIpRaw = req.socket.remoteAddress || '';
+    const clientIp = clientIpRaw.startsWith('::ffff:') ? clientIpRaw.slice(7) : clientIpRaw;
 
-    setupConnection(ws, broadcast);
+    // Filtrage IP : rejet si IP non autorisée
+    const allowedIps = config.backend.allowedIps || [];
+    if (allowedIps.length > 0 && !allowedIps.includes(clientIp)) {
+      log.warn(`[connection] WebSocket connection refused: IP non autorisée ${clientIp}`);
+      ws.close(1008, 'IP non autorisée'); // 1008 = Policy Violation
+      return;
+    }
+
+    clients.add(ws);
+    log.info(`[connection] New client connected from IP=${clientIp}, total clients: ${clients.size}`);
+
+    setupConnection(ws, broadcast); // Mise en place gestion messages client
 
     try {
       const historyDir = path.resolve(__dirname, '../history');
@@ -137,7 +149,6 @@ function setup(server) {
       const summaries = files.filter(f => f.endsWith('.json')).map(f => ({ filename: f })).sort();
 
       ws.send(JSON.stringify({ type: 'historySummaries', data: summaries }));
-      //log.debug(`[connection] Sent ${summaries.length} history summaries`);
     } catch (err) {
       ws.send(JSON.stringify({ type: 'historySummaries', data: [] }));
       log.warn('[connection] Error sending history summaries: ' + err.message);
@@ -161,7 +172,7 @@ function getWss() {
 
 /**
  * Ferme toutes les connexions et le serveur WebSocket proprement
- * @returns {Promise}
+ * @returns {Promise<void>}
  */
 function closeAllConnections() {
   return new Promise(resolve => {

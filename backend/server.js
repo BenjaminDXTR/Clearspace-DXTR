@@ -27,67 +27,63 @@ if (config.backend.ignoreTlsErrors) {
 }
 
 // ------------------------------------------
+// Configurer Express pour faire confiance au proxy (si utilisé)
+app.set('trust proxy', true);
+
+// ------------------------------------------
 // Récupération des listes IPs et origines autorisées
 const allowedIps = config.backend.allowedIps || [];
 const allowedOrigins = config.backend.allowedOrigins || [];
 
 // ------------------------------------------
-// Middleware de filtrage IP client (accès backend et frontend)
-// ------------------------------------------
+// Middleware de filtrage IP client (accès backend et frontend) simple maison
 if (allowedIps.length > 0) {
   app.use((req, res, next) => {
-    // Extraire IP réelle client (IPv4 ou IPv6 format ::ffff:xxx.xxx.xxx.xxx)
     const clientIpRaw = req.ip || req.connection.remoteAddress || '';
-    const clientIp = clientIpRaw.startsWith('::ffff:')
-      ? clientIpRaw.substring(7)
-      : clientIpRaw;
-
+    const clientIp = clientIpRaw.startsWith('::ffff:') ? clientIpRaw.substring(7) : clientIpRaw;
     if (allowedIps.includes(clientIp)) {
-      next();
-    } else {
-      log.warn(`Accès refusé pour IP non autorisée : ${clientIp}`);
-      res.status(403)
-        .set({
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Surrogate-Control': 'no-store',
-          'Content-Type': 'text/html; charset=utf-8'
-        })
-        .send(`
-          <h1>Accès refusé</h1>
-          <p>Votre adresse IP (${clientIp}) n'est pas autorisée à accéder à cette application.</p>
-        `);
+      return next();
     }
+    log.warn(`Accès refusé pour IP non autorisée : ${clientIp}`);
+    res.status(403).set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store',
+      'Content-Type': 'text/html; charset=utf-8'
+    }).send(`
+      <h1>Accès refusé</h1>
+      <p>Votre adresse IP (${clientIp}) n'est pas autorisée à accéder à cette application.</p>
+    `);
   });
 } else {
   log.info('Pas de filtrage IP activé (ALLOWED_IPS non défini)');
 }
 
 // ------------------------------------------
-// Middleware CORS avec filtrage dynamique des origines
-// ------------------------------------------
+// Middleware CORS avec filtrage dynamique des origines et credentials
 if (allowedOrigins.length > 0) {
   app.use(cors({
     origin: function(origin, callback) {
-      if (!origin) return callback(null, true); // Requêtes sans origine (postman, curl)
+      if (!origin) return callback(null, true); // requêtes sans origine (Postman, curl)
       try {
         const originUrl = new URL(origin);
         const originHost = originUrl.protocol + '//' + originUrl.hostname;
         if (allowedOrigins.includes(originHost)) {
-          callback(null, true);
+          return callback(null, true);
         } else {
           log.warn(`Requête CORS bloquée pour origine : ${origin}`);
-          callback(new Error('Origine non autorisée par CORS'));
+          return callback(new Error('Origine non autorisée par CORS'));
         }
-      } catch (e) {
+      } catch {
         log.warn(`Origine CORS invalide : ${origin}`);
-        callback(new Error('Origine non autorisée par CORS'));
+        return callback(new Error('Origine non autorisée par CORS'));
       }
-    }
+    },
+    credentials: true,
   }));
 } else {
-  app.use(cors({ origin: config.backend.corsOrigin }));
+  app.use(cors({ origin: config.backend.corsOrigin, credentials: true }));
   log.info('Pas de restriction CORS appliquée (ALLOWED_ORIGINS non défini)');
 }
 
@@ -101,7 +97,6 @@ app.use(errorHandler);
 
 // ------------------------------------------
 // Gestion des intervalles périodiques (flush cache, retry)
-// ------------------------------------------
 let flushIntervalId;
 let retryIntervalId;
 
@@ -113,7 +108,7 @@ function startIntervals() {
     } catch (e) {
       log.error(`[flushAllCache] Erreur flush périodique : ${e.message}`);
     }
-  }, 60000); // toutes les 60s
+  }, 60000);
 
   const retryMs = (config.backend.retryIntervalMin || 5) * 60 * 1000;
   retryIntervalId = setInterval(async () => {
@@ -135,7 +130,6 @@ function clearIntervals() {
 
 // ------------------------------------------
 // Obtention de l'IP locale (non loopback)
-// ------------------------------------------
 function getLocalIp() {
   const ifaces = os.networkInterfaces();
   for (const ifaceName in ifaces) {
@@ -151,7 +145,6 @@ function getLocalIp() {
 
 // ------------------------------------------
 // Initialisation principale (async)
-// ------------------------------------------
 (async () => {
   try {
     // Archivage des données live et waiting au démarrage
@@ -160,6 +153,7 @@ function getLocalIp() {
 
     // Initialisation WebSocket avec serveur HTTP
     setup(server);
+
     // Lancement des intervalles périodiques
     startIntervals();
 
