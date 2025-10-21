@@ -26,19 +26,7 @@ export const config = {
   })(),
 
   iconUrls: {
-    droneLive:
-      import.meta.env.VITE_ICON_URL_DRONE_LIVE ??
-      'https://cdn-icons-png.flaticon.com/512/854/854878.png',
-    droneStart:
-      import.meta.env.VITE_ICON_URL_DRONE_START ??
-      'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+    droneLive: '/drone-live.png',
+    droneStart: '/drone-start.png',
   },
-
-  defaultIconSize: import.meta.env.VITE_ICON_SIZE_DEFAULT
-    ? (import.meta.env.VITE_ICON_SIZE_DEFAULT.split(',').map((x) => Number(x)) as [number, number])
-    : [36, 36],
-
-  historyIconSize: import.meta.env.VITE_ICON_SIZE_HISTORY
-    ? (import.meta.env.VITE_ICON_SIZE_HISTORY.split(',').map((x) => Number(x)) as [number, number])
-    : [28, 28],
 };
