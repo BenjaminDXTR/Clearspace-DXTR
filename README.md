@@ -182,8 +182,4 @@ Cette méthode permet à tous les clients du réseau d’utiliser un nom simple 
 
 ## 💻 Support & Contact
 
-Pour toute question, consultez la documentation ou contactez l’équipe DroneXTR.
-
----
-
-Merci pour votre confiance et votre utilisation de ClearSpace DXTR !
+Pour toute question contactez l’équipe DroneXTR.
