@@ -5,15 +5,15 @@ import "./Header.css";
 interface HeaderProps {
   /** Titre affiché dans la bannière */
   title?: string;
-  /** Icône à afficher à gauche du titre (emoji ou image) */
-  icon?: React.ReactNode;
+  /** URL de l'image du logo */
+  logoUrl?: string;
   /** Activer les logs console (par défaut uniquement en dev) */
   debug?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
-  title = "DroneWeb",
-  icon = "🚁",
+  title = "Clearspace DXTR",
+  logoUrl = "/logo192.png", // l'image placée dans public/
   debug = config.debug || config.environment === "development",
 }) => {
   const dlog = (...args: any[]) => {
@@ -26,12 +26,13 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="header" role="banner" aria-label={`Bannière ${title}`}>
-      <span
-        className="header__icon"
-        aria-hidden={typeof icon === "string"} // cache si emoji simple
-      >
-        {icon}
-      </span>
+      <img
+        src={logoUrl}
+        alt="Logo Clearspace DXTR"
+        className="header__logo"
+        aria-hidden="false"
+        loading="lazy"
+      />
       <h1 className="header__title">{title}</h1>
     </header>
   );
