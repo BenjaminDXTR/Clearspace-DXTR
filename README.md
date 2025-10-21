@@ -1,141 +1,129 @@
-# CS-DXTR  
-Détection et ancrage de drones pour ClearSpace
+# CS-DXTR
+**Détection et ancrage de drones pour ClearSpace**
 
-Cette solution se compose de :  
-- **Backend** : Node.js / Express (API locale, connexion à API distante GraphQL)  
+---
+
+## Présentation
+
+Cette solution se compose de :
+- **Backend** : Node.js / Express (API locale, connexion à API distante GraphQL)
 - **Frontend** : React + TypeScript (interface web utilisateur)
 
 ---
 
-## ⚠️ Important : Placement du fichier `.env`
+## ⚠️ Placement du fichier `.env`
 
-Avant toute exécution des scripts `start-servers.bat` ou `start-servers.sh`, assurez-vous que le fichier `.env` de configuration serveur soit **placé à la racine du projet**. Ce fichier doit contenir toutes les variables nécessaires, notamment :  
-
-BACKEND_PORT=3201
-FRONTEND_PORT=3001
-...
-
-
-
-Ce fichier `.env` sera lu et exploité automatiquement par les scripts et serveurs (backend et frontend).  
+Avant tout lancement, il faut copier le fichier `.env.example` en `.env` à la racine du projet et le personnaliser avec vos paramètres.
+Ce fichier est automatiquement lu par les scripts pour configurer backend et frontend.
 
 ---
 
 ## 🚀 Prérequis
-- **Node.js** (v18 ou supérieure) + npm  
-- **Git** (optionnel, pour cloner le dépôt)  
-- Navigateur récent (Chrome, Firefox, Edge…)
 
----
-
-## 📂 Structure
-- `/backend` → API, services, scripts.  
-- `/frontend` → Application React.
-
----
-
-## ⚙️ Installation et lancement
-
-### 1. Lancement automatique (recommandé)
-
-#### Windows
-1. Placez ou renommez correctement votre `.env` à la racine.  
-2. Double-cliquez sur `start-servers.bat` à la racine.  
-3. Le script :  
-   - Vérifie la présence de `backend/.env`.  
-   - Vérifie la présence de Node.js (ouvre lien officiel si absent).  
-   - Installe dépendances backend et frontend si nécessaire.  
-   - Génère ou met à jour le fichier `frontend/.env.local` automatiquement avec la configuration adaptée (incluant `VITE_BACKEND_PORT` et `FRONTEND_PORT`).  
-   - Lance backend et frontend dans deux consoles séparées.  
-4. Votre frontend sera accessible sur le port configuré dans `.env` (ex : 3001).
-
-#### Linux / Mac
-1. Placez ou renommez votre `.env` à la racine.  
-2. Rendez les scripts exécutables (une seule fois) :  
-chmod +x start-servers.sh stop-servers.sh
-
-
-3. Lancez avec :  
-./start-servers.sh
-
-
-4. Même logique que Windows (install, génération `.env.local`, lancement terminaux).
-
----
-
-### 2. Lancement manuel
-
-Si vous préférez lancer manuellement (par exemple si les scripts ne fonctionnent pas) :
-
-- Vérifiez que dans `/frontend` vous avez un fichier `.env.manual` contenant au minimum la variable pour connecter le frontend au backend, par exemple :
-
-VITE_BACKEND_PORT=3201
-
-
-
-- Copiez/le renommez ensuite en `.env.local` dans `/frontend` avant de lancer pour forcer le bon paramétrage.
-
-Puis lancez ainsi :  
-
-**Backend**  
-cd backend
-npm install # 1ère fois seulement
-npm start
-
-
-
-**Frontend**  
-cd frontend
-npm install # 1ère fois seulement
-npm start
-
-
-
-- Backend accessible sur [http://localhost:3201](http://localhost:3201)  
-- Frontend accessible sur [http://localhost:3001](http://localhost:3001)  
-
----
-
-## ⏹ Arrêt des serveurs
-
-- **Windows** : Exécutez `stop-servers.bat` à la racine.  
-- **Linux / Mac** : Exécutez `./stop-servers.sh` depuis la racine.
+- **Node.js** (v18 ou supérieur) + npm
+- Navigateur moderne (Chrome, Firefox, Edge...)
 
 ---
 
 ## 🛠 Configuration
 
-### Paramètres généraux dans `.env` racine
+### Variables dans `.env` (racine)
 
-- Port HTTP backend  
-- Port frontend (serveur Vite)  
-- CORS, taille max JSON, logs, simulation, etc.
-
-### Paramètres spécifiques frontend dans `/frontend/.env.local`
-
-Ce fichier est généré automatiquement par le script au lancement et inclut au moins :
-
-VITE_BACKEND_PORT=3201
-FRONTEND_PORT=3001
-
-
-
-Pour un lancement manuel, vous pouvez générer ou créer manuellement ce fichier ou utiliser `.env.manual` que vous copiez en `.env.local`.
+- **Port backend** : `BACKEND_PORT`
+- **Port frontend (Vite)** : `FRONTEND_PORT`
+- **Liste des IPs autorisées (BACKEND)** : `ALLOWED_IPS`
+Exemples : `localhost,127.0.0.1,192.168.x.x`
+- **Origines CORS** : `ALLOWED_ORIGINS`
+Format : `http://host:port`, séparés par une virgule.
+- **Vérification TLS** : `IGNORE_TLS_ERRORS=false` en prod, `true` en dev.
+- **Mode test/simulation** : `USE_TEST_SIM=true` (à désactiver en prod).
+- **Clé Blockchain** : `BLOCKCHAIN_API_KEY` (à remplir avec votre clé).
 
 ---
 
-## ℹ️ Notes supplémentaires
+## 🔑 Conseils sécurité
 
-- Après modification des variables d’environnement, toujours relancer les serveurs pour prise en compte.  
-- Le frontend lit les variables dans `.env.local`, qui doit être présente et à jour.  
-- Le script automatise la génération et la synchronisation des config entre backend et frontend.
-
----
-
-## 💻 Support et aide
-
-Pour toute question, consultez la documentation ou contactez l’équipe ClearSpace.
+- Limitez `ALLOWED_IPS` aux IPs de vos clients de confiance.
+- Configurez `ALLOWED_ORIGINS` pour n’autoriser que vos domaines de production.
 
 ---
 
-Merci pour votre confiance et utilisation de ClearSpace DXTR !
+## ⚙️ Installation & Lancement
+
+### 1. Lancement automatique (recommandé)
+
+**Windows**
+
+1. Placez ou nommez `.env` à la racine.
+2. Double-cliquez sur `start-servers.bat`.
+3. Le script :
+ - Vérifie la présence de `.env`.
+ - Vérifie Node.js (ouvre le lien officiel si absent).
+ - Installe dépendances si besoin.
+ - Génère `frontend/.env.local` avec les paramètres adaptés (inclut `VITE_BACKEND_PORT`, `FRONTEND_PORT`).
+ - Lance backend et frontend dans deux consoles séparées.
+4. Accédez au frontend via [http://<IP_HOST>:<PORT>] (par exemple http://192.168.1.10:3000)
+
+**Linux / Mac**
+
+1. Placez ou nommez `.env`.
+2. Rendez les scripts exécutables :
+chmod +x start-servers.sh stop-servers.sh
+3. Lancez :
+./start-servers.sh
+4. Même principe que sous Windows.
+
+---
+
+### 2. Lancement manuel
+
+- Copiez ou renommez `env.local.exemple` dans `/frontend` en `.env.local`.
+- Modifiez `{VITE_BACKEND_PORT}` selon votre configuration, par exemple `3200`.
+- Ensuite, lancez séparément :
+
+backend
+cd backend
+npm install
+npm start
+
+frontend
+cd frontend
+npm install
+npm start
+
+- Accédez au frontend via [http://<IP_HOST>:<PORT>] (par exemple http://192.168.1.10:3000)
+
+---
+
+## ⏹ Arrêt des serveurs
+
+- **Windows** : exécuté `stop-servers.bat`.
+- **Linux / Mac** : `./stop-servers.sh`.
+
+---
+
+## 🌐 Configuration locale `[translate:clearspace-dxtr]`
+
+Pour accéder par nom local :
+
+- Modifier le fichier `hosts` (sous Windows/Linux/macos) :
+IP_de_la_machine_hôte﻿ clearspace-dxtr
+
+- Dans le navigateur :
+http://clearspace-dxtr:<port_frontend>
+
+où `<port_frontend>` correspond à `FRONTEND_PORT`.
+
+---
+
+## ℹ️ Notes
+
+- Après modification `.env`, relancer serveurs.
+- Le fichier `.env.local` dans `/frontend` est généré automatiquement mais peut aussi être modifié manuellement.
+- La synchronisation entre backend et frontend est automatisée par le script.
+
+---
+
+## 💻 Support & Contact
+
+Pour toute question, consultez la documentation ou contactez l’équipe DroneXTR
