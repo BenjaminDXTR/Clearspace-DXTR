@@ -103,14 +103,18 @@ chmod +x start-servers.sh stop-servers.sh
 - Lancez les serveurs séparément :
 
 Backend
+  ```
 cd backend
 npm install
 npm start
+  ```
 
 Frontend
+  ```
 cd frontend
 npm install
 npm start
+  ```
 
 
 
@@ -135,9 +139,9 @@ stop-servers.bat
 
 ---
 
-## 🌐 Configuration du nom de domaine local [translate:clearspace-dxtr]
+## 🌐 Configuration du nom de domaine local
 
-Pour simplifier l’accès via le réseau local, vous pouvez utiliser le nom de domaine local [translate:clearspace-dxtr] plutôt qu’une adresse IP, qui peut varier selon la machine cliente.
+Pour simplifier l’accès via le réseau local, vous pouvez utiliser le nom de domaine local clearspace-dxtr plutôt qu’une adresse IP, qui peut varier selon la machine cliente.
 
 Pour cela :  
 
@@ -178,8 +182,8 @@ Cette méthode permet à tous les clients du réseau d’utiliser un nom simple 
 
 ## 💻 Support & Contact
 
-Pour toute question, consultez la documentation ou contactez l’équipe [translate:DroneXTR].
+Pour toute question, consultez la documentation ou contactez l’équipe DroneXTR.
 
 ---
 
-Merci pour votre confiance et votre utilisation de [translate:ClearSpace DXTR] !
+Merci pour votre confiance et votre utilisation de ClearSpace DXTR !
