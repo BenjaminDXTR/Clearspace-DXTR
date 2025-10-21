@@ -174,8 +174,9 @@ const AnchorModalLayout = forwardRef<HTMLDivElement, AnchorModalLayoutProps>(({
             <FlightMap
               ref={mapDivRef}
               trace={trace}
-              markerIcon={historyIcon}
-              showMarkers
+              startPosition={trace.length > 0 ? trace[0] : null}          // Premier point de la trace = départ
+              livePosition={trace.length > 1 ? trace[trace.length - 1] : null} // Dernier point = position actuelle/fin
+              showMarkers={true}
               center={center}
               zoom={zoom}
               className="modal-map-capture"
