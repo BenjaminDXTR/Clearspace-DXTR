@@ -27,14 +27,14 @@ const WS_STATES = {
   CLOSED: 3,
 };
 
-const PING_INTERVAL = 20000; // 20 secondes
-const PONG_TIMEOUT = 10000; // 10 secondes
-const RECONNECT_DELAY = 2000; // délai fixe 2 secondes
+const PING_INTERVAL = 20000; // Intervalle ping toutes les 20s
+const PONG_TIMEOUT = 10000;  // Timeout pong 10s
+const RECONNECT_DELAY = 2000; // Reconnexion WS toutes les 2s
 
 export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [drones, setDrones] = useState<Flight[]>([]);
   const [historyFiles, setHistoryFiles] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); 
   const [loading, setLoading] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [refreshFilename, setRefreshFilename] = useState<string | null>(null);
 
@@ -43,10 +43,11 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const pingTimeout = useRef<NodeJS.Timeout | null>(null);
   const pongTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastError = useRef<{ msg: string; time: number } | null>(null);
-  const errorThrottle = 5000;
+  const errorThrottle = 5000; // Minimum 5s entre mêmes messages d’erreur
 
   const websocketUrl = config.websocketUrl;
 
+  // Nettoyer timers ping/pong pour éviter fuites mémoire
   function clearTimeouts() {
     if (pingTimeout.current) {
       clearTimeout(pingTimeout.current);
@@ -58,22 +59,22 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }
 
+  // Envoi ping régulièrement et attente pong sinon ferme WS
   function sendPing() {
-    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) {
-      return;
-    }
+    if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) return;
     try {
       ws.current.send(JSON.stringify({ type: 'ping' }));
-      console.log(`[DronesContext][${new Date().toISOString()}] Ping sent`);
+      console.log(`[DronesContext][${new Date().toISOString()}] Ping envoyé`);
       pongTimeout.current = setTimeout(() => {
-        console.warn(`[DronesContext][${new Date().toISOString()}] Pong not received in time, closing connection`);
+        console.warn(`[DronesContext][${new Date().toISOString()}] Pong non reçu, fermeture WS`);
         ws.current?.close();
       }, PONG_TIMEOUT);
     } catch (err) {
-      console.error(`[DronesContext][${new Date().toISOString()}] Error sending ping:`, err);
+      console.error(`[DronesContext][${new Date().toISOString()}] Erreur en envoyant ping:`, err);
     }
   }
 
+  // Planifie les pings pour maintenir connexion
   function schedulePing() {
     clearTimeouts();
     pingTimeout.current = setTimeout(() => {
@@ -82,49 +83,78 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, PING_INTERVAL);
   }
 
+  // Met à jour l’erreur avec throttling pour éviter rafraîchissements incessants
   function setWebsocketError(msg: string) {
     const now = Date.now();
-    if (lastError.current && lastError.current.msg === msg && now - lastError.current.time < errorThrottle) {
-      return;
+    if (
+      lastError.current &&
+      lastError.current.msg === msg &&
+      now - lastError.current.time < errorThrottle
+    ) {
+      return; // Message identique récent, ignore la mise à jour
     }
     lastError.current = { msg, time: now };
-    setError(`Erreur de connexion au serveur: ${msg}`);
+    setError((prev) => (prev === msg ? prev : `Erreur de connexion au serveur : ${msg}`));
     console.error(`[${new Date().toISOString()}][DronesContext] ${msg}`);
   }
 
+  // Connexion WS avec reconnexion automatique et gestion d’erreurs rapides
   function connect() {
+    if (ws.current && [WS_STATES.OPEN, WS_STATES.CONNECTING].includes(ws.current.readyState)) {
+      console.log(`[${new Date().toISOString()}][DronesContext] WS déjà connecté ou en connexion`);
+      return;
+    }
     if (ws.current) {
-      if (ws.current.readyState === WS_STATES.OPEN || ws.current.readyState === WS_STATES.CONNECTING) {
-        console.log(`[${new Date().toISOString()}][DronesContext] WS already connecting or open, skipping connect`);
-        return;
-      }
       try {
-        console.log(`[${new Date().toISOString()}][DronesContext] Closing existing WS connection before new connect`);
+        console.log(`[${new Date().toISOString()}][DronesContext] Fermeture WS existant avant nouvelle connexion`);
         ws.current.close();
       } catch (e) {
-        console.warn(`[${new Date().toISOString()}][DronesContext] Error while closing WS:`, e);
+        console.warn(`[${new Date().toISOString()}][DronesContext] Erreur en fermant WS:`, e);
       }
       ws.current = null;
     }
     if (reconnectTimeout.current) {
-      console.log(`[${new Date().toISOString()}][DronesContext] Reconnect already scheduled, ignoring new connect call`);
+      console.log(`[${new Date().toISOString()}][DronesContext] Reconnexion déjà programmée, ignorée`);
       return;
     }
-    console.log(`[${new Date().toISOString()}][DronesContext] Attempting WS connection to ${websocketUrl}`);
 
+    console.log(`[${new Date().toISOString()}][DronesContext] Nouvelle tentative de connexion WS à ${websocketUrl}`);
     setLoading('connecting');
-    console.log(`[DronesContext][${new Date().toISOString()}] Opening WS connection to ${websocketUrl}`);
+    // Ne nettoie pas l’erreur ici, pour garder visible message si existant
 
     ws.current = new WebSocket(websocketUrl);
 
+    // Timeout pour échec rapide en cas de backend inaccessible
+    const connectionTimeout = setTimeout(() => {
+      if (ws.current && ws.current.readyState !== WS_STATES.OPEN) {
+        setWebsocketError('Le serveur backend semble inaccessible ou non démarré.');
+        setLoading('disconnected');
+        ws.current.close();
+      }
+    }, 3000);
+
     ws.current.onopen = () => {
-      setError(null);
+      clearTimeout(connectionTimeout);
       setLoading('connected');
+      console.log(`[${new Date().toISOString()}][DronesContext] WS connection established`);
+
+      /*
+       * Nettoie l’erreur uniquement si elle concerne la connexion WS,
+       * après 1s de stabilité pour éviter disparition/retour rapide du message
+       */
+      setTimeout(() => {
+        setError((prev) => {
+          if (prev && prev.startsWith('Erreur de connexion au serveur')) {
+            return null;
+          }
+          return prev;
+        });
+      }, 1000);
+
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
         reconnectTimeout.current = null;
       }
-      console.log(`[${new Date().toISOString()}][DronesContext] WS connection established`);
       schedulePing();
     };
 
@@ -132,15 +162,10 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       clearTimeout(pongTimeout.current!);
       try {
         const data = JSON.parse(event.data);
-        console.log(`[DronesContext][${new Date().toISOString()}] WS message received:`, data);
 
         if (Array.isArray(data)) {
           setDrones(data);
-          console.log(`[DronesContext][${new Date().toISOString()}] Drones updated, count: ${data.length}`);
-
-          // Log vols "waiting" reçus
-          const waitingFlights = data.filter((flight: Flight) => flight.state === 'waiting');
-          console.log(`[DronesContext][${new Date().toISOString()}] Waiting flights count: ${waitingFlights.length}`, waitingFlights);
+          const waitingFlights = data.filter(f => f.state === 'waiting');
           return;
         }
 
@@ -149,11 +174,9 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             case 'ping':
               if (ws.current?.readyState === WS_STATES.OPEN) {
                 ws.current.send(JSON.stringify({ type: 'pong' }));
-                console.log(`[DronesContext][${new Date().toISOString()}] Pong sent`);
               }
               break;
             case 'pong':
-              console.log(`[DronesContext][${new Date().toISOString()}] Pong received`);
               if (pongTimeout.current) {
                 clearTimeout(pongTimeout.current);
                 pongTimeout.current = null;
@@ -161,71 +184,59 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               break;
             case 'historySummaries':
               if (Array.isArray(data.data)) {
-                console.log(`[DronesContext][${new Date().toISOString()}] historySummaries data:`, data.data);
                 const files = data.data.map((item: { filename: string }) => item.filename);
                 setHistoryFiles(files);
-                console.log(`[DronesContext][${new Date().toISOString()}] Updated historyFiles:`, files);
-              } else {
-                console.warn(`[DronesContext][${new Date().toISOString()}] Invalid historySummaries data:`, data.data);
               }
               break;
             case 'refresh':
               if (data.data?.filename) {
                 setRefreshFilename(data.data.filename);
-                console.log(`[DronesContext][${new Date().toISOString()}] Notification refresh reçue pour fichier: ${data.data.filename}`);
-              } else {
-                console.warn(`[DronesContext][${new Date().toISOString()}] Refresh notification received without filename`);
               }
               break;
             default:
-              const unknownMsg = `Message WebSocket inconnu ou mal formé: ${JSON.stringify(data)}`;
-              setError(unknownMsg);
-              console.warn(`[${new Date().toISOString()}][DronesContext] ${unknownMsg}`);
+              setError(`Message WS inconnu ou mal formé : ${JSON.stringify(data)}`);
               break;
           }
         }
       } catch (e) {
-        setWebsocketError(`Error parsing WS message: ${(e as Error).message}`);
+        setWebsocketError(`Erreur parsing message WS : ${(e as Error).message}`);
       }
     };
 
     ws.current.onerror = (evt) => {
-      const errorMsg = 'Erreur réseau lors de la connexion WebSocket';
-      setWebsocketError(errorMsg);
+      clearTimeout(connectionTimeout);
+      setWebsocketError('Erreur réseau lors de la connexion WebSocket');
       setLoading('disconnected');
-      console.error(`[${new Date().toISOString()}][DronesContext] WS network error:`, evt);
     };
 
     ws.current.onclose = (evt) => {
+      clearTimeout(connectionTimeout);
       setLoading('disconnected');
       const msg =
         evt.code === 1000
-          ? 'WebSocket closed normally'
-          : `WebSocket disconnected, code=${evt.code}, reason=${evt.reason}, reconnecting...`;
+          ? 'WS fermé normalement'
+          : `WS déconnecté (code=${evt.code}, raison=${evt.reason}), reconnexion...`;
       setWebsocketError(msg);
-      const disconnectMsg = evt.code === 1000 ? 'Normal WS close' : `Abnormal WS close with code ${evt.code}`;
-      console.warn(`[${new Date().toISOString()}][DronesContext] WS disconnected: ${disconnectMsg}, schedule reconnect`);
-      const userFriendlyMsg = evt.code === 1000 ? 
-        'Connexion au serveur fermée correctement.' :
-        `La connexion au serveur a été interrompue (${evt.code}). Tentative de reconnexion en cours...`;
-      setError(userFriendlyMsg);
+
+      const userFriendly = evt.code === 1000
+        ? 'Connexion fermée correctement.'
+        : `Connexion interrompue (${evt.code}). Tentative de reconnexion...`;
+      setError(userFriendly);
+
       if (!reconnectTimeout.current) {
         reconnectTimeout.current = setTimeout(() => {
           reconnectTimeout.current = null;
           connect();
         }, RECONNECT_DELAY);
       }
-      console.warn(`[DronesContext][${new Date().toISOString()}] ${msg}`);
       clearTimeouts();
     };
   }
 
+  // Démarrage initial du WS + nettoyage au démontage
   useEffect(() => {
-    const startupDelay = 1000; // délai 1s pour laisser la page se stabiliser
-
-    const timeoutId = setTimeout(() => {
-      connect();
-    }, startupDelay);
+    const startupDelay = 1000;
+    const timeoutId = setTimeout(() => connect(), startupDelay);
 
     return () => {
       clearTimeout(timeoutId);
@@ -244,6 +255,32 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     };
   }, []);
+
+  // Récupération contrôlée du fichier historique à rafraîchir seulement si connecté
+  useEffect(() => {
+    if (loading !== 'connected') {
+      console.log(`[DronesContext] Abandon récupération historique, WS déconnecté`);
+      return;
+    }
+    if (!refreshFilename) return;
+
+    let ignore = false;
+    const fetchAndClear = async () => {
+      try {
+        console.log(`[DronesContext] Chargement historique ${refreshFilename}`);
+        await fetchHistoryFile(refreshFilename);
+      } catch (err) {
+        console.error(`[DronesContext] Erreur chargement historique ${refreshFilename} :`, err);
+      } finally {
+        if (!ignore) setRefreshFilename(null); // évite boucle infinie
+      }
+    };
+    fetchAndClear();
+
+    return () => {
+      ignore = true;
+    };
+  }, [refreshFilename, loading]);
 
   return (
     <DronesContext.Provider
