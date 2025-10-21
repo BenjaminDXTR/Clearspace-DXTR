@@ -25,19 +25,43 @@ Ce fichier est automatiquement lu par les scripts pour configurer backend et fro
 
 ---
 
-## 🛠 Configuration
+🛠 Configuration et utilisation du fichier .env (exemple)
+Le fichier .env.example sert de modèle pour configurer votre environnement. Il doit être copié et renommé en .env à la racine du projet avant de lancer les serveurs. Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre réseau et à vos accès.
 
-### Variables dans `.env` (racine)
+Valeurs essentielles à remplir ou modifier dans .env :
+Clé Blockchain (BLOCKCHAIN_API_KEY) :
 
-- **Port backend** : `BACKEND_PORT`
-- **Port frontend (Vite)** : `FRONTEND_PORT`
-- **Liste des IPs autorisées (BACKEND)** : `ALLOWED_IPS`
-Exemples : `localhost,127.0.0.1,192.168.x.x`
-- **Origines CORS** : `ALLOWED_ORIGINS`
-Format : `http://host:port`, séparés par une virgule.
-- **Vérification TLS** : `IGNORE_TLS_ERRORS=false` en prod, `true` en dev.
-- **Mode test/simulation** : `USE_TEST_SIM=true` (à désactiver en prod).
-- **Clé Blockchain** : `BLOCKCHAIN_API_KEY` (à remplir avec votre clé).
+Entrez ici la clé ou le token secret fourni par le service blockchain, indispensable pour les opérations d'ancrage sécurisées.
+
+Adresse et IP des machines externes autorisées :
+
+ALLOWED_IPS : liste des adresses IP des machines pouvant accéder au backend. Par exemple : localhost,127.0.0.1,192.168.x.x.
+
+ALLOWED_ORIGINS : liste des domaines (avec protocole et port) autorisés côté backend pour les requêtes CORS. Par exemple : http://localhost,http://clearspace-dxtr:3000.
+
+Activation du mode simulation (USE_TEST_SIM) :
+
+Activez (true) pour tester sans avoir tous les matériels et services réels en ligne.
+
+En production, ce mode doit être désactivé (false) pour éviter l'injection de données fictives.
+
+## 🛠 Configuration et utilisation du fichier .env (exemple)
+
+Le fichier .env.example sert de modèle pour configurer votre environnement.
+Il doit être copié et renommé en .env à la racine du projet avant de lancer les serveurs.
+Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre réseau et à vos accès.
+
+Valeurs essentielles à remplir ou modifier dans .env :
+Clé Blockchain (BLOCKCHAIN_API_KEY) :
+Entrez ici la clé ou le token secret fourni par le service blockchain, indispensable pour les opérations d'ancrage sécurisées.
+
+Adresse et IP des machines externes autorisées :
+ALLOWED_IPS : liste des adresses IP des machines pouvant accéder au backend. Par exemple : localhost,127.0.0.1,192.168.x.x.
+
+ALLOWED_ORIGINS : liste des domaines (avec protocole et port) autorisés côté backend pour les requêtes CORS. Par exemple : http://localhost,http://clearspace-dxtr:3000.
+
+Activation du mode simulation (USE_TEST_SIM) :
+Activez (true) pour tester sans avoir tous les matériels et services réels en ligne.
 
 ---
 
@@ -102,17 +126,21 @@ npm start
 
 ---
 
-## 🌐 Configuration locale `[translate:clearspace-dxtr]`
+## 🌐 Configuration du nom de domaine local
 
-Pour accéder par nom local :
+Pour simplifier l'accès à l'interface frontend sur le réseau local, vous pouvez utiliser le nom de domaine local clearspace-dxtr plutôt qu’une adresse IP, qui peut varier selon la machine cliente.
 
-- Modifier le fichier `hosts` (sous Windows/Linux/macos) :
-IP_de_la_machine_hôte﻿ clearspace-dxtr
+Pour cela :
+Sur chaque machine cliente (poste utilisateur, autre serveur), éditez le fichier hosts :
+Windows : C:\Windows\System32\drivers\etc\hosts (ouvrir en mode administrateur).
+Linux/macOS : /etc/hosts (à modifier avec les droits root/sudo).
+Ajoutez une ligne pointant vers l'IP de la machine hôte sur le réseau local (attention, l'IP dépendra du réseau et peut varier) :
+<IP_de_la_machine_hote> clearspace-dxtr
+Pour accéder au frontend depuis cette machine client, ouvrez un navigateur à l'adresse :
+http://clearspace-dxtr:<PORT_FRONTEND>
+où <PORT_FRONTEND> est la valeur de FRONTEND_PORT définie dans votre .env (ex : 3000).
 
-- Dans le navigateur :
-http://clearspace-dxtr:<port_frontend>
-
-où `<port_frontend>` correspond à `FRONTEND_PORT`.
+Cette méthode permet de toujours utiliser le même nom d'hôte quel que soit le client, sans avoir à changer l'adresse IP manuellement.
 
 ---
 
