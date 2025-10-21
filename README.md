@@ -119,6 +119,17 @@ Pour cela :
   - Linux/macOS : `/etc/hosts` (à modifier avec les droits root/sudo).
 
 - Ajoutez une ligne pointant vers l'IP de la machine hôte sur le réseau local (attention, l'IP dépendra du réseau et peut varier) :
+
+<IP_de_la_machine_hote> clearspace-dxtr
+
+- Pour accéder au frontend depuis cette machine client, ouvrez un navigateur à l'adresse :
+
+http://clearspace-dxtr:<PORT_FRONTEND>
+
+où `<PORT_FRONTEND>` est la valeur de `FRONTEND_PORT` définie dans votre `.env` (ex : 3000).
+
+Cette méthode permet de toujours utiliser le même nom d'hôte quel que soit le client, sans avoir à changer l'adresse IP manuellement.
+
 ---
 
 ## ℹ️ Notes
