@@ -1,17 +1,38 @@
 .header {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
-  background-color: #1a1a1a;
-  color: #fff;
+  justify-content: flex-start;
+  padding: 16px 32px;
+  background: linear-gradient(90deg, #23294e 0%, #181920 100%);
+  color: #e8ecf1;
+  box-shadow: 0 2px 12px rgba(20, 28, 50, 0.14);
+  border-bottom: 2px solid #303a56;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  user-select: none;
 }
 
-.header__icon {
-  font-size: 1.8rem;
-  margin-right: 10px;
+.header__logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  margin-right: 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(70, 72, 128, 0.15);
+  background: #fff;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.header__logo:hover {
+  box-shadow: 0 4px 16px rgba(100, 211, 238, 0.22);
+  transform: scale(1.07);
 }
 
 .header__title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: bold;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  text-shadow: 1px 2px 12px #23294e33;
+  margin: 0;
+  line-height: 1;
 }
