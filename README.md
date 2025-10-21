@@ -125,6 +125,9 @@ Pour cela :
 - Pour accéder au frontend depuis cette machine client, ouvrez un navigateur à l'adresse :
 
 http://clearspace-dxtr:<PORT_FRONTEND>
+exemple :
+(ajouté à la fin du fichier hosts)
+192.168.1.10   clearspace-dxtr
 
 où `<PORT_FRONTEND>` est la valeur de `FRONTEND_PORT` définie dans votre `.env` (ex : 3000).
 
