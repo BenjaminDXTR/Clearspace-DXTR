@@ -119,7 +119,7 @@ npm start
 
 
 - Accédez au frontend via :  
-http://<IP_HOST>:<PORT>
+http://<IP_HOST>:<PORT_FRONTEND>
 
 
 (exemple : `http://192.168.1.10:3000`)
