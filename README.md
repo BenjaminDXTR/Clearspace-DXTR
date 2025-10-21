@@ -1,26 +1,26 @@
-# CS-DXTR
+# CS-DXTR  
 **Détection et ancrage de drones pour ClearSpace**
 
 ---
 
 ## Présentation
 
-Cette solution se compose de :
-- **Backend** : Node.js / Express (API locale, connexion à API distante GraphQL)
+Cette solution se compose de :  
+- **Backend** : Node.js / Express (API locale, connexion à API distante GraphQL)  
 - **Frontend** : React + TypeScript (interface web utilisateur)
 
 ---
 
 ## ⚠️ Placement du fichier `.env`
 
-Avant tout lancement, il faut copier le fichier `.env.example` en `.env` à la racine du projet et le personnaliser avec vos paramètres.
+Avant tout lancement, il faut copier le fichier `.env.example` en `.env` à la racine du projet et le personnaliser avec vos paramètres.  
 Ce fichier est automatiquement lu par les scripts pour configurer backend et frontend.
 
 ---
 
 ## 🚀 Prérequis
 
-- **Node.js** (v18 ou supérieur) + npm
+- **Node.js** (v18 ou supérieur) + npm  
 - Navigateur moderne (Chrome, Firefox, Edge...)
 
 ---
@@ -38,18 +38,25 @@ Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre r
 
 - **Adresse et IP des machines externes autorisées :**  
   - `ALLOWED_IPS` : liste des adresses IP des machines pouvant accéder au backend.  
-    Par exemple : `localhost,127.0.0.1,192.168.x.x`.
+    Par exemple :  
+    ```
+    localhost,127.0.0.1,192.168.x.x
+    ```
   - `ALLOWED_ORIGINS` : liste des domaines (avec protocole et port) autorisés côté backend pour les requêtes CORS.  
-    Par exemple : `http://localhost,http://clearspace-dxtr:3000`.
+    Par exemple :  
+    ```
+    http://localhost,http://clearspace-dxtr:3000
+    ```
 
 - **Activation du mode simulation (`USE_TEST_SIM`)** :  
   Activez (`true`) pour tester sans avoir tous les matériels et services réels en ligne.  
+  À désactiver en production.
 
 ---
 
 ## 🔑 Conseils sécurité
 
-- Limitez `ALLOWED_IPS` aux IPs de vos clients de confiance.
+- Limitez `ALLOWED_IPS` aux IPs de vos clients de confiance.  
 - Configurez `ALLOWED_ORIGINS` pour n’autoriser que vos domaines de production.
 
 ---
@@ -60,89 +67,119 @@ Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre r
 
 **Windows**
 
-1. Placez ou nommez `.env` à la racine.
-2. Double-cliquez sur `start-servers.bat`.
-3. Le script :
- - Vérifie la présence de `.env`.
- - Vérifie Node.js (ouvre le lien officiel si absent).
- - Installe dépendances si besoin.
- - Génère `frontend/.env.local` avec les paramètres adaptés (inclut `VITE_BACKEND_PORT`, `FRONTEND_PORT`).
- - Lance backend et frontend dans deux consoles séparées.
-4. Accédez au frontend via [http://<IP_HOST>:<PORT>] (par exemple http://192.168.1.10:3000)
+1. Placez ou nommez `.env` à la racine.  
+2. Double-cliquez sur `start-servers.bat`.  
+3. Le script :  
+   - Vérifie la présence de `.env`.  
+   - Vérifie Node.js (ouvre lien officiel si absent).  
+   - Installe dépendances si besoin.  
+   - Génère `frontend/.env.local` avec `VITE_BACKEND_PORT` et `FRONTEND_PORT`.  
+   - Lance backend et frontend dans deux consoles séparées.  
+4. Accédez au frontend via :  
+http://<IP_HOST>:<PORT>
+
+
+(exemple : `http://192.168.1.10:3000`)
 
 **Linux / Mac**
 
-1. Placez ou nommez `.env`.
-2. Rendez les scripts exécutables :
+1. Placez ou nommez `.env`.  
+2. Rendez les scripts exécutables (une fois) :  
 chmod +x start-servers.sh stop-servers.sh
-3. Lancez :
+
+
+3. Lancez :  
 ./start-servers.sh
-4. Même principe que sous Windows.
+
+
+4. Même principe que Windows.
 
 ---
 
 ### 2. Lancement manuel
 
-- Copiez ou renommez `env.local.exemple` dans `/frontend` en `.env.local`.
-- Modifiez `{VITE_BACKEND_PORT}` selon votre configuration, par exemple `3200`.
-- Ensuite, lancez séparément :
+- Copiez ou renommez `env.local.exemple` dans `/frontend` en `.env.local`.  
+- Modifiez `{VITE_BACKEND_PORT}` dans ce fichier, par exemple en `3200`.  
+- Lancez les serveurs séparément :
 
-backend
+Backend
 cd backend
 npm install
 npm start
 
-frontend
+Frontend
 cd frontend
 npm install
 npm start
 
-- Accédez au frontend via [http://<IP_HOST>:<PORT>] (par exemple http://192.168.1.10:3000)
+
+
+- Accédez au frontend via :  
+http://<IP_HOST>:<PORT>
+
+
+(exemple : `http://192.168.1.10:3000`)
 
 ---
 
 ## ⏹ Arrêt des serveurs
 
-- **Windows** : exécuté `stop-servers.bat`.
-- **Linux / Mac** : `./stop-servers.sh`.
+- Windows :  
+stop-servers.bat
+
+
+- Linux / Mac :  
+./stop-servers.sh
+
+
 
 ---
 
-## 🌐 Configuration du nom de domaine local
+## 🌐 Configuration du nom de domaine local [translate:clearspace-dxtr]
 
-Pour simplifier l'accès à l'interface frontend sur le réseau local, vous pouvez utiliser le nom de domaine local [translate:clearspace-dxtr] plutôt qu’une adresse IP, qui peut varier selon la machine cliente.
+Pour simplifier l’accès via le réseau local, vous pouvez utiliser le nom de domaine local [translate:clearspace-dxtr] plutôt qu’une adresse IP, qui peut varier selon la machine cliente.
 
-Pour cela :
+Pour cela :  
 
-- Sur chaque machine cliente (poste utilisateur, autre serveur), éditez le fichier `hosts` :
-  - Windows : `C:\Windows\System32\drivers\etc\hosts` (ouvrir en mode administrateur).  
-  - Linux/macOS : `/etc/hosts` (à modifier avec les droits root/sudo).
+- Sur chaque machine cliente (poste utilisateur ou autre serveur), éditez le fichier `hosts` :  
+- Windows :  
+  ```
+  C:\Windows\System32\drivers\etc\hosts
+  ```  
+  (ouvrir en mode administrateur)  
+- Linux/macOS :  
+  ```
+  /etc/hosts
+  ```  
+  (modifier avec droits root/sudo)
 
-- Ajoutez une ligne pointant vers l'IP de la machine hôte sur le réseau local (attention, l'IP dépendra du réseau et peut varier) :
-
+- Ajoutez une ligne pointant vers l’IP de la machine hôte (l’IP peut varier selon réseau) :  
 <IP_de_la_machine_hote> clearspace-dxtr
 
-- Pour accéder au frontend depuis cette machine client, ouvrez un navigateur à l'adresse :
 
+
+- Pour accéder au frontend depuis cette machine, ouvrez un navigateur sur :  
 http://clearspace-dxtr:<PORT_FRONTEND>
-exemple :
-(ajouté à la fin du fichier hosts)
-192.168.1.10   clearspace-dxtr
 
-où `<PORT_FRONTEND>` est la valeur de `FRONTEND_PORT` définie dans votre `.env` (ex : 3000).
 
-Cette méthode permet de toujours utiliser le même nom d'hôte quel que soit le client, sans avoir à changer l'adresse IP manuellement.
+où `<PORT_FRONTEND>` correspond à la valeur `FRONTEND_PORT` dans le `.env` (ex : 3000).
+
+Cette méthode permet à tous les clients du réseau d’utiliser un nom simple et constant, sans modification de l’adresse IP.
 
 ---
 
 ## ℹ️ Notes
 
-- Après modification `.env`, relancer serveurs.
-- Le fichier `.env.local` dans `/frontend` est généré automatiquement mais peut aussi être modifié manuellement.
-- La synchronisation entre backend et frontend est automatisée par le script.
+- Après modification du `.env` ou du fichier `hosts`, redémarrez backend et frontend pour prise en compte.  
+- Le fichier `.env.local` dans `/frontend` est généré automatiquement, mais peut être modifié manuellement pour ajustements.  
+- Le script synchronise automatiquement la configuration entre backend et frontend.
 
 ---
 
 ## 💻 Support & Contact
 
-Pour toute question, consultez la documentation ou contactez l’équipe DroneXTR
+Pour toute question, consultez la documentation ou contactez l’équipe [translate:DroneXTR].
+
+---
+
+Merci pour votre confiance et votre utilisation de [translate:ClearSpace DXTR] !
