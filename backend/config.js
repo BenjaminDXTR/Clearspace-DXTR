@@ -65,17 +65,26 @@ const graphqlDroneQuery = `
 }
 `;
 
+// Helper to parse comma-separated env var or return null if empty
+const parseCommaListOrNull = (value) => {
+  if (!value || value.trim() === '') return null;
+  return value.split(',').map(v => v.trim());
+};
+
+const allowedIps = parseCommaListOrNull(process.env.ALLOWED_IPS);
+const allowedOrigins = parseCommaListOrNull(process.env.ALLOWED_ORIGINS);
+
 const config = {
   backend: {
     ignoreTlsErrors: process.env.IGNORE_TLS_ERRORS === 'true',
-    corsOrigin: process.env.CORS_ORIGIN || '*',
+    corsOrigin: process.env.CORS_ORIGIN || '*', // Optionnel, laisser tel quel
     maxJsonSize: process.env.MAX_JSON_SIZE || '5mb',
     port: parseIntOrDefault(process.env.BACKEND_PORT, 3200),
     nodeEnv: process.env.NODE_ENV || 'development',
     logLevel: process.env.LOG_LEVEL || 'info',
     websocketPort: parseIntOrDefault(process.env.WEBSOCKET_PORT, 3200),
     useTestSim: process.env.USE_TEST_SIM === 'true',
-    
+
     // Configuration API blockchain adaptée
     blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || 'https://clearspace.databeam.eu',
     blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || '',
@@ -97,6 +106,10 @@ const config = {
     archiveCheckIntervalMs: 15000,
     pollingIntervalMs: 1000,
     maxCachedFlights: 1000,
+
+    // Listes autorisées, null si non définies dans .env
+    allowedIps: allowedIps,
+    allowedOrigins: allowedOrigins,
   }
 };
 

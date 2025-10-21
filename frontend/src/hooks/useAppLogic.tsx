@@ -13,30 +13,31 @@ import useDebugLogger from "./useDebugLogger";
 
 export default function useAppLogic() {
   const debug = config.debug || config.environment === "development";
-
   const dlog = useDebugLogger(debug, "useAppLogic");
 
+  // Contrôle accès backend
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [loadingAccess, setLoadingAccess] = useState(true);
+  const [errorHtml, setErrorHtml] = useState<string | null>(null);
+
+  // Drones
   const { drones: rawDrones, historyFiles, fetchHistory, error: dronesError, refreshFilename } = useDrones();
 
+  // Gestion erreurs
   const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
 
   const onUserError = useCallback(
     (msg: string): void => {
       const id = `user-error-${msg}`;
       if (!errors.some((e) => e.id === id)) {
-        addError({
-          id,
-          title: "Erreur",
-          message: msg,
-          severity: "error",
-          dismissible: true,
-        });
+        addError({ id, title: "Erreur", message: msg, severity: "error", dismissible: true });
         dlog(`[useAppLogic] User error added: ${msg}`);
       }
     },
     [addError, errors, dlog]
   );
 
+  // Historique local
   const {
     currentHistoryFile,
     setCurrentHistoryFile,
@@ -48,27 +49,18 @@ export default function useAppLogic() {
     localPageData,
   } = useLocalHistory({ fetchHistory, historyFiles, refreshTrigger: refreshFilename, debug, onUserError });
 
-  dlog("useLocalHistory state:", {
-    currentHistoryFile,
-    localLength: localHistory.length,
-    localPage,
-    localMaxPage,
-  });
+  dlog("useLocalHistory state:", { currentHistoryFile, localLength: localHistory.length, localPage, localMaxPage });
 
   const lastRefreshRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (
-      refreshFilename &&
-      refreshFilename === currentHistoryFile &&
-      lastRefreshRef.current !== refreshFilename
-    ) {
+    if (refreshFilename && refreshFilename === currentHistoryFile && lastRefreshRef.current !== refreshFilename) {
       dlog(`[useAppLogic] Refresh notification received for ${refreshFilename}`);
       lastRefreshRef.current = refreshFilename;
       setCurrentHistoryFile(refreshFilename);
     }
   }, [refreshFilename, currentHistoryFile, setCurrentHistoryFile, dlog]);
 
+  // Gestion erreurs historique local
   useEffect(() => {
     if (localHistoryError && !errors.some((e) => e.id === "local-history-error")) {
       addError({
@@ -86,32 +78,21 @@ export default function useAppLogic() {
     }
   }, [localHistoryError, errors, dismissError, addError, dlog]);
 
-  const { liveFlights, localFlights } = useProcessedFlights(
-    rawDrones,
-    localHistory,
-    { debug, onUserError },
-    fetchHistory,
-    historyFiles
-  );
+  // Traitement vols
+  const { liveFlights, localFlights } = useProcessedFlights(rawDrones, localHistory, { debug, onUserError }, fetchHistory, historyFiles);
 
   useEffect(() => {
     dlog(`[useAppLogic] Live flights count: ${liveFlights.length}`);
     dlog(`[useAppLogic] Local flights count: ${localFlights.length}`);
   }, [liveFlights, localFlights, dlog]);
 
+  // Traces live
   const { liveTraces } = useLiveTraces(liveFlights, { debug, onUserError });
 
   const dronesErrorRef = useRef(false);
-
   useEffect(() => {
     if (dronesError && !dronesErrorRef.current) {
-      addError({
-        id: "drones-error",
-        title: "Erreur connexion backend",
-        message: dronesError,
-        severity: "error",
-        dismissible: false,
-      });
+      addError({ id: "drones-error", title: "Erreur connexion backend", message: dronesError, severity: "error", dismissible: false });
       dronesErrorRef.current = true;
     } else if (!dronesError && dronesErrorRef.current) {
       dismissError("drones-error");
@@ -119,6 +100,7 @@ export default function useAppLogic() {
     }
   }, [dronesError, addError, dismissError, dlog]);
 
+  // Vol sélectionné
   const [selected, setSelected] = useState<Flight | null>(null);
   const [flyTrigger, setFlyTrigger] = useState(0);
 
@@ -139,6 +121,7 @@ export default function useAppLogic() {
     dlog(`[useAppLogic] Selected flight trace changed, current flyTrigger=${flyTrigger}`);
   }, [selected?.trace, flyTrigger, dlog]);
 
+  // Récupérer trace vol
   const getTraceForFlight = useCallback(
     (flight: Flight): LatLngTimestamp[] => {
       let trace: LatLngTimestamp[] = [];
@@ -162,6 +145,7 @@ export default function useAppLogic() {
     [liveTraces, dlog]
   );
 
+  // Modal ancrage
   const {
     anchorModal,
     anchorDescription,
@@ -178,6 +162,7 @@ export default function useAppLogic() {
     setMessage,
   } = useAnchorModal({ handleSelect, debug });
 
+  // Export JSON
   const exportJson = useCallback(() => {
     if (!selected) return;
     const trace = getTraceForFlight(selected).map(([lat, lng]) => ({
@@ -196,6 +181,7 @@ export default function useAppLogic() {
     dlog(`[useAppLogic] Export JSON for id=${selected.id}`);
   }, [selected, getTraceForFlight, dlog]);
 
+  // Points trace sélectionnés
   const selectedTracePoints = useMemo(() => {
     if (!selected) return [];
     if (selected.state === "live") return liveTraces[selected.id]?.trace ?? [];
@@ -205,12 +191,13 @@ export default function useAppLogic() {
 
   const selectedTraceRaw = selected?.trace;
 
+  // Champs détails sélectionnés
   const detailFields = useMemo(() => {
     if (!selected) return [];
     return selected.state === "event" ? [] : LIVE_DETAILS;
   }, [selected]);
 
-  // Nouvelle fonction pour retourner anchorState ("none" par défaut)
+  // Etat ancrage
   const getAnchorState = useCallback(
     (id: string, created_time: string): "none" | "pending" | "anchored" => {
       const flight = localFlights.find((f) => f.id === id && f.created_time === created_time);
@@ -218,6 +205,63 @@ export default function useAppLogic() {
     },
     [localFlights]
   );
+
+// Contrôle d'accès backend
+useEffect(() => {
+  setLoadingAccess(true);
+  fetch("/api/check-access", { cache: "no-store" })
+    .then((res) => {
+      if (!res.ok) {
+        return res.text().then((text) => {
+          setAccessDenied(true);
+          setErrorHtml(text);
+          throw new Error("Accès refusé");
+        });
+      }
+      return res.json();
+    })
+    .then(() => {
+      setAccessDenied(false);
+      setErrorHtml(null);
+    })
+    .catch(() => {
+      setAccessDenied(true);
+      setErrorHtml("<h1>Erreur réseau lors de la vérification d'accès</h1>");
+    })
+    .finally(() => {
+      setLoadingAccess(false);
+    });
+}, []);
+
+// Contrôle d'accès backend
+useEffect(() => {
+  setLoadingAccess(true);
+  fetch("/api/check-access", { cache: "no-store" })
+    .then((res) => {
+      if (!res.ok) {
+        return res.text().then((text) => {
+          setErrorHtml(text);
+          setAccessDenied(true);
+          throw new Error("Accès refusé");
+        });
+      }
+      return res.json();
+    })
+    .then(() => {
+      setAccessDenied(false);
+      setErrorHtml(null);
+    })
+    .catch(() => {
+      if (!errorHtml) {
+        setErrorHtml("<h1>Erreur réseau lors de la vérification d'accès</h1>");
+      }
+      setAccessDenied(true);
+    })
+    .finally(() => {
+      setLoadingAccess(false);
+    });
+}, []);
+
 
   return {
     debug,
@@ -255,13 +299,18 @@ export default function useAppLogic() {
     onValidate,
     onCancel,
     anchorDataPreview,
+    message,
+    setMessage,
     exportSelectedAsJson: exportJson,
     selectedTracePoints,
     selectedTraceRaw,
     detailFields,
     getAnchorState,
     dronesError,
-    message,
-    setMessage,
+    accessDenied,
+    setAccessDenied,
+    loadingAccess,
+    errorHtml,
+    setErrorHtml,
   };
 }
