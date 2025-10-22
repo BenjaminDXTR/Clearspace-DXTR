@@ -70,11 +70,11 @@ fi
 echo "Frontend installation terminée."
 cd ..
 
-# Identifier un terminal disponible (en fonction du desktop)
 if command -v gnome-terminal &> /dev/null; then
-  TERMINAL_CMD="gnome-terminal -- bash -c"
+  TERMINAL_CMD_GNOME="gnome-terminal -- bash -c"
 elif command -v konsole &> /dev/null; then
-  TERMINAL_CMD="konsole --noclose -e"
+  # Konsole nécessite --hold et bash -c pour garder la console ouverte après exécution
+  TERMINAL_CMD_KONSOLE="konsole --hold -e bash -c"
 elif command -v x-terminal-emulator &> /dev/null; then
   TERMINAL_CMD="x-terminal-emulator -e"
 elif command -v xfce4-terminal &> /dev/null; then
@@ -84,8 +84,14 @@ else
   TERMINAL_CMD=""
 fi
 
-# Lancer backend dans un terminal séparé
-if [ -n "$TERMINAL_CMD" ]; then
+# Pour lancer backend
+if [ -n "$TERMINAL_CMD_GNOME" ]; then
+  $TERMINAL_CMD_GNOME "cd backend && npm start; exec bash" &
+  echo "🟢 Backend lancement demandé."
+elif [ -n "$TERMINAL_CMD_KONSOLE" ]; then
+  $TERMINAL_CMD_KONSOLE "cd backend && npm start" &
+  echo "🟢 Backend lancement demandé."
+elif [ -n "$TERMINAL_CMD" ]; then
   $TERMINAL_CMD "cd backend && npm start" &
   echo "🟢 Backend lancement demandé."
 else
@@ -93,15 +99,24 @@ else
   echo "🟢 Backend lancé en arrière-plan."
 fi
 
+# Sleep entre lanceur
+
 sleep 2
 
-# Lancer frontend dans un terminal séparé
-if [ -n "$TERMINAL_CMD" ]; then
+# Pour lancer frontend
+if [ -n "$TERMINAL_CMD_GNOME" ]; then
+  $TERMINAL_CMD_GNOME "cd frontend && npm start; exec bash" &
+  echo "🟢 Frontend lancement demandé."
+elif [ -n "$TERMINAL_CMD_KONSOLE" ]; then
+  $TERMINAL_CMD_KONSOLE "cd frontend && npm start" &
+  echo "🟢 Frontend lancement demandé."
+elif [ -n "$TERMINAL_CMD" ]; then
   $TERMINAL_CMD "cd frontend && npm start" &
   echo "🟢 Frontend lancement demandé."
 else
   (cd frontend && npm start) &
   echo "🟢 Frontend lancé en arrière-plan."
 fi
+
 
 echo "✅ Clearspace démarré !"
