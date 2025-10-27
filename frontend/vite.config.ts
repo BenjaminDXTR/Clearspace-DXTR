@@ -18,7 +18,6 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: parseInt(env.VITE_FRONTEND_PORT) || 3000,
       strictPort: true,
-      open: true,
       allowedHosts: allowedHosts,
     },
   };

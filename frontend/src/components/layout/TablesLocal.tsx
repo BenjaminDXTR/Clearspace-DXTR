@@ -3,20 +3,25 @@ import type { Flight, IsAnchoredFn, RenderAnchorCellFn, HandleSelectFn } from ".
 import { prettyValue } from "../../utils/format";
 import { config } from "../../config";
 import Pagination from "../common/Pagination";
+import HistoryFileSelector from "../common/HistoryFileSelector";
+import "./TablesLayout.css";
 import "./TablesLocal.css";
 
 interface TablesLocalProps {
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
-  localPageData: Flight[]; // données déjà filtrées, triées et paginées
+  localPageData: Flight[];
   LOCAL_FIELDS: string[];
-  isAnchored: IsAnchoredFn; // retourne 'none' | 'pending' | 'anchored'
+  isAnchored: IsAnchoredFn;
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
   openModal: (flight: Flight, trace: any[]) => void;
   getTraceForFlight: (flight: Flight) => any[];
   debug?: boolean;
+  historyFiles: string[];
+  currentFile: string | null;
+  onSelectFile: (filename: string) => void;
 }
 
 const DEBUG = config.debug || config.environment === "development";
@@ -42,6 +47,9 @@ export default function TablesLocal({
   openModal,
   getTraceForFlight,
   debug = DEBUG,
+  historyFiles,
+  currentFile,
+  onSelectFile,
 }: TablesLocalProps) {
   useEffect(() => {
     console.log("TablesLocal localPageData prop:", localPageData);
@@ -59,13 +67,20 @@ export default function TablesLocal({
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
   return (
-    <section className="table-container" aria-label="Vols archivés (local)">
+    <section className="table-container local" aria-label="Vols archivés (local)">
+      <div className="history-selector-container">
+        <HistoryFileSelector
+          historyFiles={historyFiles}
+          currentFile={currentFile}
+          onSelectFile={onSelectFile}
+        />
+      </div>
       <h2 className="table-title">Vols archivés (local)</h2>
       {localPageData.length === 0 ? (
         <p className="table-empty">Aucun vol.</p>
       ) : (
         <>
-          <table className="data-table" role="grid">
+          <table className="data-table local" role="grid">
             <thead>
               <tr>
                 {LOCAL_FIELDS.map((field) => (
@@ -78,9 +93,7 @@ export default function TablesLocal({
             </thead>
             <tbody>
               {localPageData.map((item, idx) => {
-                // Récupérer l’état d’ancrage (none, pending, anchored)
                 const anchorState = isAnchored(item.id ?? "", item.created_time ?? "");
-
                 return (
                   <tr
                     key={genKey(item, idx)}

@@ -15,16 +15,6 @@ export const LIVE_FIELDS: (keyof Flight)[] = [
 ];
 
 /**
- * Champs affichés pour l'historique des événements API
- */
-export const HISTORY_API_FIELDS: (keyof Event)[] = [
-  "id",
-  "drone_type",
-  "created_time",
-  "deleted_time",
-];
-
-/**
  * Champs détaillés dans le panneau live / historique local
  */
 export const LIVE_DETAILS: (keyof Flight)[] = [

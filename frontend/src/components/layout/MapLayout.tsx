@@ -22,7 +22,6 @@ export default function MapLayout({
   selectedTraceRaw,
   exportObj,
   debug = config.debug || config.environment === "development",
-  title = "Carte des détections",
   flyToTrigger,
 }: MapLayoutProps) {
   const dlog = useCallback(
@@ -105,7 +104,6 @@ export default function MapLayout({
 
   return (
     <div className="map-layout" aria-live="polite">
-      <h2 className="map-layout__title">{title}</h2>
       <FlightMap
         trace={points}
         livePosition={livePosition}
@@ -117,11 +115,6 @@ export default function MapLayout({
         aria-label={`Carte ${hasValidPoints ? "avec" : "sans"} trace sélectionnée`}
         flyToTrigger={flyToTrigger}
       />
-      {!hasValidPoints && (
-        <div className="map-layout__no-trace" role="alert">
-          Trace insuffisante pour affichage
-        </div>
-      )}
     </div>
   );
 }
