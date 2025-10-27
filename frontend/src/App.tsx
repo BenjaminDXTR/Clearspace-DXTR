@@ -73,14 +73,6 @@ function AppContent() {
             debug={logic.debug}
           />
 
-          <div className="history-selector-container">
-            <HistoryFileSelector
-              historyFiles={logic.historyFiles}
-              currentFile={logic.currentHistoryFile}
-              onSelectFile={logic.setCurrentHistoryFile}
-            />
-          </div>
-
           <TablesLocal
             localPage={logic.localPage}
             setLocalPage={logic.setLocalPage}
@@ -92,7 +84,11 @@ function AppContent() {
             openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
+            historyFiles={logic.historyFiles}                // AJOUTÉ
+            currentFile={logic.currentHistoryFile}           // AJOUTÉ
+            onSelectFile={logic.setCurrentHistoryFile}       // AJOUTÉ
           />
+
         </div>
       </div>
 

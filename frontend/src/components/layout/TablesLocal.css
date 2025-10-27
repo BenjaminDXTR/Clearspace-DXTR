@@ -1,18 +1,25 @@
-/* Override si besoin pour local seulement (optionnel) */
+/* Conteneur spécifique pour le tableau local */
 .table-container.local {
-    padding: 10px;
+    padding: 10px 10px 14px 10px; /* padding bas légèrement augmenté pour la pagination */
     min-width: 480px;
-    margin-bottom: 5px;
+    margin-bottom: 0;             /* Évite trop d’espace sous le tableau */
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;             /* Pour coller le tableau en bas dans un layout flex parent */
 }
 
-/* Colonnes local : taille/mise en page spécifique */
-/* Colonnes local : style optionnel uniquement si besoin */
+/* Conteneur sélecteur d'historique : réduit l'écart */
+.history-selector-container {
+    margin-bottom: 6px; /* Espace réduit sous le sélecteur */
+}
+
+/* Colonnes local : style uniquement si besoin */
 .data-table.local th,
 .data-table.local td {
-    font-size: 0.89rem;          /* Optionnel : taille ajustée */
-    text-align: left;            /* Peut être gardé */
-    /* max-width: 150px;  <-- retire ou commente */
-    /* white-space: nowrap; <-- retire ou commente */
+    font-size: 0.89rem;
+    text-align: left;
+    /* max-width: 150px;  <-- laissé commenté pour adaptation responsive */
+    /* white-space: nowrap; <-- laissé commenté pour adaptation responsive */
 }
 
 /* Vol ancré (vert clair) */
@@ -89,7 +96,13 @@
     margin-top: 5px;
 }
 
-/* Masquer le texte d'ancrage sur petits écrans */
+/* Titre du tableau - marge réduite pour un bon ajustement */
+.table-title {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+/* Responsive */
 @media (max-width: 800px) {
     .anchor-text {
         display: none;
