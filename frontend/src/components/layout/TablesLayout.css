@@ -50,8 +50,7 @@
     font-size: 0.97rem;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: normal; /* NE PAS garder nowrap */
-    /* max-width: 220px;  <-- commente ou ajuste selon besoin */
+    white-space: normal;
 }
 
 .clickable-row {
