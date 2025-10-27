@@ -40,11 +40,10 @@
     border: 1px solid #ddd;
     padding: 7px 9px;
     font-size: 0.97rem;
-    max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    background: #fff;
+    white-space: normal; /* NE PAS garder nowrap */
+    /* max-width: 220px;  <-- commente ou ajuste */
 }
 
 .data-table thead {
