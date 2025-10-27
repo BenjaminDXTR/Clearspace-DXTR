@@ -45,6 +45,8 @@ body {
   box-sizing: border-box;
   height: 90vh; /* limite la hauteur générale */
   align-items: stretch;
+
+  overflow-y: hidden; /* Pour éviter le scroll vertical global */
 }
 
 /* Colonne gauche carte + détails, plus large */
@@ -86,12 +88,15 @@ body {
 .right-column {
   display: flex;
   flex-direction: column;
-  flex: 3 1 70%; /* un peu plus large */
+  flex: 3 1 70%;
   min-width: 520px;
   max-width: 1100px;
   gap: 24px;
   align-items: stretch;
   box-sizing: border-box;
+
+  height: 100%;               /* Ajouté pour remplir la hauteur disponible */
+  justify-content: flex-end;  /* Pousse les enfants vers le bas */
 }
 
 /* Conteneurs des tableaux et sélecteur */

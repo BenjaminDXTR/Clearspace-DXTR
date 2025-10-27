@@ -59,7 +59,6 @@ export const LOCAL_FIELDS = [
   "longitude",
   "altitude",
   "distance",
-  "speed",
   "created_time"
 ];
 
