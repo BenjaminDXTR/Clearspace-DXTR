@@ -1,82 +1,37 @@
-/* Conteneur de chaque tableau */
-.table-container {
-    background: #fff;
-    border-radius: 10px;
+/* Override si besoin pour local seulement (optionnel) */
+.table-container.local {
     padding: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 5px;
-    width: 100%;
     min-width: 480px;
+    margin-bottom: 5px;
 }
 
-/* Titre */
-.table-title {
-    margin-bottom: 8px;
-    font-size: 1.08rem;
-    font-weight: 600;
-    color: #1e293b;
+/* Colonnes local : taille/mise en page spécifique */
+/* Colonnes local : style optionnel uniquement si besoin */
+.data-table.local th,
+.data-table.local td {
+    font-size: 0.89rem;          /* Optionnel : taille ajustée */
+    text-align: left;            /* Peut être gardé */
+    /* max-width: 150px;  <-- retire ou commente */
+    /* white-space: nowrap; <-- retire ou commente */
 }
 
-/* Message vide */
-.table-empty {
-    padding: 8px;
-    font-style: italic;
-    color: #666;
-    text-align: center;
-}
-
-/* Table */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-}
-
-.data-table th,
-.data-table td {
-    border: 1px solid #ddd;
-    padding: 7px 9px;
-    font-size: 0.97rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal; /* NE PAS garder nowrap */
-    /* max-width: 220px;  <-- commente ou ajuste */
-}
-
-.data-table thead {
-    background-color: #f0f0f0;
-}
-
-.data-table th {
-    font-weight: 700;
-    text-transform: capitalize;
-}
-
-.clickable-row {
-    cursor: pointer;
-}
-
-.clickable-row:hover {
-    background-color: #f5faff;
-}
-
-/* Style spécifique pour vols ancrés (vert clair) */
+/* Vol ancré (vert clair) */
 .clickable-row.anchored {
     background-color: #d9f7be;
 }
 
-/* Style pour vols en attente d'ancrage (jaune clair) */
+/* Vol en attente d’ancrage (jaune clair) */
 .clickable-row.pending {
-    background-color: #fff8dc; /* cornsilk clair */
+    background-color: #fff8dc;
 }
 
-/* Cellule ancrage centrée */
+/* Cellule ancrage */
 .anchor-cell {
     text-align: center;
     min-width: 58px;
 }
 
-/* Texte à côté des icônes d'ancrage */
+/* Texte icône ancrage */
 .anchor-text {
     margin-left: 4px;
     font-size: 0.85rem;
@@ -84,11 +39,11 @@
     color: #333;
 }
 
-/* Style de base commun pour boutons actives et désactivés */
+/* Boutons ancrage base */
 .anchor-btn,
 .anchor-btn-disabled {
-    width: 85px;          /* largeur fixe */
-    padding: 6px 0;       /* padding vertical, pas de padding horizontal */
+    width: 85px;
+    padding: 6px 0;
     font-size: 0.9rem;
     font-weight: 600;
     border-radius: 6px;
@@ -102,27 +57,24 @@
     box-sizing: border-box;
 }
 
-/* Bouton actif */
 .anchor-btn {
     color: #fff;
-    background-color: #2563eb; /* bleu */
+    background-color: #2563eb;
     cursor: pointer;
 }
 
 .anchor-btn:hover:not(:disabled) {
-    background-color: #1d4ed8; /* bleu foncé */
+    background-color: #1d4ed8;
 }
 
-/* Bouton désactivé grisé */
 .anchor-btn-disabled {
     color: #666666;
     background-color: #cccccc;
     cursor: not-allowed;
-    opacity: 1 !important; /* annule l’opacité par défaut */
-    pointer-events: none;  /* empêche interaction */
+    opacity: 1 !important;
+    pointer-events: none;
 }
 
-/* Empêcher hover sur bouton désactivé */
 .anchor-btn-disabled:hover {
     background-color: #cccccc;
     color: #666666;
@@ -137,25 +89,8 @@
     margin-top: 5px;
 }
 
-/* Responsive */
+/* Masquer le texte d'ancrage sur petits écrans */
 @media (max-width: 800px) {
-    .table-title {
-        font-size: 1rem;
-    }
-
-    .table-container {
-        padding: 5px;
-        min-width: 80vw;
-    }
-
-    .data-table th,
-    .data-table td {
-        padding: 4px 6px;
-        font-size: 0.81rem;
-        max-width: 88vw;
-    }
-
-    /* Masquer texte d’ancrage sur petits écrans */
     .anchor-text {
         display: none;
     }

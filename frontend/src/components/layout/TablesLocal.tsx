@@ -3,6 +3,7 @@ import type { Flight, IsAnchoredFn, RenderAnchorCellFn, HandleSelectFn } from ".
 import { prettyValue } from "../../utils/format";
 import { config } from "../../config";
 import Pagination from "../common/Pagination";
+import "./TablesLayout.css";
 import "./TablesLocal.css";
 
 interface TablesLocalProps {
@@ -59,13 +60,13 @@ export default function TablesLocal({
     `${item.id ?? "noid"}_${item.created_time ?? "notime"}_${idx}`;
 
   return (
-    <section className="table-container" aria-label="Vols archivés (local)">
+    <section className="table-container local" aria-label="Vols archivés (local)">
       <h2 className="table-title">Vols archivés (local)</h2>
       {localPageData.length === 0 ? (
         <p className="table-empty">Aucun vol.</p>
       ) : (
         <>
-          <table className="data-table" role="grid">
+          <table className="data-table local" role="grid">
             <thead>
               <tr>
                 {LOCAL_FIELDS.map((field) => (

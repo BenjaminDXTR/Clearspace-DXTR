@@ -16,7 +16,7 @@ export const ANCHOR_URL: string = `${API_BASE_URL}/anchor`;
 /**
  * Pagination par défaut
  */
-export const PER_PAGE = 10 as const;
+export const PER_PAGE = 5 as const;
 
 /**
  * Longueurs maximales / valeurs par défaut côté client

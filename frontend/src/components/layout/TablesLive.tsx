@@ -2,7 +2,9 @@ import { useCallback, useMemo, useEffect } from "react";
 import type { Flight, HandleSelectFn } from "../../types/models";
 import { prettyValue } from "../../utils/format";
 import { config } from "../../config";
+import "./TablesLayout.css";
 import "./TablesLive.css";
+
 
 interface TablesLiveProps {
   drones: Flight[];
@@ -72,12 +74,12 @@ export default function TablesLive({
   }, [drones, dlog]);
 
   return (
-    <section className="table-container" aria-label="Détection en direct">
+    <section className="table-container live" aria-label="Détection en direct">
       <h2 className="table-title">Détection en direct</h2>
       {liveDrones.length === 0 ? (
         <p className="table-empty">Aucun vol.</p>
       ) : (
-        <table className="data-table" role="grid">
+        <table className="data-table live" role="grid">
           <thead>
             <tr>
               {LIVE_FIELDS.map((field) => (
