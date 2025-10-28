@@ -65,16 +65,19 @@ async function updateFlightStates(detectedFlights) {
         await saveFlightToHistory(state.data);
         // Pas de notifyUpdate ici, car passage waiting ne doit pas forcer UI
       } else if (state.state === 'waiting' && absenceDuration > LOCAL_THRESHOLD) {
-        log.info(`[updateFlightStates] Vol ${id} en waiting depuis ${absenceDuration}ms, passage waiting -> local`);
-        state.state = 'local';
-        state.data.state = 'local';
+          log.info(`[updateFlightStates] Vol ${id} en waiting depuis ${absenceDuration}ms, passage waiting -> local`);
+          state.state = 'local';
+          state.data.state = 'local';
 
-        // Mettre à jour avant la sauvegarde pour cohérence
-        flightStates.set(id, state);
-        await saveFlightToHistory(state.data);
+          flightStates.set(id, state);
 
-        notifyUpdate(state.data.created_time); // notify après la sauvegarde effective
-        flightStates.delete(id);
+          // Sauvegarde et récupération du nom de fichier historique
+          const filename = await saveFlightToHistory(state.data);
+
+          // Notifier avec le nom de fichier
+          notifyUpdate(filename);
+
+          flightStates.delete(id);
       }
     }
   }
