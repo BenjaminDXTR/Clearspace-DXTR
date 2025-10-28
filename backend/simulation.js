@@ -121,7 +121,7 @@ function sendSimulationStep() {
         situationIndex = 0;
         stepIndex = 0;
         cycleCreatedTime = null;
-        droneCounter++; // incrément d’ID seulement à ce moment pour nouvelle situation
+        droneCounter=1; // incrément d’ID seulement à ce moment pour nouvelle situation
         sendSimulationStep();
       }, 15000);
       return;
