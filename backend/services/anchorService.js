@@ -160,10 +160,11 @@ async function moveFolderToAnchored(folderName) {
 async function handlePostAnchor(req, res) {
   log.debug(`→ POST /anchor depuis ${req.ip}`);
 
+  let anchorData;
+  let folderName;
   try {
     if (!req.body.anchorData) return res.status(400).json({ error: 'anchorData requis' });
 
-    let anchorData;
     try {
       anchorData = JSON.parse(req.body.anchorData);
     } catch {
@@ -178,14 +179,16 @@ async function handlePostAnchor(req, res) {
     if (!anchorData.extra.anchored_requested_at) {
       anchorData.extra.anchored_requested_at = new Date().toISOString();
     }
+    anchorData.extra.anchored_at = new Date().toISOString();
 
     // Enregistrer configuration initiale dans pending
-    const folderName = await saveAnchorWithProof(anchorData, req.file.buffer);
+    folderName = await saveAnchorWithProof(anchorData, req.file.buffer);
 
     // Préparer le buffer JSON pour envoi blockchain
     const jsonBuffer = Buffer.from(JSON.stringify(anchorData, null, 2), 'utf-8');
 
     try {
+      // Tentative d'envoi blockchain
       await sendAnchorProof(req.file.buffer, jsonBuffer);
 
       // Si succès, déplacer vers anchored
@@ -194,7 +197,9 @@ async function handlePostAnchor(req, res) {
 
       return res.json({ ok: true, message: 'Vol dans la blockchain', folder: folderName });
     } catch (err) {
-      // Toujours marquer l'ancrage en pending et stocker même si erreur
+      // En cas d'échec, remettre à null et re-sauvegarder dans pending
+      anchorData.extra.anchored_at = null;
+      await saveAnchorWithProof(anchorData, req.file.buffer); // Réécriture JSON corrigé
       await addPendingFolder(folderName);
       await updateAnchorState(anchorData.extra.id, anchorData.extra.created_time, 'pending');
 
@@ -217,6 +222,12 @@ async function handlePostAnchor(req, res) {
     }
   } catch (error) {
     log.error(`/anchor - ${error.message}`);
+    if (anchorData && folderName && req.file) {
+      anchorData.extra.anchored_at = null;
+      await saveAnchorWithProof(anchorData, req.file.buffer);
+      await addPendingFolder(folderName);
+      await updateAnchorState(anchorData.extra.id, anchorData.extra.created_time, 'pending');
+    }
     return res.status(500).json({ error: error.message });
   }
 }
