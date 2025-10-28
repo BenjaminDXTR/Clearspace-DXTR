@@ -2,25 +2,18 @@ const { config } = require('../config');
 const { addOrUpdateFlightInFile } = require('./flightSessions');
 const { loadHistoryToCache, flushCacheToDisk, findOrCreateHistoryFile } = require('./historyCache');
 const { notifyUpdate } = require('./notification');
-const { lastSeenMap, flightTraces } = require('./state');
+const { lastSeenMap } = require('./state');
 const log = require('../utils/logger');
 
-// Seuils en ms
-const WAITING_THRESHOLD = 0; // Passage immédiat à waiting si absent
-const LOCAL_THRESHOLD = config.backend.inactiveTimeoutMs; // Exemple : 2 minutes avant archivage
+const WAITING_THRESHOLD = 0;
+const LOCAL_THRESHOLD = config.backend.inactiveTimeoutMs;
 
-// Map en mémoire des états des vols : id -> { lastSeen, state, createdTime, data }
 const flightStates = new Map();
 
-/**
- * Met à jour les états des vols et sauvegarde historique.
- * @param {Array} detectedFlights
- */
 async function updateFlightStates(detectedFlights) {
   const now = Date.now();
   const detectedIds = detectedFlights.map(f => f.id);
 
-  // Mise à jour vols détectés en 'live'
   for (const flight of detectedFlights) {
     if (!flight.id) continue;
 
@@ -32,7 +25,7 @@ async function updateFlightStates(detectedFlights) {
         lastSeen: new Date(flight.lastseen_time).getTime(),
         state: 'live',
         createdTime: flight.created_time,
-        data: flight,
+        data: { ...flight, state: 'live' },
       });
     } else {
       flightStates.set(flight.id, {
@@ -42,6 +35,7 @@ async function updateFlightStates(detectedFlights) {
         data: {
           ...flight,
           created_time: oldEntry.createdTime,
+          state: 'live',
         },
       });
       if (oldEntry.state !== 'live') {
@@ -49,34 +43,31 @@ async function updateFlightStates(detectedFlights) {
       }
     }
 
-    //log.info(`[updateFlightStates] Vol ${flight.id} créé à ${flightStates.get(flight.id).createdTime}`);
-
     await saveFlightToHistory(flightStates.get(flight.id).data);
   }
 
-  // Gérer vols absents
   for (const [id, state] of flightStates.entries()) {
     if (!detectedIds.includes(id)) {
-      if (state.state === 'local') {
-        continue; // Ignorer vols locaux
-      }
+      if (state.state === 'local') continue;
 
       const absenceDuration = now - state.lastSeen;
-      log.debug(`[updateFlightStates] Vol ${id} absent depuis ${absenceDuration}ms, état actuel: ${state.state}`);
+      log.debug(`[updateFlightStates] Vol ${id} absent depuis ${absenceDuration}ms, état actuel : ${state.state}`);
 
       if (state.state === 'live' && WAITING_THRESHOLD <= absenceDuration) {
         log.info(`[updateFlightStates] Vol ${id} absent, passage live -> waiting`);
         state.state = 'waiting';
-        state.data.state = 'waiting'; // synchroniser état dans données
+        state.data.state = 'waiting';
         state.lastSeen = now;
         flightStates.set(id, state);
+
         await saveFlightToHistory(state.data);
         notifyUpdate(state.data.created_time);
       } else if (state.state === 'waiting' && absenceDuration > LOCAL_THRESHOLD) {
         log.info(`[updateFlightStates] Vol ${id} en waiting depuis ${absenceDuration}ms, passage waiting -> local`);
         state.state = 'local';
-        state.data.state = 'local'; // synchroniser état dans données
+        state.data.state = 'local';
         flightStates.set(id, state);
+
         await saveFlightToHistory(state.data);
         notifyUpdate(state.data.created_time);
         flightStates.delete(id);
@@ -85,12 +76,6 @@ async function updateFlightStates(detectedFlights) {
   }
 }
 
-/**
- * Sauvegarde un vol dans l'historique, avec champ anchorState.
- * Par défaut, anchorState est toujours "none".
- * La mise à jour à "pending" ou "anchored" se fait par les autres fichiers (ancrages reçus).
- * @param {Object} flight
- */
 async function saveFlightToHistory(flight) {
   try {
     if (!flight.id) {
@@ -105,27 +90,21 @@ async function saveFlightToHistory(flight) {
       flight.created_time = new Date().toISOString();
     }
 
-    const filename = await findOrCreateHistoryFile(flight.created_time || new Date().toISOString());
-
+    const filename = await findOrCreateHistoryFile(flight.created_time);
     const historyData = await loadHistoryToCache(filename);
 
-    const now = Date.now();
-
     if (flight.state === 'live') {
-      lastSeenMap.set(flight.id, now);
+      lastSeenMap.set(flight.id, Date.now());
     }
 
-    let idx = historyData.findIndex(f => f.id === flight.id && f.created_time === flight.created_time);
-    if (idx === -1) {
-      idx = historyData.length;
-      historyData.push(flight);
-    } else {
-      historyData[idx] = { ...historyData[idx], ...flight };
-    }
+    addOrUpdateFlightInFile(flight, historyData);
 
-    // Initialiser anchorState à "none" par défaut sans modifier si déjà défini ailleurs
-    if (typeof historyData[idx].anchorState === 'undefined') {
-      historyData[idx].anchorState = 'none';
+    const idx = historyData.findIndex(f => f.id === flight.id && f.created_time === flight.created_time);
+    if (idx !== -1) {
+      historyData[idx].state = flight.state;
+      if (typeof historyData[idx].anchorState === 'undefined') {
+        historyData[idx].anchorState = 'none';
+      }
     }
 
     notifyUpdate(filename);
