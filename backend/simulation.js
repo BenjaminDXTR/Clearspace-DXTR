@@ -147,6 +147,8 @@ function getCurrentSimulationData() {
 }
 
 function startSimulation() {
+  //temps d'attente avant lancement de la simulation
+  
   situationIndex = 0;
   stepIndex = 0;
   cycleCreatedTime = null;
