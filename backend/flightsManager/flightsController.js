@@ -14,6 +14,7 @@ async function updateFlightStates(detectedFlights) {
   const now = Date.now();
   const detectedIds = detectedFlights.map(f => f.id);
 
+  // Mise à jour vols détectés / live (pas de notification UI)
   for (const flight of detectedFlights) {
     if (!flight.id) continue;
 
@@ -46,6 +47,7 @@ async function updateFlightStates(detectedFlights) {
     await saveFlightToHistory(flightStates.get(flight.id).data);
   }
 
+  // Gestion vols absents; notification seulement au passage waiting -> local
   for (const [id, state] of flightStates.entries()) {
     if (!detectedIds.includes(id)) {
       if (state.state === 'local') continue;
@@ -58,18 +60,20 @@ async function updateFlightStates(detectedFlights) {
         state.state = 'waiting';
         state.data.state = 'waiting';
         state.lastSeen = now;
-        flightStates.set(id, state);
 
+        flightStates.set(id, state);
         await saveFlightToHistory(state.data);
-        notifyUpdate(state.data.created_time);
+        // Pas de notifyUpdate ici, car passage waiting ne doit pas forcer UI
       } else if (state.state === 'waiting' && absenceDuration > LOCAL_THRESHOLD) {
         log.info(`[updateFlightStates] Vol ${id} en waiting depuis ${absenceDuration}ms, passage waiting -> local`);
         state.state = 'local';
         state.data.state = 'local';
-        flightStates.set(id, state);
 
+        // Mettre à jour avant la sauvegarde pour cohérence
+        flightStates.set(id, state);
         await saveFlightToHistory(state.data);
-        notifyUpdate(state.data.created_time);
+
+        notifyUpdate(state.data.created_time); // notify après la sauvegarde effective
         flightStates.delete(id);
       }
     }
@@ -107,7 +111,6 @@ async function saveFlightToHistory(flight) {
       }
     }
 
-    notifyUpdate(filename);
     await flushCacheToDisk(filename);
 
     return filename;

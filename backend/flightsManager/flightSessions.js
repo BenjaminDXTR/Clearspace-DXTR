@@ -2,76 +2,71 @@ const log = require('../utils/logger');
 const { config } = require('../config');
 
 /**
- * Ajoute ou met à jour une session de vol dans un fichier historique.
- * Respecte les règles :
- * - crée nouvelle session si vol revient alors qu’une session locale existe pour ce vol
- * - met à jour la même session si vol en live (même id et created_time) ou venant de waiting
- * - fusionne les traces sans dupliquer, conserve le created_time originel
- * - préserve la 3e valeur des points (temps relatif) en ajoutant uniquement les nouveaux points
- * @param {Object} flight - vol détecté
- * @param {Array} historyFile - sessions historiques chargées en mémoire
+ * Ajoute ou met à jour une session vol dans un historique.
+ * - Nouvelle session si pas de session en waiting/live avec id donné
+ * - Mise à jour session existante en waiting/live sinon
+ * - Ne modifie jamais session locale, elle est archivées
+ * - Fusionne traces, recalibre timestamps relatifs
+ * @param {Object} flight
+ * @param {Array} historyFile
  */
 function addOrUpdateFlightInFile(flight, historyFile) {
-  // Trouver toutes les sessions existantes pour ce vol
   const candidateSessions = historyFile.filter(f => f.id === flight.id);
 
-  if (candidateSessions.length > 0) {
-    // Trouver session en waiting (prioritaire) ou session live existante
-    let sessionToUpdate = candidateSessions.find(s => s.state === 'waiting');
+  // Réserver les sessions en waiting ou live (actives)
+  const activeSessions = candidateSessions.filter(s => s.state === 'waiting' || s.state === 'live');
+
+  if (activeSessions.length > 0) {
+    // Priorise session waiting sinon live la plus ancienne
+    let sessionToUpdate = activeSessions.find(s => s.state === 'waiting');
     if (!sessionToUpdate) {
-      sessionToUpdate = candidateSessions.find(s => s.state === 'live');
+      sessionToUpdate = activeSessions.reduce((oldest, s) =>
+        new Date(s.created_time) < new Date(oldest.created_time) ? s : oldest, activeSessions[0]);
     }
 
-    if (sessionToUpdate) {
-      // Si session en local, et vol pas live => pas de mise à jour (nouvelle session créée ailleurs)
-      if (sessionToUpdate.state === 'local' && flight.state !== 'live') {
-        log.info(`[addOrUpdateFlightInFile] Ignored update for drone ${flight.id}, session in local and vol not live`);
-        return;
-      }
+    const idx = historyFile.findIndex(f => f.id === sessionToUpdate.id && f.created_time === sessionToUpdate.created_time);
+    const existing = historyFile[idx];
 
-      // Recherche indice dans historique
-      const idxToUpdate = historyFile.findIndex(
-        f => f.id === sessionToUpdate.id && f.created_time === sessionToUpdate.created_time
-      );
-      const existing = historyFile[idxToUpdate];
-      const existingTrace = Array.isArray(existing.trace) ? existing.trace : [];
-      const newTrace = Array.isArray(flight.trace) ? flight.trace : [];
+    const existingTrace = Array.isArray(existing.trace) ? existing.trace : [];
+    const newTrace = Array.isArray(flight.trace) ? flight.trace : [];
 
-      // Fusionner traces sans duplication, en conservant les timestamps relatifs (3e valeur)
-      const mergedTrace = [...existingTrace];
-      for (const pt of newTrace) {
-        const exists = mergedTrace.some(p =>
-          p[0] === pt[0] && p[1] === pt[1] && p[2] === pt[2]
-        );
-        if (!exists) {
-          mergedTrace.push(pt);
-        }
-      }
-      mergedTrace.sort((a,b) => a[2] - b[2]);
+    const createdMs = new Date(sessionToUpdate.created_time).getTime();
+    const lastSeenMs = new Date(flight.lastseen_time || new Date()).getTime();
+    const deltaMs = Math.max(lastSeenMs - createdMs, 0);
 
-      historyFile[idxToUpdate] = {
-        ...existing,
-        ...flight,
-        trace: mergedTrace,
-        created_time: sessionToUpdate.created_time,  // conserve created_time originel
-        state: flight.state === 'live' ? 'live' : flight.state, // forcer live si reprise
-      };
+    const newPoint = [flight.latitude, flight.longitude, deltaMs];
+    let updatedTrace = existingTrace.slice();
+    const lastPoint = updatedTrace.length > 0 ? updatedTrace[updatedTrace.length -1] : null;
 
-      log.debug(`[addOrUpdateFlightInFile] Trace length before update: ${newTrace.length} for drone ${flight.id}`);
-      log.info(`[addOrUpdateFlightInFile] Updated session for drone ${flight.id} with created_time ${sessionToUpdate.created_time} and merged trace length ${mergedTrace.length}`);
-
-      return;
+    // Ajouter le point unique si différent du dernier
+    if (!lastPoint || lastPoint[0] !== newPoint[0] || lastPoint[1] !== newPoint[1] || lastPoint[2] !== newPoint[2]) {
+      updatedTrace.push(newPoint);
     }
+
+    historyFile[idx] = {
+      ...existing,
+      ...flight,
+      trace: updatedTrace,
+      created_time: sessionToUpdate.created_time,
+      state: flight.state === 'live' ? 'live' : flight.state,
+    };
+
+    log.info(`Updated session for drone ${flight.id} with created_time ${sessionToUpdate.created_time}, total points ${updatedTrace.length}`);
+    return;
   }
 
-  // Nouvelle session (vol nouveau ou ancien local réapparu)
+  // Si PAS de session waiting/live (donc possiblement locale ou aucune),
+  // NOUVELLE SESSION systématiquement créée
   const newCreated = new Date().toISOString();
   flight.created_time = newCreated;
-  if (!flight.trace) flight.trace = [];
+
+  // Init trace avec 1 point et temps relatif 0 si vide
+  if (!flight.trace || flight.trace.length === 0) {
+    flight.trace = [[flight.latitude, flight.longitude, 0]];
+  }
 
   historyFile.push(flight);
-
-  log.info(`[addOrUpdateFlightInFile] Added new session for drone ${flight.id} with created_time ${newCreated} and trace length ${flight.trace.length}`);
+  log.info(`Added new session for drone ${flight.id} with created_time ${newCreated}`);
 }
 
 module.exports = { addOrUpdateFlightInFile };
