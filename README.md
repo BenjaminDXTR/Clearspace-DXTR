@@ -36,7 +36,12 @@ Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre r
 - **Clé Blockchain (`BLOCKCHAIN_API_KEY`)** :  
   Entrez ici la clé ou le token secret fourni par le service blockchain, indispensable pour les opérations d’ancrage sécurisées.
 
-- **Adresse et IP des machines externes autorisées :**  
+- **Adresse et IP des machines externes autorisées :**
+
+  - `VITE_ALLOWED_HOST` : liste des adresses IP des machines pouvant accéder au frontend.  
+    Par exemple :  
+    ```
+    localhost,127.0.0.1,192.168.x.x
   - `ALLOWED_IPS` : liste des adresses IP des machines pouvant accéder au backend.  
     Par exemple :  
     ```
@@ -50,14 +55,7 @@ Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre r
 
 - **Activation du mode simulation (`USE_TEST_SIM`)** :  
   Activez (`true`) pour tester sans avoir tous les matériels et services réels en ligne.  
-  À désactiver en production.
-
----
-
-## 🔑 Conseils sécurité
-
-- Limitez `ALLOWED_IPS` aux IPs de vos clients de confiance.  
-- Configurez `ALLOWED_ORIGINS` pour n’autoriser que vos domaines de production.
+  À désactiver en condition réelle
 
 ---
 
