@@ -46,7 +46,8 @@ REM Installer dépendances backend si besoin
 if not exist backend\node_modules (
   echo Installation des dépendances backend...
   pushd backend
-  npm install || (
+  npm install
+  if errorlevel 1 (
     echo Echec installation backend.
     popd
     exit /b 1
@@ -60,7 +61,8 @@ REM Installer dépendances frontend si besoin
 if not exist frontend\node_modules (
   echo Installation des dépendances frontend...
   pushd frontend
-  npm install || (
+  npm install
+  if errorlevel 1 (
     echo Echec installation frontend.
     popd
     exit /b 1

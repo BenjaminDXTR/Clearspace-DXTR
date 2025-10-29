@@ -27,9 +27,7 @@ set "CURL_RESULT=%ERRORLEVEL%"
 
 if "%CURL_RESULT%"=="0" (
   echo Requete shutdown envoyee correctement.
-)
-
-if not "%CURL_RESULT%"=="0" (
+) else (
   echo Erreur lors de l'arret HTTP backend. Fermeture backend forcee.
   for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%BACKEND_PORT% ^| findstr LISTENING') do (
     echo Fermeture backend - PID: %%a
@@ -39,7 +37,7 @@ if not "%CURL_RESULT%"=="0" (
 
 timeout /t 5 /nobreak >nul
 
-REM Fermeture des fenêtres de terminal Backend et Frontend
+REM Fermeture des fenêtres de terminal Backend et Frontend par titre de fenêtre
 taskkill /FI "WINDOWTITLE eq Backend" /T /F >nul 2>&1
 taskkill /FI "WINDOWTITLE eq Frontend" /T /F >nul 2>&1
 

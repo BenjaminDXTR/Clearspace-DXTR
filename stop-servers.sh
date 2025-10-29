@@ -6,11 +6,14 @@ if [ ! -f ".env" ]; then
 fi
 
 BACKEND_PORT=$(grep "^BACKEND_PORT=" .env | cut -d'=' -f2)
-FRONTEND_PORT=$(grep "^FRONTEND_PORT=" .env | cut -d'=' -f2)
+FRONTEND_PORT=$(grep "^FRONTEND_PORT=" .env | cut -d'=' .env | cut -d'=' -f2)
 
-if [ -z "$BACKEND_PORT" ] || [ -z "$FRONTEND_PORT" ]; then
-  echo "Ports non définis. Arrêt."
-  exit 1
+if [ -z "$BACKEND_PORT" ]; then
+  BACKEND_PORT=3200
+fi
+
+if [ -z "$FRONTEND_PORT" ]; then
+  FRONTEND_PORT=3000
 fi
 
 echo "Arrêt des serveurs..."
@@ -20,7 +23,7 @@ echo "Frontend port: $FRONTEND_PORT"
 # Fermeture frontend par port
 pids=$(lsof -ti :"$FRONTEND_PORT")
 if [ -n "$pids" ]; then
-  echo "Fermeture frontend PID: $pids"
+  echo "Fermeture frontend PID(s): $pids"
   kill -9 $pids
 fi
 
@@ -31,28 +34,40 @@ if [ $? -eq 0 ]; then
 else
   pids=$(lsof -ti :"$BACKEND_PORT")
   if [ -n "$pids" ]; then
-    echo "Fermeture backend PID: $pids"
+    echo "Fermeture backend PID(s): $pids"
     kill -9 $pids
   fi
 fi
 
 sleep 2
 
-# Fermeture fenêtres terminal via wmctrl, si disponible
+# Fermeture des fenêtres de terminal graphiques spécifiques via wmctrl
 if command -v wmctrl &> /dev/null; then
   echo "Fermeture fenêtres terminal graphiques..."
-  wmctrl -c "BackendTerminal" || echo "Impossible de fermer BackendTerminal"
-  wmctrl -c "FrontendTerminal" || echo "Impossible de fermer FrontendTerminal"
+
+  # Fermer uniquement fenêtres dont le titre EXACT est BackendTerminal ou FrontendTerminal
+  for title in "BackendTerminal" "FrontendTerminal"; do
+    # Liste des fenêtres matching le titre exact
+    wins=$(wmctrl -l | awk -v t="$title" '$0 ~ t {print $1}')
+    if [ -n "$wins" ]; then
+      for win in $wins; do
+        echo "Fermeture fenêtre: $title (id $win)"
+        wmctrl -ic "$win"
+      done
+    else
+      echo "Aucune fenêtre trouvée pour le titre $title"
+    fi
+  done
 else
   echo
   echo "wmctrl n'est pas installé, impossible de fermer automatiquement les terminaux graphiques."
-  echo "Vous pouvez l'installer avec la commande adaptée selon votre distribution :"
-  echo "  Debian / Ubuntu / Mint : sudo apt install wmctrl"
-  echo "  Fedora : sudo dnf install wmctrl"
-  echo "  Arch Linux : sudo pacman -S wmctrl"
-  echo "  OpenSUSE : sudo zypper install wmctrl"
+  echo "Installation :"
+  echo "  Debian/Ubuntu : sudo apt install wmctrl"
+  echo "  Fedora        : sudo dnf install wmctrl"
+  echo "  Arch Linux    : sudo pacman -S wmctrl"
+  echo "  OpenSUSE      : sudo zypper install wmctrl"
   echo
-  echo "Pour fermer les terminaux graphiques ouverts, utilisez un gestionnaire de fenêtres ou fermez-les manuellement."
+  echo "Fermez les terminaux manuellement ou ajoutez cette fonctionnalité."
 fi
 
 echo "Tous les serveurs sont arrêtés."
