@@ -13,7 +13,7 @@ Cette solution se compose de :
 
 ## ⚠️ Placement du fichier `.env`
 
-Avant tout lancement, il faut copier le fichier `.env.example` en `.env` à la racine du projet et le personnaliser avec vos paramètres.  
+Avant tout lancement, il faut copier le fichier `env.exemple` en `.env` à la racine du projet et le personnaliser avec vos paramètres.  
 Ce fichier est automatiquement lu par les scripts pour configurer backend et frontend.
 
 ---
