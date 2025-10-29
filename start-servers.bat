@@ -1,52 +1,122 @@
-@echo off
-SETLOCAL ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
+#!/bin/bash
 
-REM Configuration commandes couleurs ANSI
-for /f %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
-set "GREEN=%ESC%[32m"
-set "RED=%ESC%[31m"
-set "RESET=%ESC%[0m"
+set -e
 
-echo %GREEN%Début du démarrage Clearspace (backend et frontend)%RESET%
+echo "🚀 Démarrage Clearspace (backend + frontend)"
 
-REM Vérifier présence fichier .env
-if not exist .env (
-  echo %RED%Fichier .env introuvable. Copiez .env.example en .env et configurez-le.%RESET%
-  exit /b 1
-)
-echo .env check OK
+# Vérifier fichier .env à la racine
+if [ ! -f .env ]; then
+  echo "❌ Le fichier .env est introuvable."
+  echo "Copiez .env.example en .env et configurez-le."
+  exit 1
+fi
+echo ".env check OK"
 
-REM Récupérer BACKEND_PORT
-set "BACKEND_PORT="
-for /f "tokens=2 delims==" %%a in ('findstr "^BACKEND_PORT=" .env') do set "BACKEND_PORT=%%a"
-if "!BACKEND_PORT!"=="" (
-  echo %RED%BACKEND_PORT non défini dans .env%RESET%
-  exit /b 1
-)
-echo BACKEND_PORT = !BACKEND_PORT!
+# Vérifier node installé
+if ! command -v node &> /dev/null; then
+  echo "❌ Node.js non installé."
+  echo "Téléchargez-le depuis https://nodejs.org/en/download/"
+  exit 1
+fi
+echo "Node.js found"
 
-REM Récupérer FRONTEND_PORT
-set "FRONTEND_PORT="
-for /f "tokens=2 delims==" %%a in ('findstr "^FRONTEND_PORT=" .env') do set "FRONTEND_PORT=%%a"
-if "!FRONTEND_PORT!"=="" set "FRONTEND_PORT=3000"
-echo FRONTEND_PORT = !FRONTEND_PORT!
+# Extraction BACKEND_PORT
+BACKEND_PORT=$(grep "^BACKEND_PORT=" .env | cut -d '=' -f2)
+if [ -z "$BACKEND_PORT" ]; then
+  echo "❌ BACKEND_PORT non défini dans .env"
+  exit 1
+fi
+echo "BACKEND_PORT = $BACKEND_PORT"
 
-REM Vérifier que le port frontend est libre (état LISTENING)
-netstat -ano | findstr :!FRONTEND_PORT! | findstr LISTENING >nul
-if !errorlevel! == 0 (
-  echo %RED%Port !FRONTEND_PORT! déjà utilisé. Arrêt du lancement.%RESET%
-  exit /b 1
-)
-echo Port libre
+# Extraction FRONTEND_PORT ou défaut
+FRONTEND_PORT=$(grep "^FRONTEND_PORT=" .env | cut -d '=' -f2)
+if [ -z "$FRONTEND_PORT" ]; then
+  FRONTEND_PORT=3000
+fi
+echo "FRONTEND_PORT = $FRONTEND_PORT"
 
-REM Lancer backend dans fenêtre cmd, console ouverte
-start "Backend" cmd /k "cd backend && npm start"
-echo %GREEN%Backend lancement demandé.%RESET%
+# Vérifier disponibilité port frontend
+if ss -ltn | grep -q ":$FRONTEND_PORT"; then
+  echo "❌ Port $FRONTEND_PORT déjà utilisé. Arrêt."
+  exit 1
+fi
+echo "Port libre"
 
-timeout /t 2 >nul
+# Générer frontend/.env.local
+echo "VITE_BACKEND_PORT=$BACKEND_PORT" > frontend/.env.local
+echo "✨ frontend/.env.local mis à jour avec VITE_BACKEND_PORT=$BACKEND_PORT"
 
-REM Lancer frontend dans fenêtre cmd, console ouverte
-start "Frontend" cmd /k "cd frontend && npm start"
-echo %GREEN%Frontend lancement demandé.%RESET%
+# Installer backend
+cd backend
+echo "Dans backend folder."
+if [ ! -d node_modules ]; then
+  echo "📦 Installation des dépendances backend..."
+  npm install || { echo "❌ Échec install backend"; exit 1; }
+else
+  echo "✔ Dépendances backend déjà installées."
+fi
+echo "Backend installation terminée."
+cd ..
 
-exit /b 0
+# Installer frontend
+cd frontend
+echo "Dans frontend folder."
+if [ ! -d node_modules ]; then
+  echo "📦 Installation des dépendances frontend..."
+  npm install || { echo "❌ Échec install frontend"; exit 1; }
+else
+  echo "✔ Dépendances frontend déjà installées."
+fi
+echo "Frontend installation terminée."
+cd ..
+
+if command -v gnome-terminal &> /dev/null; then
+  TERMINAL_CMD_GNOME="gnome-terminal -- bash -c"
+elif command -v konsole &> /dev/null; then
+  # Konsole nécessite --hold et bash -c pour garder la console ouverte après exécution
+  TERMINAL_CMD_KONSOLE="konsole --hold -e bash -c"
+elif command -v x-terminal-emulator &> /dev/null; then
+  TERMINAL_CMD="x-terminal-emulator -e"
+elif command -v xfce4-terminal &> /dev/null; then
+  TERMINAL_CMD="xfce4-terminal --command"
+else
+  echo "❗ Aucun terminal graphique trouvé, lancement en arrière-plan."
+  TERMINAL_CMD=""
+fi
+
+# Pour lancer backend
+if [ -n "$TERMINAL_CMD_GNOME" ]; then
+  $TERMINAL_CMD_GNOME "cd backend && npm start; exec bash" &
+  echo "🟢 Backend lancement demandé."
+elif [ -n "$TERMINAL_CMD_KONSOLE" ]; then
+  $TERMINAL_CMD_KONSOLE "cd backend && npm start" &
+  echo "🟢 Backend lancement demandé."
+elif [ -n "$TERMINAL_CMD" ]; then
+  $TERMINAL_CMD "cd backend && npm start" &
+  echo "🟢 Backend lancement demandé."
+else
+  (cd backend && npm start) &
+  echo "🟢 Backend lancé en arrière-plan."
+fi
+
+# Sleep entre lanceur
+
+sleep 2
+
+# Pour lancer frontend
+if [ -n "$TERMINAL_CMD_GNOME" ]; then
+  $TERMINAL_CMD_GNOME "cd frontend && npm start; exec bash" &
+  echo "🟢 Frontend lancement demandé."
+elif [ -n "$TERMINAL_CMD_KONSOLE" ]; then
+  $TERMINAL_CMD_KONSOLE "cd frontend && npm start" &
+  echo "🟢 Frontend lancement demandé."
+elif [ -n "$TERMINAL_CMD" ]; then
+  $TERMINAL_CMD "cd frontend && npm start" &
+  echo "🟢 Frontend lancement demandé."
+else
+  (cd frontend && npm start) &
+  echo "🟢 Frontend lancé en arrière-plan."
+fi
+
+
+echo "✅ Clearspace démarré !"

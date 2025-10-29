@@ -1,30 +1,60 @@
 #!/bin/bash
 
-echo "🛑 Arrêt des serveurs Clearspace (backend + frontend)"
-
-BACKEND_PORT=3200
-FRONTEND_PORT=300
-
-# Trouver et tuer processus sur BACKEND_PORT
-pids=$(lsof -ti tcp:$BACKEND_PORT)
-if [ -n "$pids" ]; then
-  echo "Tuer processus backend PID(s): $pids sur port $BACKEND_PORT"
-  kill -9 $pids
-else
-  echo "Aucun processus backend trouvé sur le port $BACKEND_PORT"
+if [ ! -f ".env" ]; then
+  echo "Le fichier .env est absent. Arrêt."
+  exit 1
 fi
 
-# Trouver et tuer processus sur FRONTEND_PORT
-pids=$(lsof -ti tcp:$FRONTEND_PORT)
-if [ -n "$pids" ]; then
-  echo "Tuer processus frontend PID(s): $pids sur port $FRONTEND_PORT"
-  kill -9 $pids
-else
-  echo "Aucun processus frontend trouvé sur le port $FRONTEND_PORT"
+BACKEND_PORT=$(grep "^BACKEND_PORT=" .env | cut -d'=' -f2)
+FRONTEND_PORT=$(grep "^FRONTEND_PORT=" .env | cut -d'=' -f2)
+
+if [ -z "$BACKEND_PORT" ] || [ -z "$FRONTEND_PORT" ]; then
+  echo "Ports non définis. Arrêt."
+  exit 1
 fi
 
-# Si vous avez les noms de fenêtre terminal spécifiques, vous pouvez les tuer par titre via wmctrl (Linux) ou AppleScript (macOS)
-# Voici un exemple pour Linux avec wmctrl (à installer) - optionnel
-# wmctrl -l | grep "Backend" | awk '{print $1}' | xargs -r wmctrl -ic
+echo "Arrêt des serveurs..."
+echo "Backend port: $BACKEND_PORT"
+echo "Frontend port: $FRONTEND_PORT"
 
-echo "✅ Serveurs arrêtés et terminaux fermés."
+# Fermeture frontend par port
+pids=$(lsof -ti :"$FRONTEND_PORT")
+if [ -n "$pids" ]; then
+  echo "Fermeture frontend PID: $pids"
+  kill -9 $pids
+fi
+
+# Envoi requête shutdown backend
+curl -s -m 10 -X POST "http://localhost:$BACKEND_PORT/shutdown" > /dev/null
+if [ $? -eq 0 ]; then
+  echo "Requête shutdown backend envoyée."
+else
+  pids=$(lsof -ti :"$BACKEND_PORT")
+  if [ -n "$pids" ]; then
+    echo "Fermeture backend PID: $pids"
+    kill -9 $pids
+  fi
+fi
+
+sleep 2
+
+# Fermeture fenêtres terminal via wmctrl, si disponible
+if command -v wmctrl &> /dev/null; then
+  echo "Fermeture fenêtres terminal graphiques..."
+  wmctrl -c "BackendTerminal" || echo "Impossible de fermer BackendTerminal"
+  wmctrl -c "FrontendTerminal" || echo "Impossible de fermer FrontendTerminal"
+else
+  echo
+  echo "wmctrl n'est pas installé, impossible de fermer automatiquement les terminaux graphiques."
+  echo "Vous pouvez l'installer avec la commande adaptée selon votre distribution :"
+  echo "  Debian / Ubuntu / Mint : sudo apt install wmctrl"
+  echo "  Fedora : sudo dnf install wmctrl"
+  echo "  Arch Linux : sudo pacman -S wmctrl"
+  echo "  OpenSUSE : sudo zypper install wmctrl"
+  echo
+  echo "Pour fermer les terminaux graphiques ouverts, utilisez un gestionnaire de fenêtres ou fermez-les manuellement."
+fi
+
+echo "Tous les serveurs sont arrêtés."
+
+exit 0
