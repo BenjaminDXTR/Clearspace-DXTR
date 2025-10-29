@@ -11,9 +11,9 @@ interface TablesLocalProps {
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
-  localPageData: Flight[];
+  localPageData: Flight[]; // Ici on attend que chaque vol ait anchorState déjà ajouté
   LOCAL_FIELDS: string[];
-  isAnchored: IsAnchoredFn;
+  isAnchored?: IsAnchoredFn; // optionnel car enrichi avant
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
   openModal: (flight: Flight, trace: any[]) => void;
@@ -41,7 +41,6 @@ export default function TablesLocal({
   localMaxPage,
   localPageData,
   LOCAL_FIELDS,
-  isAnchored,
   renderAnchorCell,
   handleSelect,
   openModal,
@@ -52,7 +51,7 @@ export default function TablesLocal({
   onSelectFile,
 }: TablesLocalProps) {
   useEffect(() => {
-    console.log("TablesLocal localPageData prop:", localPageData);
+    dlog("TablesLocal localPageData prop:", localPageData);
   }, [localPageData]);
 
   const onSelect = useCallback(
@@ -93,7 +92,8 @@ export default function TablesLocal({
             </thead>
             <tbody>
               {localPageData.map((item, idx) => {
-                const anchorState = isAnchored(item.id ?? "", item.created_time ?? "");
+                // ATTENTION : anchorState enrichi en amont ; on ne fait plus l'appel isAnchored ici !
+                const anchorState = (item as any).anchorState ?? "none";
                 return (
                   <tr
                     key={genKey(item, idx)}
@@ -148,3 +148,4 @@ export default function TablesLocal({
     </section>
   );
 }
+
