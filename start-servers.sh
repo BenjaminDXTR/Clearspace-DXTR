@@ -66,27 +66,28 @@ cd ..
 echo "Lancement des terminaux graphiques..."
 
 if command -v gnome-terminal &> /dev/null; then
-  gnome-terminal --title=BackendTerminal -- bash -c "cd backend && npm start; echo 'Appuyez sur une touche pour fermer...' ; read -n1" &
+  gnome-terminal --title=BackendTerminal -- bash -c "cd backend && npm start" --hold &
   echo "🟢 Backend lancé"
-  gnome-terminal --title=FrontendTerminal -- bash -c "cd frontend && npm start; echo 'Appuyez sur une touche pour fermer...' ; read -n1" &
+  gnome-terminal --title=FrontendTerminal -- bash -c "cd frontend && npm start" --hold &
   echo "🟢 Frontend lancé"
 
 elif command -v konsole &> /dev/null; then
-  konsole --hold -e bash -c "cd backend && npm start" &
+  konsole --hold --caption BackendTerminal -e bash -c "cd backend && npm start" &
   echo "🟢 Backend lancé"
-  konsole --hold -e bash -c "cd frontend && npm start" &
-  echo "🟢 Frontend lancé"
-
-elif command -v x-terminal-emulator &> /dev/null; then
-  x-terminal-emulator -e bash -c "cd backend && npm start; echo 'Appuyez sur une touche pour fermer...' ; read -n1" &
-  echo "🟢 Backend lancé"
-  x-terminal-emulator -e bash -c "cd frontend && npm start; echo 'Appuyez sur une touche pour fermer...' ; read -n1" &
+  konsole --hold --caption FrontendTerminal -e bash -c "cd frontend && npm start" &
   echo "🟢 Frontend lancé"
 
 elif command -v xfce4-terminal &> /dev/null; then
-  xfce4-terminal --hold --command="bash -c 'cd backend && npm start; echo \"Appuyez sur une touche pour fermer...\"; read -n1'" &
+  xfce4-terminal --title=BackendTerminal --hold --command="bash -c 'cd backend && npm start'" &
   echo "🟢 Backend lancé"
-  xfce4-terminal --hold --command="bash -c 'cd frontend && npm start; echo \"Appuyez sur une touche pour fermer...\"; read -n1'" &
+  xfce4-terminal --title=FrontendTerminal --hold --command="bash -c 'cd frontend && npm start'" &
+  echo "🟢 Frontend lancé"
+
+elif command -v x-terminal-emulator &> /dev/null; then
+  # x-terminal-emulator varies, try --hold option or fallback
+  x-terminal-emulator -t BackendTerminal --hold -e bash -c "cd backend && npm start" &
+  echo "🟢 Backend lancé"
+  x-terminal-emulator -t FrontendTerminal --hold -e bash -c "cd frontend && npm start" &
   echo "🟢 Frontend lancé"
 
 else
@@ -96,5 +97,6 @@ else
   (cd frontend && npm start) &
   echo "🟢 Frontend lancé en arrière-plan"
 fi
+
 
 echo "✅ Clearspace démarré !"
