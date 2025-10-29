@@ -1,0 +1,86 @@
+/* Conteneur commun */
+.table-container {
+    width: 100%;
+    max-width: 100%;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+/* Titre commun */
+.table-title {
+    margin-bottom: 8px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Message vide */
+.table-empty {
+    padding: 8px;
+    font-style: italic;
+    color: #666;
+    text-align: center;
+}
+
+/* Table commune */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.data-table thead {
+    background-color: #f0f0f0;
+}
+
+.data-table th {
+    font-weight: 700;
+    background-color: #f3f6fa;
+    text-transform: capitalize;
+}
+
+.data-table td {
+    line-height: 1.4rem;
+    min-height: 36px;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid #ddd;
+    padding: 7px 9px;
+    font-size: 0.97rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+    background-color: #f5faff;
+}
+
+/* Responsive général */
+@media (max-width: 800px) {
+    .table-title {
+        font-size: 1rem;
+    }
+
+    .table-container {
+        padding: 5px;
+        min-width: 80vw;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 4px 6px;
+        font-size: 0.81rem;
+        max-width: 88vw;
+    }
+}

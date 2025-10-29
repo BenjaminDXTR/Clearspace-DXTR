@@ -20,6 +20,15 @@ function AppContent() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const memoAnchorModal = useMemo(() => logic.anchorModal, [logic.anchorModal?.flight?.id]);
 
+  /*
+  if (logic.loadingAccess) {
+    return <div>Chargement...</div>;
+  }
+
+  if (logic.accessDenied && logic.errorHtml) {
+    return <div dangerouslySetInnerHTML={{ __html: logic.errorHtml }} />;
+  }
+*/
   return (
     <div>
       <Header />
@@ -64,14 +73,6 @@ function AppContent() {
             debug={logic.debug}
           />
 
-          <div className="history-selector-container">
-            <HistoryFileSelector
-              historyFiles={logic.historyFiles}
-              currentFile={logic.currentHistoryFile}
-              onSelectFile={logic.setCurrentHistoryFile}
-            />
-          </div>
-
           <TablesLocal
             localPage={logic.localPage}
             setLocalPage={logic.setLocalPage}
@@ -83,7 +84,11 @@ function AppContent() {
             openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
+            historyFiles={logic.historyFiles}                // AJOUTÉ
+            currentFile={logic.currentHistoryFile}           // AJOUTÉ
+            onSelectFile={logic.setCurrentHistoryFile}       // AJOUTÉ
           />
+
         </div>
       </div>
 
@@ -101,7 +106,7 @@ function AppContent() {
           mapReady={logic.mapReady}
           setMapReady={logic.setMapReady}
           setMapContainer={logic.setMapContainer}
-          message={logic.message} // <-- passer le message ici
+          message={logic.message}
           key={memoAnchorModal?.flight?.id}
         />
       )}

@@ -10,128 +10,118 @@ const { config } = require('../config');
 let isPolling = false;
 
 async function fetchWithRetry(fn, retries = 5, delayMs = 1000) {
-    let attempt = 0;
-    while (attempt < retries) {
-        try {
-            return await fn();
-        } catch (err) {
-            attempt++;
-            if (attempt >= retries) {
-                log.error(`[poller] Retry exceeded. Last error: ${err.message}`);
-                throw err;
-            }
-            log.warn(`[poller] Retry ${attempt} after error: ${err.message}. Waiting ${delayMs}ms`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      return await fn();
+    } catch (err) {
+      attempt++;
+      if (attempt >= retries) {
+        log.error(`[poller] Retry exceeded. Last error: ${err.message}`);
+        throw err;
+      }
+      log.warn(`[poller] Retry ${attempt} after error: ${err.message}. Waiting ${delayMs}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
+  }
 }
 
 function getDetectedIds(drones) {
-    return drones
-        .filter(drone => drone.id && !(drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0))
-        .map(drone => drone.id);
+  return drones
+    .filter(
+      (drone) => drone.id && !(drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0)
+    )
+    .map((drone) => drone.id);
 }
 
 async function poller() {
-    if (isPolling) {
-        log.debug('[poller] Already polling, skipping cycle');
-        return;
+  if (isPolling) {
+    log.debug('[poller] Already polling, skipping cycle');
+    return;
+  }
+  isPolling = true;
+
+  try {
+    let drones;
+
+    if (config.backend.useTestSim) {
+      const simulation = require('../simulation');
+      const simData = await simulation.getCurrentSimulationData();
+      drones = simData.data?.drone || [];
+    } else {
+      const data = await fetchWithRetry(fetchDroneData, 5, 1000);
+      drones = data?.data?.drone
+        ? Array.isArray(data.data.drone)
+          ? data.data.drone
+          : [data.data.drone]
+        : [];
     }
-    isPolling = true;
 
-    //log.info('[poller] Starting new poll cycle');
+    const detectedIds = getDetectedIds(drones || []);
 
-    try {
-        let drones;
+    await updateFlightStates(drones || []);
 
-        if (config.backend.useTestSim) {
-            const simulation = require('../simulation');
-            const simData = await simulation.getCurrentSimulationData();
-            drones = simData.data?.drone || [];
-            //log.info(`[poller] Simulation data retrieved: ${JSON.stringify(drones, null, 2)}`);
-        } else {
-            const data = await fetchWithRetry(fetchDroneData, 5, 1000);
-            drones = data?.data?.drone
-                ? Array.isArray(data.data.drone)
-                    ? data.data.drone
-                    : [data.data.drone]
-                : [];
-            //log.info(`[poller] API data retrieved: ${JSON.stringify(drones, null, 2)}`);
-        }
-
-        const detectedIds = getDetectedIds(drones || []);
-        //log.info(`[poller] Detected drone IDs: ${detectedIds.join(', ')}`);
-
-        /*log.info(`[poller] Before updateFlightStates - drones timestamps snapshot: ${JSON.stringify(
-            drones.map(d => ({ id: d.id, created_time: d.created_time, lastseen_time: d.lastseen_time }))
-        )}`);
-        */
-
-        await updateFlightStates(drones || []);
-        //log.info('[poller] Flight states updated');
-
-        if (!drones || drones.length === 0) {
-            //log.info('[poller] No drones detected, broadcasting empty list');
-            broadcast([], clients, true);
-            isPolling = false;
-            return;
-        }
-
-        const fullDrones = [];
-
-        for (const drone of drones) {
-            if (drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0) {
-                //log.debug('[poller] Empty drone data detected, ignoring this drone');
-                continue;
-            }
-            if (!drone.id) {
-                log.warn('[poller] Drone without ID skipped');
-                continue;
-            }
-
-            //log.info(`[poller] Drone ${drone.id} timestamps: created_time=${drone.created_time}, lastseen_time=${drone.lastseen_time}`);
-
-            // Mise à jour trace du vol
-            //log.info(`[poller] Mise à jour traces pour drone ${drone.id} avec created_time=${drone.created_time}`);
-            await updateTrace(drone);
-
-            const trace = flightTraces.get(drone.id) || [];
-            //log.info(`[poller] Trace length pour drone ${drone.id}: ${trace.length}`);
-
-            const fullDroneData = {
-                ...drone,
-                trace,
-                state: drone.state || 'live',
-            };
-
-            fullDrones.push(fullDroneData);
-
-            //log.info(`[poller] Avant sauvegarde historique pour drone ${drone.id} avec created_time=${drone.created_time}`);
-            await saveFlightToHistory(fullDroneData, detectedIds);
-            //log.info(`[poller] Sauvegarde historique terminée pour drone ${drone.id}`);
-        }
-
-        // Pour chaque vol (live + waiting), enrichir avec la trace correspondant à l'id
-        const flightsToBroadcast = Array.from(flightStates.values())
-            .map(s => {
-                const trace = flightTraces.get(s.data.id) || [];
-                return {
-                    ...s.data,
-                    trace,
-                };
-            })
-            .filter(f => f.state === 'live' || f.state === 'waiting');
-
-        //log.info(`[poller] Broadcasting ${flightsToBroadcast.length} drones (live + waiting)`);
-
-        broadcast(flightsToBroadcast, clients, true);
-
-    } catch (err) {
-        log.error(`[poller] Error during polling: ${err.stack || err.message || err}`);
-    } finally {
-        isPolling = false;
-        //log.info('[poller] Poll cycle finished');
+    if (!drones || drones.length === 0) {
+      broadcast([], clients, true);
+      isPolling = false;
+      return;
     }
+
+    const fullDrones = [];
+
+    for (const drone of drones) {
+      if (drone.data && Array.isArray(drone.data.drone) && drone.data.drone.length === 0) {
+        continue;
+      }
+      if (!drone.id) {
+        log.warn('[poller] Drone without ID skipped');
+        continue;
+      }
+
+      // Utiliser la clé createdTime consolidée issue de flightStates
+      const oldState = flightStates.get(drone.id);
+      const createdTime = oldState ? oldState.createdTime : drone.created_time;
+
+      // Construire la clé unique pour la session
+      const sessionKey = `${drone.id}|${createdTime}`;
+
+      // Ajouter la clé consolidée à updateTrace
+      const updateDroneForTrace = { ...drone, sessionEffective: sessionKey };
+
+      await updateTrace(updateDroneForTrace);
+
+      // Récupérer la trace consolidée dans flightTraces sous la clé stable
+      const trace = flightTraces.get(sessionKey) || [];
+
+      const fullDroneData = {
+        ...drone,
+        trace,
+        state: drone.state || 'live',
+      };
+
+      fullDrones.push(fullDroneData);
+
+      await saveFlightToHistory(fullDroneData, detectedIds);
+    }
+
+    // Préparer la liste à diffuser vers frontend
+    const flightsToBroadcast = Array.from(flightStates.values())
+      .map((s) => {
+        const key = `${s.data.id}|${s.createdTime}`;
+        const trace = flightTraces.get(key) || [];
+        return {
+          ...s.data,
+          trace,
+        };
+      })
+      .filter((f) => f.state === 'live' || f.state === 'waiting');
+
+    broadcast(flightsToBroadcast, clients, true);
+  } catch (err) {
+    log.error(`[poller] Error during polling: ${err.stack || err.message || err}`);
+  } finally {
+    isPolling = false;
+  }
 }
 
 module.exports = poller;
