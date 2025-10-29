@@ -27,7 +27,7 @@ Ce fichier est automatiquement lu par les scripts pour configurer backend et fro
 
 ## 🛠 Configuration et utilisation du fichier `.env` (exemple)
 
-Le fichier `.env.example` sert de modèle pour configurer votre environnement.  
+Le fichier `env.exemple` sert de modèle pour configurer votre environnement.  
 Il doit être copié et renommé en `.env` à la racine du projet avant de lancer les serveurs.  
 Vous devrez ensuite personnaliser certaines valeurs pour correspondre à votre réseau et à vos accès.
 
