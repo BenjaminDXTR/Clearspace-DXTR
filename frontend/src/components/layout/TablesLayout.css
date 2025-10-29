@@ -43,6 +43,11 @@
     text-transform: capitalize;
 }
 
+.data-table td {
+    line-height: 1.4rem;
+    min-height: 36px;
+}
+
 .data-table th,
 .data-table td {
     border: 1px solid #ddd;
