@@ -166,7 +166,13 @@ http://clearspace-dxtr:<PORT_FRONTEND>
 
 où `<PORT_FRONTEND>` correspond à la valeur `FRONTEND_PORT` dans le `.env` (ex : 3000).
 
-Cette méthode permet à tous les clients du réseau d’utiliser un nom simple et constant, sans modification de l’adresse IP.
+- Si la connexion est bloquée, ou que la page n'arrrive pas à récupérer les informations, vérifier la configuration des valeurs du .env par exemple :
+- VITE_ALLOWED_HOSTS=...,clearspace-dxtr
+- ALLOWED_IPS=...,[IP de la machine demandant l'acces]
+- ALLOWED_ORIGINS=...,http://clearspace-dxtr
+
+
+Cette méthode permet à tous les clients du réseau d’utiliser un nom simple et constant, sans devoir préciser l’adresse IP dans l'url.
 
 ---
 
