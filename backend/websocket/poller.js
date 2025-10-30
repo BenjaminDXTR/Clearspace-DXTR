@@ -93,6 +93,9 @@ async function poller() {
       // Récupérer la trace consolidée dans flightTraces sous la clé stable
       const trace = flightTraces.get(sessionKey) || [];
 
+      console.log(`[poller] Drone ID ${drone.id} state=${drone.state} trace length=${trace.length}`);
+
+
       const fullDroneData = {
         ...drone,
         trace,

@@ -29,7 +29,7 @@ export default function FlightMarkers({
 }: FlightMarkersProps) {
   return (
     <>
-      {trace.length > 1 && (
+      {(trace.length > 1) && (
         <>
           <Polyline positions={trace} pathOptions={polylineOptions} />
           {showMarkers &&
@@ -44,6 +44,21 @@ export default function FlightMarkers({
                 fillOpacity={0.9}
               />
             ))}
+        </>
+      )}
+
+      {(trace.length === 1) && (
+        <>
+          {showMarkers && (
+            <CircleMarker
+              center={trace[0]}
+              radius={circleMarkerRadius}
+              fillColor={circleMarkerFillColor}
+              color={circleMarkerColor}
+              weight={1}
+              fillOpacity={0.9}
+            />
+          )}
         </>
       )}
 

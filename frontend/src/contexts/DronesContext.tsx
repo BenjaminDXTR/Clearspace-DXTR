@@ -163,12 +163,27 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         const data = JSON.parse(event.data);
 
+        // Si c'est un tableau, on enrichit la donnée avant la mise à jour
         if (Array.isArray(data)) {
-          setDrones(data);
-          const waitingFlights = data.filter(f => f.state === 'waiting');
+          // Parcours des drones reçus 
+          // On s'assure qu'un drone "waiting" a bien une propriété trace
+          const enriched = data.map((drone) => {
+            if (drone.state === 'waiting' && !drone.trace) {
+              // Ajout d'une trace vide si absent
+              return { ...drone, trace: [] };
+            }
+            return drone;
+          });
+
+          setDrones(enriched);
+
+          // On peut logger pour debug
+          console.log(`[DronesContext] Received ${enriched.length} drones, including ${enriched.filter(f => f.state === 'waiting').length} waiting`);
+
           return;
         }
 
+        // Gestion des messages spécifiques autres que tableau
         if (data && typeof data === 'object' && 'type' in data) {
           switch (data.type) {
             case 'ping':
@@ -202,6 +217,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setWebsocketError(`Erreur parsing message WS : ${(e as Error).message}`);
       }
     };
+
 
     ws.current.onerror = (evt) => {
       clearTimeout(connectionTimeout);

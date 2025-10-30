@@ -184,7 +184,8 @@ export default function useAppLogic() {
   // Points trace sélectionnés
   const selectedTracePoints = useMemo(() => {
     if (!selected) return [];
-    if (selected.state === "live") return liveTraces[selected.id]?.trace ?? [];
+    if (selected.state === "live" || selected.state === "waiting")
+      return liveTraces[selected.id]?.trace ?? [];
     if (selected.state === "local") return (selected as any).trace ?? [];
     return [];
   }, [selected, liveTraces]);
