@@ -14,6 +14,8 @@ export const config = {
 
   debug: import.meta.env.VITE_DEBUG === 'true',
   environment: import.meta.env.MODE ?? 'development',
+  maxHistoryLength: Number(import.meta.env.VITE_MAX_HISTORY_LENGTH) || 100,
+  inactiveTimeout: Number(import.meta.env.VITE_INACTIVE_TIMEOUT) || 10000,
   websocketPort: Number(import.meta.env.VITE_BACKEND_PORT) || 3200,
   
   websocketUrl: (() => {
