@@ -41,39 +41,17 @@ fi
 
 sleep 2
 
-# Fermeture des fenêtres de terminal graphiques spécifiques via wmctrl avec kill forcé si nécessaire
+# Fermeture des fenêtres de terminal graphiques spécifiques par titre via wmctrl
 if command -v wmctrl &> /dev/null; then
-  if ! command -v xprop &> /dev/null; then
-    echo "xprop n'est pas installé, installez-le pour permettre la fermeture forcée des terminaux graphiques."
-    echo "Ex: sudo apt install x11-utils"
-  fi
-
   echo "Fermeture fenêtres terminal graphiques..."
 
-  # Fermer uniquement fenêtres dont le titre EXACT est BackendTerminal ou FrontendTerminal
   for title in "BackendTerminal" "FrontendTerminal"; do
-    wins=$(wmctrl -l | awk -v t="$title" '{
-      winid=$1; desktop=$2; machine=$3;
-      sub(winid FS desktop FS machine FS, "", $0);
-      if ($0 == t) print winid;
-    }')
+    wins=$(wmctrl -l | awk -v t="$title" '{winid=$1; desktop=$2; machine=$3; sub(winid FS desktop FS machine FS, "", $0); if ($0 == t) print winid;}')
     if [ -n "$wins" ]; then
       for win in $wins; do
         echo "Fermeture fenêtre: $title (id $win)"
         wmctrl -ic "$win"
         sleep 2
-        # Vérifier si fenêtre encore ouverte
-        still_open=$(wmctrl -l | grep "^$win ")
-        if [ -n "$still_open" ]; then
-          echo "Fenêtre $title toujours ouverte, fermeture forcée du processus associé..."
-          pid=$(xprop -id $win _NET_WM_PID | awk '{print $3}')
-          if [ -n "$pid" ]; then
-            kill -9 $pid
-            echo "Processus $pid tué."
-          else
-            echo "Impossible de récupérer le PID pour la fenêtre $win"
-          fi
-        fi
       done
     else
       echo "Aucune fenêtre trouvée pour le titre $title"
