@@ -70,7 +70,7 @@ const config = {
   backend: {
     ignoreTlsErrors: process.env.IGNORE_TLS_ERRORS === 'true' ? true : false, // For security, defaults to false unless explicitly true in .env
     corsOrigin: process.env.CORS_ORIGIN || null,
-    maxJsonSize: process.env.MAX_JSON_SIZE || '20m', 
+    maxJsonSize: process.env.MAX_JSON_SIZE || '20mb', 
     port: parseIntOrNull(process.env.BACKEND_PORT), 
     nodeEnv: process.env.NODE_ENV || 'production',
     logLevel: process.env.LOG_LEVEL || 'error',
