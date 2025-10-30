@@ -12,36 +12,12 @@ if [ ! -f .env ]; then
 fi
 echo ".env check OK"
 
-# Vérifier ou installer nvm
-if [ -z "$NVM_DIR" ]; then
-  export NVM_DIR="$HOME/.nvm"
-fi
-
-if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-  echo "🔄 Installation de nvm v0.40.3..."
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-fi
-
-# Charger nvm
-# shellcheck source=/dev/null
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-# Installer ou utiliser Node.js 22.15.0
-if ! nvm ls 22.15.0 &>/dev/null; then
-  echo "🔄 Installation de Node.js v22.15.0 via nvm..."
-  nvm install 22.15.0
-fi
-
-echo "🔧 Utilisation de Node.js 22.15.0"
-nvm use 22.15.0
-nvm alias default 22.15.0
-
 # Vérifier node installé
 if ! command -v node &> /dev/null; then
-  echo "❌ Node.js non installé après installation nvm."
+  echo "❌ Node.js non installé."
   exit 1
 fi
-echo "Node.js trouvé -> $(node -v)"
+echo "Node.js found"
 
 # Extraction ports
 BACKEND_PORT=$(grep "^BACKEND_PORT=" .env | cut -d '=' -f2)
@@ -108,6 +84,7 @@ elif command -v xfce4-terminal &> /dev/null; then
   echo "🟢 Frontend lancé"
 
 elif command -v x-terminal-emulator &> /dev/null; then
+  # x-terminal-emulator varies, try --hold option or fallback
   x-terminal-emulator -t BackendTerminal --hold -e bash -c "cd backend && npm start" &
   echo "🟢 Backend lancé"
   x-terminal-emulator -t FrontendTerminal --hold -e bash -c "cd frontend && npm start" &
@@ -120,5 +97,6 @@ else
   (cd frontend && npm start) &
   echo "🟢 Frontend lancé en arrière-plan"
 fi
+
 
 echo "✅ Clearspace démarré !"
