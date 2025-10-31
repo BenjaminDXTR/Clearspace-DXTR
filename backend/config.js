@@ -81,6 +81,7 @@ const config = {
     blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || null,
     blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || null,
     retryIntervalMin: parseIntOrNull(process.env.RETRY_INTERVAL_MIN) || 10,
+    blockchainCheckIntervalMs : 10000, // Intervalle de vérification accès blockchain
 
     // Optional manual API composition
     apiProtocol: process.env.API_PROTOCOL || null,

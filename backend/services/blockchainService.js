@@ -50,6 +50,34 @@ async function sendAnchorProof(zipBuffer, jsonBuffer) {
   }
 }
 
+async function checkBlockchainAccess() {
+  try {
+    const response = await axios.get(blockchainApiUrl, {
+      headers: {
+        'User-Agent': 'clearspace-backend',
+        'X-API-KEY': blockchainApiKey,
+      },
+      timeout: 5000,
+    });
+
+    if (response.status === 200) {
+      log.info('Blockchain access: OK');
+      systemStatus.updateSystemStatus({ blockchainAccess: { ok: true, lastError: null } });
+      return true;
+    } else {
+      log.warn(`Blockchain access returned status ${response.status}`);
+      systemStatus.updateSystemStatus({ blockchainAccess: { ok: false, lastError: `Status ${response.status}` } });
+      return false;
+    }
+  } catch (error) {
+    log.error(`Blockchain access error: ${error.message}`);
+    systemStatus.updateSystemStatus({ blockchainAccess: { ok: false, lastError: error.message } });
+    return false;
+  }
+}
+
+
 module.exports = {
   sendAnchorProof,
+  checkBlockchainAccess,
 };

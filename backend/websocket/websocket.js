@@ -6,6 +6,7 @@ const poller = require('./poller');
 const { config } = require('../config');
 const fs = require('fs').promises;
 const path = require('path');
+const systemStatus = require('../utils/systemStatus');  // Import du module systemStatus
 
 let wss = null; // Instance WebSocket Server
 let pollingActive = false;
@@ -124,6 +125,9 @@ function setup(server) {
   wss = new WebSocket.Server({ server });
   log.info('[setup] WebSocket server initialized');
 
+  // Initialise la référence WebSocket dans systemStatus pour diffusion
+  systemStatus.setWebSocketServer(wss);
+
   wss.on('connection', async (ws, req) => {
     // Récupération IP client réelle avec prise en compte de proxy
     const clientIpRaw = req.socket.remoteAddress || '';
@@ -139,6 +143,13 @@ function setup(server) {
 
     clients.add(ws);
     log.info(`[connection] New client connected from IP=${clientIp}, total clients: ${clients.size}`);
+
+    // Envoi de l'état système actuel au client
+    try {
+      ws.send(JSON.stringify({ type: 'systemStatus', data: systemStatus.getSystemStatus() }));
+    } catch (err) {
+      log.error(`[connection] Error sending systemStatus: ${err.message}`);
+    }
 
     setupConnection(ws, broadcast); // Mise en place gestion messages client
 

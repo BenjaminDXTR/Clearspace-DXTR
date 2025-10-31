@@ -12,6 +12,9 @@ const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
 const { retryPendingAnchors } = require('./services/retryPending');
+const systemStatus = require('./utils/systemStatus'); // Module systemStatus importé
+const { checkBlockchainAccess } = require('./services/blockchainService');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -119,6 +122,16 @@ function startIntervals() {
       log.error(`Erreur lors du retry des preuves en attente : ${e.message}`);
     }
   }, retryMs);
+
+  // Intervalle de test accès blockchain
+  const blockchainCheckIntervalMs = config.backend.blockchainCheckIntervalMs || 60000; // 60s par défaut
+  setInterval(async () => {
+    try {
+      await checkBlockchainAccess();
+    } catch (e) {
+      log.error(`Erreur vérification accès blockchain : ${e.message}`);
+    }
+  }, blockchainCheckIntervalMs);
 }
 
 function clearIntervals() {
@@ -166,6 +179,9 @@ function getLocalIp() {
       simulation.startSimulation();
       log.info('[server] Simulation démarrée');
     }
+
+    // Notification mode simulation dans systemStatus
+    systemStatus.updateSystemStatus({ simulationMode: !!config.backend.useTestSim });
 
     // Gestion des signaux pour shutdown propre
     process.on('SIGINT', gracefulShutdown);
