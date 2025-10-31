@@ -1,4 +1,3 @@
-// useErrorManager.ts
 import { useState, useCallback } from "react";
 
 export interface ErrorMessage {
@@ -76,9 +75,7 @@ export function useErrorManager() {
   );
 
   // Fusion en message unique par sévérité
-  function synthesizeMessages(
-    errList: ErrorMessage[]
-  ): ErrorMessage | null {
+  function synthesizeMessages(errList: ErrorMessage[]): ErrorMessage | null {
     if (errList.length === 0) return null;
     if (errList.length === 1) return errList[0];
     const combinedMessage = errList
