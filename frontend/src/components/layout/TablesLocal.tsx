@@ -7,15 +7,21 @@ import HistoryFileSelector from "../common/HistoryFileSelector";
 import "./TablesLayout.css";
 import "./TablesLocal.css";
 
+interface SelectedKey {
+  id?: string | number;
+  created_time?: string | number;
+}
+
 interface TablesLocalProps {
   localPage: number;
   setLocalPage: (page: number) => void;
   localMaxPage: number;
-  localPageData: Flight[]; // Ici on attend que chaque vol ait anchorState déjà ajouté
+  localPageData: Flight[];
   LOCAL_FIELDS: string[];
-  isAnchored?: IsAnchoredFn; // optionnel car enrichi avant
+  isAnchored?: IsAnchoredFn;
   renderAnchorCell?: RenderAnchorCellFn;
   handleSelect: HandleSelectFn;
+  selectedKey?: SelectedKey | null;
   openModal: (flight: Flight, trace: any[]) => void;
   getTraceForFlight: (flight: Flight) => any[];
   debug?: boolean;
@@ -43,6 +49,7 @@ export default function TablesLocal({
   LOCAL_FIELDS,
   renderAnchorCell,
   handleSelect,
+  selectedKey = null,
   openModal,
   getTraceForFlight,
   debug = DEBUG,
@@ -68,11 +75,7 @@ export default function TablesLocal({
   return (
     <section className="table-container local" aria-label="Vols archivés (local)">
       <div className="history-selector-container">
-        <HistoryFileSelector
-          historyFiles={historyFiles}
-          currentFile={currentFile}
-          onSelectFile={onSelectFile}
-        />
+        <HistoryFileSelector historyFiles={historyFiles} currentFile={currentFile} onSelectFile={onSelectFile} />
       </div>
       <h2 className="table-title">Vols archivés (local)</h2>
       {localPageData.length === 0 ? (
@@ -92,8 +95,12 @@ export default function TablesLocal({
             </thead>
             <tbody>
               {localPageData.map((item, idx) => {
-                // ATTENTION : anchorState enrichi en amont ; on ne fait plus l'appel isAnchored ici !
                 const anchorState = (item as any).anchorState ?? "none";
+                const isSelected =
+                  selectedKey !== null &&
+                  item.id === selectedKey.id &&
+                  item.created_time === selectedKey.created_time;
+
                 return (
                   <tr
                     key={genKey(item, idx)}
@@ -104,9 +111,9 @@ export default function TablesLocal({
                         : anchorState === "pending"
                         ? "pending"
                         : ""
-                    }`}
+                    } ${isSelected ? "selected" : ""}`}
                     onClick={() => onSelect(item)}
-                    aria-selected="false"
+                    aria-selected={isSelected}
                   >
                     {LOCAL_FIELDS.map((field) => (
                       <td key={field}>{prettyValue(field, (item as any)[field])}</td>
@@ -117,11 +124,9 @@ export default function TablesLocal({
                           ✔️ <span className="anchor-text">Ancré</span>
                         </>
                       ) : anchorState === "pending" ? (
-                        <>
-                          <button className="anchor-btn anchor-btn-disabled" disabled title="En attente d'ancrage">
-                            ⏳En attente
-                          </button>
-                        </>
+                        <button className="anchor-btn anchor-btn-disabled" disabled title="En attente d'ancrage">
+                          ⏳En attente
+                        </button>
                       ) : renderAnchorCell ? (
                         renderAnchorCell(item)
                       ) : (
@@ -148,4 +153,3 @@ export default function TablesLocal({
     </section>
   );
 }
-

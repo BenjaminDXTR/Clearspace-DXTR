@@ -4,13 +4,9 @@ import { config } from "../../config";
 import "./Pagination.css";
 
 interface PaginationProps {
-  /** Page courante (commence à 1) */
   page: number;
-  /** Nombre total de pages (>= 1) */
   maxPage: number;
-  /** Callback appelé lors du changement de page */
   onPageChange: (page: number) => void;
-  /** Active les logs debug (par défaut : en dev) */
   debug?: boolean;
 }
 
@@ -29,23 +25,34 @@ export default function Pagination({
     [debug]
   );
 
-  // S’assure que maxPage est au moins 1
   const totalPages = Math.max(1, maxPage);
 
-  // Gérer clic page précédente
+  const goToFirst = useCallback(() => {
+    if (page > 1) {
+      dlog(`Aller au début`);
+      onPageChange(1);
+    }
+  }, [page, onPageChange, dlog]);
+
+  const goToLast = useCallback(() => {
+    if (page < totalPages) {
+      dlog(`Aller à la fin`);
+      onPageChange(totalPages);
+    }
+  }, [page, totalPages, onPageChange, dlog]);
+
   const onPrevious = useCallback(() => {
     if (page > 1) {
       const newPage = page - 1;
-      dlog(`Navigating to previous page: ${newPage}`);
+      dlog(`Page précédente : ${newPage}`);
       onPageChange(newPage);
     }
   }, [page, onPageChange, dlog]);
 
-  // Gérer clic page suivante
   const onNext = useCallback(() => {
     if (page < totalPages) {
       const newPage = page + 1;
-      dlog(`Navigating to next page: ${newPage}`);
+      dlog(`Page suivante : ${newPage}`);
       onPageChange(newPage);
     }
   }, [page, totalPages, onPageChange, dlog]);
@@ -58,10 +65,22 @@ export default function Pagination({
     >
       <button
         type="button"
+        onClick={goToFirst}
+        disabled={page <= 1}
+        aria-disabled={page <= 1}
+        aria-label="Début"
+        className="btn-large"
+      >
+        Début
+      </button>
+
+      <button
+        type="button"
         onClick={onPrevious}
         disabled={page <= 1}
         aria-disabled={page <= 1}
         aria-label="Page précédente"
+        className="btn-medium"
       >
         ◀ Précédent
       </button>
@@ -80,8 +99,20 @@ export default function Pagination({
         disabled={page >= totalPages}
         aria-disabled={page >= totalPages}
         aria-label="Page suivante"
+        className="btn-medium"
       >
         Suivant ▶
+      </button>
+
+      <button
+        type="button"
+        onClick={goToLast}
+        disabled={page >= totalPages}
+        aria-disabled={page >= totalPages}
+        aria-label="Fin"
+        className="btn-large"
+      >
+        Fin
       </button>
     </nav>
   );

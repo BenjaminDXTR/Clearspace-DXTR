@@ -26,14 +26,13 @@ interface UseLocalHistoryResult {
 }
 
 function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   }, [value]);
   return ref.current;
 }
 
-// Wrapper fetch avec cache-buster pour forcer rechargement dans Chrome
 async function fetchHistoryWithCacheBuster(fetchHistory: (filename: string) => Promise<Flight[]>, filename: string): Promise<Flight[]> {
   const urlWithTimestamp = `${filename}?t=${Date.now()}`;
   return fetchHistory(urlWithTimestamp);
@@ -85,7 +84,7 @@ export default function useLocalHistory({
         log(`Received ${flights.length} flights for file ${currentHistoryFile}`);
 
         setLocalHistory([...flights]); // New reference for React update
-        setLocalPage(1);
+        // IMPORTANT : Ne plus forcer setLocalPage(1) ici pour préserver la page courante
         setError(null);
       } catch (e) {
         const msg = `Error loading history file ${currentHistoryFile}: ${(e as Error).message}`;
@@ -129,7 +128,6 @@ export default function useLocalHistory({
     }
   }, [historyFiles, currentHistoryFile, log]);
 
-  // Trier localHistory par created_time décroissant
   const sortedLocalHistory = useMemo(() => {
     return [...localHistory]
       .filter(flight => flight.state === 'local')
@@ -140,18 +138,8 @@ export default function useLocalHistory({
       });
   }, [localHistory]);
 
-  // max page selon taille PER_PAGE
   const localMaxPage = useMemo(() => Math.max(1, Math.ceil(sortedLocalHistory.length / PER_PAGE)), [sortedLocalHistory]);
 
-  /**
-   * IMPORTANT:
-   * On enrichit la liste complète triée avec anchorState AVANT pagination.
-   * Ici, on suppose qu’une fonction isAnchored existe à un niveau supérieur,
-   * donc la fusion est faite dans un hook parent (ex: useProcessedFlights).
-   * 
-   * Si besoin, l’enrichissement peut être fait ici si on passe isAnchored en prop.
-   */
-  // localPageData n’applique plus que la pagination sur la liste enrichie
   const localPageData = useMemo(() => {
     const start = (localPage - 1) * PER_PAGE;
     const end = start + PER_PAGE;

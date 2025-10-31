@@ -66,6 +66,14 @@
     background-color: #f5faff;
 }
 
+.clickable-row.selected {
+  background-color: #a1d2ffa1 !important;
+  font-weight: 600;
+  outline: 1px solid #175184;
+  transition: background-color 0.25s linear;
+}
+
+
 /* Responsive général */
 @media (max-width: 800px) {
     .table-title {
