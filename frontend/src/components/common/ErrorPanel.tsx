@@ -1,4 +1,3 @@
-// ErrorPanel.tsx
 import { useEffect } from "react";
 import "./ErrorPanel.css";
 
@@ -41,7 +40,12 @@ export default function ErrorPanel({
   if (!synthesizedError && !synthesizedWarning) return null;
 
   return (
-    <div className="error-panel" role="alert" aria-live="assertive" aria-atomic="true">
+    <div
+      className="error-panel"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
       {synthesizedError && (
         <div
           className="error-item error-error"

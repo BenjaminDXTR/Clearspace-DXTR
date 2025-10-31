@@ -5,12 +5,12 @@ const historyRoutes = require('./history');
 const anchorRoutes = require('./anchor');
 const shutdownRoutes = require('./shutdown');
 const accessCheck = require("./accessCheck");
-const errorLogRoutes = require('./errorLog'); // nouvelle route log d’erreur
+const errorLogRoutes = require('./errorLog'); // route log erreurs
 
 router.use('/history', historyRoutes);
-router.use('/', anchorRoutes);
+router.use('/anchor', anchorRoutes);
 router.use('/shutdown', shutdownRoutes);
-router.use('/api', accessCheck);
-router.use('/api', errorLogRoutes); // L’endpoint POST /api/log-error
+router.use('/access', accessCheck);
+router.use('/log-error', errorLogRoutes);
 
 module.exports = router;

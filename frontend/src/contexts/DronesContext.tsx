@@ -27,9 +27,9 @@ const WS_STATES = {
   CLOSED: 3,
 };
 
-const PING_INTERVAL = 20000; // Intervalle ping toutes les 20s
+const PING_INTERVAL = 20000; // Ping toutes les 20s
 const PONG_TIMEOUT = 10000;  // Timeout pong 10s
-const RECONNECT_DELAY = 2000; // Reconnexion WS toutes les 2s
+const RECONNECT_DELAY = 2000; // Reconnexion toutes les 2s
 
 export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [drones, setDrones] = useState<Flight[]>([]);
@@ -42,12 +42,14 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
   const pingTimeout = useRef<NodeJS.Timeout | null>(null);
   const pongTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Dernière erreur et timestamp pour throttling
   const lastError = useRef<{ msg: string; time: number } | null>(null);
-  const errorThrottle = 5000; // Minimum 5s entre mêmes messages d’erreur
+  const errorThrottle = 5000; // 5 secondes mini entre même erreur
 
   const websocketUrl = config.websocketUrl;
 
-  // Nettoyer timers ping/pong pour éviter fuites mémoire
+  // Fonction pour nettoyer timers ping/pong & éviter fuites mémoire
   function clearTimeouts() {
     if (pingTimeout.current) {
       clearTimeout(pingTimeout.current);
@@ -59,7 +61,54 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }
 
-  // Envoi ping régulièrement et attente pong sinon ferme WS
+  // Fonction transformant messages techniques en messages utilisateur
+  function getFriendlyMessage(rawMsg: string): string {
+    if (!rawMsg) return '';
+
+    if (rawMsg.includes('Failed to fetch')) {
+      return 'Connexion au serveur backend impossible, vérifiez votre réseau ou que le serveur est démarré.';
+    }
+    if (rawMsg.includes('WebSocket connection')) {
+      return 'Problème de connexion WebSocket avec le serveur.';
+    }
+    if (rawMsg.includes('Pong non reçu')) {
+      return 'Connexion instable au serveur, tentative de reconnexion en cours...';
+    }
+    // Autres cas personnalisés ici
+
+    return rawMsg;
+  }
+
+  // Met à jour l’erreur affichée avec throttling (ne pas spammer la même erreur)
+  function setWebsocketError(msg: string) {
+    const now = Date.now();
+
+    if (
+      lastError.current &&
+      lastError.current.msg === msg &&
+      now - lastError.current.time < errorThrottle
+    ) {
+      return; // Ignore répétition trop rapide
+    }
+
+    lastError.current = { msg, time: now };
+
+    const friendlyMsg = getFriendlyMessage(msg);
+    setError((prev) => (prev === friendlyMsg ? prev : `Erreur de connexion au serveur : ${friendlyMsg}`));
+    console.error(`[${new Date().toISOString()}][DronesContext] ${msg}`);
+  }
+
+  // Supprime l’erreur de connexion si elle n’est plus actuelle (ex: connexion établie)
+  function clearConnectionError() {
+    setError((prev) => {
+      if (prev && prev.startsWith('Erreur de connexion au serveur')) {
+        return null;
+      }
+      return prev;
+    });
+  }
+
+  // Envoi d’un ping WS et attente pong sinon fermeture
   function sendPing() {
     if (!ws.current || ws.current.readyState !== WS_STATES.OPEN) return;
     try {
@@ -74,7 +123,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }
 
-  // Planifie les pings pour maintenir connexion
+  // Schedule pings périodiques
   function schedulePing() {
     clearTimeouts();
     pingTimeout.current = setTimeout(() => {
@@ -83,27 +132,13 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, PING_INTERVAL);
   }
 
-  // Met à jour l’erreur avec throttling pour éviter rafraîchissements incessants
-  function setWebsocketError(msg: string) {
-    const now = Date.now();
-    if (
-      lastError.current &&
-      lastError.current.msg === msg &&
-      now - lastError.current.time < errorThrottle
-    ) {
-      return; // Message identique récent, ignore la mise à jour
-    }
-    lastError.current = { msg, time: now };
-    setError((prev) => (prev === msg ? prev : `Erreur de connexion au serveur : ${msg}`));
-    console.error(`[${new Date().toISOString()}][DronesContext] ${msg}`);
-  }
-
-  // Connexion WS avec reconnexion automatique et gestion d’erreurs rapides
+  // Connexion WS avec reconnexion automatique
   function connect() {
     if (ws.current && [WS_STATES.OPEN, WS_STATES.CONNECTING].includes(ws.current.readyState)) {
       console.log(`[${new Date().toISOString()}][DronesContext] WS déjà connecté ou en connexion`);
       return;
     }
+
     if (ws.current) {
       try {
         console.log(`[${new Date().toISOString()}][DronesContext] Fermeture WS existant avant nouvelle connexion`);
@@ -113,6 +148,7 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
       ws.current = null;
     }
+
     if (reconnectTimeout.current) {
       console.log(`[${new Date().toISOString()}][DronesContext] Reconnexion déjà programmée, ignorée`);
       return;
@@ -120,11 +156,10 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     console.log(`[${new Date().toISOString()}][DronesContext] Nouvelle tentative de connexion WS à ${websocketUrl}`);
     setLoading('connecting');
-    // Ne nettoie pas l’erreur ici, pour garder visible message si existant
 
     ws.current = new WebSocket(websocketUrl);
 
-    // Timeout pour échec rapide en cas de backend inaccessible
+    // Timeout connexion WS (écoute échec rapide)
     const connectionTimeout = setTimeout(() => {
       if (ws.current && ws.current.readyState !== WS_STATES.OPEN) {
         setWebsocketError('Le serveur backend semble inaccessible ou non démarré.');
@@ -133,22 +168,15 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     }, 3000);
 
+    // Gestion ouverture WS
     ws.current.onopen = () => {
       clearTimeout(connectionTimeout);
       setLoading('connected');
       console.log(`[${new Date().toISOString()}][DronesContext] WS connection established`);
 
-      /*
-       * Nettoie l’erreur uniquement si elle concerne la connexion WS,
-       * après 1s de stabilité pour éviter disparition/retour rapide du message
-       */
+      // Nettoie erreur connexion WS après 1s
       setTimeout(() => {
-        setError((prev) => {
-          if (prev && prev.startsWith('Erreur de connexion au serveur')) {
-            return null;
-          }
-          return prev;
-        });
+        clearConnectionError();
       }, 1000);
 
       if (reconnectTimeout.current) {
@@ -158,18 +186,17 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       schedulePing();
     };
 
+    // Gestion messages WS
     ws.current.onmessage = (event) => {
       clearTimeout(pongTimeout.current!);
+
       try {
         const data = JSON.parse(event.data);
 
-        // Si c'est un tableau, on enrichit la donnée avant la mise à jour
+        // Cas tableau de drones (mise à jour)
         if (Array.isArray(data)) {
-          // Parcours des drones reçus 
-          // On s'assure qu'un drone "waiting" a bien une propriété trace
           const enriched = data.map((drone) => {
             if (drone.state === 'waiting' && !drone.trace) {
-              // Ajout d'une trace vide si absent
               return { ...drone, trace: [] };
             }
             return drone;
@@ -177,13 +204,12 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
           setDrones(enriched);
 
-          // On peut logger pour debug
           console.log(`[DronesContext] Received ${enriched.length} drones, including ${enriched.filter(f => f.state === 'waiting').length} waiting`);
 
           return;
         }
 
-        // Gestion des messages spécifiques autres que tableau
+        // Cas message structuré websocket
         if (data && typeof data === 'object' && 'type' in data) {
           switch (data.type) {
             case 'ping':
@@ -218,13 +244,14 @@ export const DronesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     };
 
-
+    // Gestion erreur WS
     ws.current.onerror = (evt) => {
       clearTimeout(connectionTimeout);
       setWebsocketError('Erreur réseau lors de la connexion WebSocket');
       setLoading('disconnected');
     };
 
+    // Gestion fermeture WS
     ws.current.onclose = (evt) => {
       clearTimeout(connectionTimeout);
       setLoading('disconnected');

@@ -229,6 +229,8 @@ export default function useAppLogic() {
     [localFlights]
   );
 
+
+  /*  // Vérification accès backend au montage du hook
   useEffect(() => {
     setLoadingAccess(true);
     fetch("/api/check-access", { cache: "no-store" })
@@ -254,7 +256,7 @@ export default function useAppLogic() {
         setLoadingAccess(false);
       });
   }, []);
-
+*/
   const selectedKey = useMemo(() => {
     if (!selected) return null;
     return { id: selected.id, created_time: selected.created_time };

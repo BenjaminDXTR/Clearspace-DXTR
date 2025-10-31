@@ -1,4 +1,3 @@
-// errorService.ts
 import { config } from "../config";
 
 const ERROR_LOG_URL = config.apiUrl + "/log-error";
@@ -9,6 +8,7 @@ async function logErrorToBackend(error: {
   message: string;
   severity?: string;
   timestamp: string;
+  source?: string;
 }): Promise<void> {
   try {
     const response = await fetch(ERROR_LOG_URL, {
