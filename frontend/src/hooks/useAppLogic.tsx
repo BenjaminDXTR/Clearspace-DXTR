@@ -23,8 +23,14 @@ export default function useAppLogic() {
   // Drones
   const { drones: rawDrones, historyFiles, fetchHistory, error: dronesError, refreshFilename } = useDrones();
 
-  // Gestion erreurs
-  const { errors, criticalErrors, errorHistory, addError, dismissError } = useErrorManager();
+  // Gestion erreurs avec regroupement synthétique (sans historique)
+  const {
+    errors,
+    addError,
+    dismissError,
+    synthesizedError,
+    synthesizedWarning
+  } = useErrorManager();
 
   const onUserError = useCallback(
     (msg: string): void => {
@@ -89,6 +95,7 @@ export default function useAppLogic() {
   // Traces live
   const { liveTraces } = useLiveTraces(liveFlights, { debug, onUserError });
 
+  // Gestion erreur drones connection backend (WebSocket)
   const dronesErrorRef = useRef(false);
   useEffect(() => {
     if (dronesError && !dronesErrorRef.current) {
@@ -99,6 +106,22 @@ export default function useAppLogic() {
       dronesErrorRef.current = false;
     }
   }, [dronesError, addError, dismissError, dlog]);
+
+  // Gestion erreurs accès backend séparée
+  useEffect(() => {
+    if (accessDenied && !errors.some((e) => e.id === "access-denied-error")) {
+      addError({
+        id: "access-denied-error",
+        title: "Accès refusé",
+        message: errorHtml ?? "Accès au backend refusé",
+        severity: "error",
+        dismissible: false,
+      });
+    }
+    if (!accessDenied) {
+      dismissError("access-denied-error");
+    }
+  }, [accessDenied, errorHtml, errors, dismissError, addError]);
 
   // Vol sélectionné
   const [selected, setSelected] = useState<Flight | null>(null);
@@ -138,7 +161,6 @@ export default function useAppLogic() {
           }
         }
       }
-
       dlog(`[getTraceFlight] Flight id: ${flight.id} state: ${flight.state} trace length: ${trace.length}`);
       return trace;
     },
@@ -207,77 +229,45 @@ export default function useAppLogic() {
     [localFlights]
   );
 
-// Contrôle d'accès backend
-useEffect(() => {
-  setLoadingAccess(true);
-  fetch("/api/check-access", { cache: "no-store" })
-    .then((res) => {
-      if (!res.ok) {
-        return res.text().then((text) => {
-          setAccessDenied(true);
-          setErrorHtml(text);
-          throw new Error("Accès refusé");
-        });
-      }
-      return res.json();
-    })
-    .then(() => {
-      setAccessDenied(false);
-      setErrorHtml(null);
-    })
-    .catch(() => {
-      setAccessDenied(true);
-      setErrorHtml("<h1>Erreur réseau lors de la vérification d'accès</h1>");
-    })
-    .finally(() => {
-      setLoadingAccess(false);
-    });
-}, []);
-
-// Contrôle d'accès backend
-useEffect(() => {
-  setLoadingAccess(true);
-  fetch("/api/check-access", { cache: "no-store" })
-    .then((res) => {
-      if (!res.ok) {
-        return res.text().then((text) => {
-          setErrorHtml(text);
-          setAccessDenied(true);
-          throw new Error("Accès refusé");
-        });
-      }
-      return res.json();
-    })
-    .then(() => {
-      setAccessDenied(false);
-      setErrorHtml(null);
-    })
-    .catch(() => {
-      if (!errorHtml) {
+  useEffect(() => {
+    setLoadingAccess(true);
+    fetch("/api/check-access", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) {
+          return res.text().then((text) => {
+            setAccessDenied(true);
+            setErrorHtml(text);
+            throw new Error("Accès refusé");
+          });
+        }
+        return res.json();
+      })
+      .then(() => {
+        setAccessDenied(false);
+        setErrorHtml(null);
+      })
+      .catch(() => {
+        setAccessDenied(true);
         setErrorHtml("<h1>Erreur réseau lors de la vérification d'accès</h1>");
-      }
-      setAccessDenied(true);
-    })
-    .finally(() => {
-      setLoadingAccess(false);
-    });
-}, []);
+      })
+      .finally(() => {
+        setLoadingAccess(false);
+      });
+  }, []);
 
-
-const selectedKey = useMemo(() => {
-  if (!selected) return null;
-  return { id: selected.id, created_time: selected.created_time };
-}, [selected]);
-
+  const selectedKey = useMemo(() => {
+    if (!selected) return null;
+    return { id: selected.id, created_time: selected.created_time };
+  }, [selected]);
 
   return {
     debug,
     dlog,
     errors,
-    criticalErrors,
-    errorHistory,
     dismissError,
     addError,
+    synthesizedError,
+    synthesizedWarning,
     currentHistoryFile,
     setCurrentHistoryFile,
     historyFiles,

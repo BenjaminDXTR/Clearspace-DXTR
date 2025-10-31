@@ -8,7 +8,6 @@ import TablesLive from "./components/layout/TablesLive";
 import TablesLocal from "./components/layout/TablesLocal";
 import AnchorModalLayout from "./components/layout/AnchorModalLayout";
 import ErrorPanel from "./components/common/ErrorPanel";
-import HistoryFileSelector from "./components/common/HistoryFileSelector";
 import DetailsPanel from "./components/flights/DetailsPanel";
 
 import { LIVE_FIELDS, LOCAL_FIELDS } from "./utils/constants";
@@ -26,7 +25,16 @@ function AppContent() {
       <Header />
       <div className="container-main">
         <div className="left-column">
-          <div className="map-container">
+          {/* Erreurs placées au-dessus de la carte */}
+          <div className="error-container">
+            <ErrorPanel
+              synthesizedError={logic.synthesizedError}
+              synthesizedWarning={logic.synthesizedWarning}
+              onDismiss={logic.dismissError}
+            />
+          </div>
+
+          <div className="map-container" ref={mapDivRef}>
             <MapLayout
               selected={logic.selected}
               selectedTracePoints={logic.selectedTracePoints}
@@ -35,6 +43,7 @@ function AppContent() {
               flyToTrigger={logic.flyTrigger}
             />
           </div>
+
           <div className="info-details">
             <DetailsPanel
               selected={logic.selected}
@@ -48,21 +57,11 @@ function AppContent() {
         </div>
 
         <div className="right-column">
-          <div className="error-container">
-            <ErrorPanel
-              errors={logic.errors}
-              criticalErrors={logic.criticalErrors}
-              onDismiss={logic.dismissError}
-              showHistoryToggle={true}
-              errorHistory={logic.errorHistory}
-            />
-          </div>
-
           <TablesLive
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
             handleSelect={logic.handleSelect}
-            selectedKey={selectedKey}  
+            selectedKey={selectedKey}
             debug={logic.debug}
           />
 
@@ -74,15 +73,14 @@ function AppContent() {
             LOCAL_FIELDS={LOCAL_FIELDS}
             isAnchored={logic.getAnchorState}
             getTraceForFlight={logic.getTraceForFlight}
-            selectedKey={selectedKey} 
+            selectedKey={selectedKey}
             openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
-            historyFiles={logic.historyFiles}               
-            currentFile={logic.currentHistoryFile}         
-            onSelectFile={logic.setCurrentHistoryFile}      
+            historyFiles={logic.historyFiles}
+            currentFile={logic.currentHistoryFile}
+            onSelectFile={logic.setCurrentHistoryFile}
           />
-
         </div>
       </div>
 

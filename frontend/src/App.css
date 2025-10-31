@@ -7,6 +7,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ===== Header ===== */
@@ -21,102 +23,158 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1100;
   user-select: none;
 }
 
-/* ===== Erreur centrée ===== */
+/* =====Erreur juste sous header===== */
 .error-container {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin: 10px 0;
+  padding: 0 10px;
+  margin: 0;
+  background: transparent;
+  position: relative;
+  z-index: 1050;
 }
 
-/* ===== Layout principal optimisé ===== */
+/* ErrorPanel plus compact */
+.error-panel {
+  max-width: 560px;
+  width: 100%;
+  margin: 12px auto 6px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+
+.error-item {
+  margin-bottom: 8px;
+  padding: 1rem 1.1rem;
+  border-radius: 0.35rem;
+  position: relative;
+  font-size: 1.1rem;
+  line-height: 1.45;
+  text-align: center;
+  user-select: none;
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: background-color 0.2s ease;
+  word-break: break-word;
+}
+
+/* Erreurs et warnings styles */
+.error-error {
+  background-color: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
+}
+
+.error-warning {
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffeeba;
+}
+
+/* Bouton de fermeture */
+.error-dismiss {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.35rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+/* Main layout */
 .container-main {
   display: flex;
   flex-direction: row;
   gap: 24px;
   width: 100vw;
-  max-width: none;
   margin: 0;
-  padding: 0 40px;
+  padding: 12px 34px 34px 34px;
   box-sizing: border-box;
-  height: 90vh;            /* <--- C’est le parent dont left-column hérite du 100% */
-  align-items: stretch;
+  height: calc(100vh - 72px); /* header hauteur */
+  align-items: flex-start;
+  overflow: hidden;
 }
 
-/* Colonne gauche carte + détails, plus large */
+/* Colonne gauche (carte + détails) */
 .left-column {
   min-width: 280px;
-  flex: 1 1 40%;
+  flex: 1 1 42%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
   box-sizing: border-box;
   height: 100%;
-  margin-top: 20px;
+  overflow: visible;
 }
 
-/* Carte prise 60% hauteur de la colonne */
+/* Carte taille fixe */
 .map-container {
   width: 100%;
-  height: 60%;
-  min-height: 240px;
-  max-height: none;
+  flex-shrink: 0;
+  height: 50%;
+  min-height: 380px;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.07);
   overflow: hidden;
-  box-sizing: content-box;     /* <= important : ne pas compter le padding dans la hauteur ! */
+  box-sizing: border-box;
   position: relative;
-  padding: 0;                  /* PAS de padding */
-  margin: 0;                   /* PAS de margin */
+  padding: 0;
+  margin: 0;
 }
 
-/* Details prennent 40%, scrollable */
+/* Cadre détails flexible et scrollable */
 .info-details {
-  flex: none;                  /* N'autorise pas le dépassement */
+  flex-grow: 1;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.07);
-  height: 40%;                 /* Toujours 40% du parent .left-column */
   overflow-y: auto;
-  padding: 18px 22px;
-  margin-top: 12px;
+  padding: 14px 18px;
   box-sizing: border-box;
+  margin-top: 8px;
 }
 
-/* Colonne droite tableaux conserve max-width et flex */
+/* colonne droite */
 .right-column {
   display: flex;
   flex-direction: column;
-  flex: 2 1 60%;        /* 50% de la largeur */
+  flex: 2 1 58%;
   min-width: 520px;
-  max-width: none;      /* Permet d'occuper tout l'espace horizontal restant */
   gap: 24px;
   align-items: stretch;
   box-sizing: border-box;
   height: 100%;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  overflow-y: auto;
 }
 
-/* Conteneurs des tableaux et sélecteur */
+/* Tables etc. */
 .table-container, .history-selector-container {
   width: 100%;
   margin-bottom: 16px;
   box-sizing: border-box;
 }
 
-/* Tableaux styling */
 .data-table {
   width: 100%;
   border-collapse: collapse;
   background: #fff;
   box-sizing: border-box;
 }
-
 .data-table th,
 .data-table td {
   border: 1px solid #ddd;
@@ -128,16 +186,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .data-table thead {
   background-color: #f0f0f0;
 }
-
 .data-table th {
   font-weight: 700;
   text-transform: capitalize;
 }
-
 .clickable-row {
   cursor: pointer;
 }
@@ -181,7 +236,7 @@ button:disabled {
   margin-top: 14px;
 }
 
-/* Message d'erreur */
+/* Message générique erreur */
 .error {
   color: #dc2626;
   font-weight: 600;
@@ -198,7 +253,6 @@ button:disabled {
   align-items: center;
   z-index: 2000;
 }
-
 .modal-content {
   background: #fff;
   border-radius: 12px;
@@ -213,9 +267,9 @@ button:disabled {
 @media (max-width: 1200px) {
   .container-main {
     flex-direction: column;
-    gap: 26px;
+    gap: 18px;
     max-width: 99vw;
-    padding: 0 3vw;
+    padding: 0 2vw;
     height: auto;
   }
   .left-column,
@@ -223,16 +277,31 @@ button:disabled {
     min-width: 0;
     max-width: 100%;
     flex: 1 1 100%;
-    height: auto;                /* ceci force la colonne à s'adapter en hauteur dynamique sur mobile */
+    height: auto;
+    margin-top: 0;
   }
   .map-container {
-    min-width: 220px;
-    max-width: 99vw;
-    min-height: 220px;
-    height: 350px;               /* Passe la hauteur de la carte en px sur mobile */
+    height: 290px;
+    min-height: 290px;
+    max-height: none;
   }
   .info-details {
-    height: 200px;
+    height: 150px;
+    margin-top: 6px;
+  }
+  .error-container {
+    position: relative;
+    margin: 12px 0 0 0;
+    padding: 0 8px;
+    background: transparent;
+    border-bottom: none;
+    z-index: auto;
+  }
+  .right-column {
+    margin-top: 10px;
+    padding-top: 0;
+    overflow-y: visible;
+    justify-content: flex-end;
   }
 }
 
@@ -247,7 +316,14 @@ button:disabled {
   .data-table th,
   .data-table td {
     padding: 4px 6px;
-    font-size: 0.87rem;
+    font-size: 0.88rem;
     max-width: 88vw;
+  }
+  .map-container {
+    height: 180px;
+    min-height: 180px;
+  }
+  .info-details {
+    height: 110px;
   }
 }

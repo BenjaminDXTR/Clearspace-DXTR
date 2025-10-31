@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// ErrorPanel.tsx
+import { useEffect } from "react";
 import "./ErrorPanel.css";
 
 interface ErrorMessage {
@@ -10,118 +11,74 @@ interface ErrorMessage {
 }
 
 interface ErrorPanelProps {
-  errors: ErrorMessage[];          // Liste des erreurs à afficher (filtrée)
-  criticalErrors?: ErrorMessage[]; // Erreurs critiques pour alertes séparées (optionnel)
+  synthesizedError?: ErrorMessage | null;
+  synthesizedWarning?: ErrorMessage | null;
   onDismiss?: (id: string) => void;
-  showHistoryToggle?: boolean;     // Afficher bouton toggle historique des erreurs
-  errorHistory?: ErrorMessage[];   // Historique erreurs passées à afficher si showHistory actif
 }
 
 export default function ErrorPanel({
-  errors,
-  criticalErrors = [],
+  synthesizedError = null,
+  synthesizedWarning = null,
   onDismiss,
-  showHistoryToggle = true,
-  errorHistory = [],
 }: ErrorPanelProps) {
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Filtrer erreurs générales pour exclure les erreurs critiques déjà affichées
-  const nonCriticalErrors = errors.filter(
-    (err) => !criticalErrors.some(critErr => critErr.id === err.id)
-  );
-
   useEffect(() => {
     if (!onDismiss) return;
     const timeouts: NodeJS.Timeout[] = [];
 
-    errors.forEach((err) => {
-      if ((err.severity === "info" || err.severity === "warning") && err.dismissible !== false) {
-        const t = setTimeout(() => {
-          onDismiss(err.id);
-        }, 10000);
-        timeouts.push(t);
-      }
-    });
+    // Auto-dismiss pour warnings
+    if (synthesizedWarning && synthesizedWarning.dismissible !== false) {
+      const t = setTimeout(() => {
+        onDismiss(synthesizedWarning.id);
+      }, 10000);
+      timeouts.push(t);
+    }
 
     return () => {
       timeouts.forEach(clearTimeout);
     };
-  }, [errors, onDismiss]);
+  }, [synthesizedWarning, onDismiss]);
 
-  if (errors.length === 0 && (!showHistory || errorHistory.length === 0)) return null;
+  if (!synthesizedError && !synthesizedWarning) return null;
 
   return (
     <div className="error-panel" role="alert" aria-live="assertive" aria-atomic="true">
-      {criticalErrors.length > 0 && (
-        <div className="error-critical-section">
-          <strong>Erreurs critiques :</strong>
-          <ul>
-            {criticalErrors.map((err) => (
-              <li key={err.id} className="error-item error-error" tabIndex={0}>
-                {err.title && <strong>{err.title}: </strong>}
-                {err.message}
-                {onDismiss && err.dismissible !== false && (
-                  <button
-                    className="error-dismiss"
-                    onClick={() => onDismiss(err.id)}
-                    aria-label={`Supprimer le message d’erreur: ${err.title ?? err.message}`}
-                  >
-                    &times;
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {nonCriticalErrors.length > 0 && (
-        <div className="error-general-section">
-          {nonCriticalErrors.map((err) => (
-            <div
-              key={err.id}
-              className={`error-item error-${err.severity ?? "error"}`}
-              tabIndex={0}
-            >
-              {err.title && <strong>{err.title}: </strong>}
-              {err.message}
-              {(err.severity === "info" || err.severity === "warning") && onDismiss && err.dismissible !== false && (
-                <button
-                  className="error-dismiss"
-                  onClick={() => onDismiss(err.id)}
-                  aria-label={`Supprimer le message d’erreur: ${err.title ?? err.message}`}
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showHistoryToggle && errorHistory.length > 0 && (
-        <button
-          className="error-history-toggle"
-          onClick={() => setShowHistory(!showHistory)}
-          aria-expanded={showHistory}
-          aria-controls="error-history-list"
+      {synthesizedError && (
+        <div
+          className="error-item error-error"
+          tabIndex={0}
+          aria-label="Bloc d'erreur critique"
         >
-          {showHistory ? "Masquer" : "Afficher"} l'historique des erreurs ({errorHistory.length})
-        </button>
+          <strong>Erreur critique : </strong>
+          {synthesizedError.message}
+          {onDismiss && synthesizedError.dismissible !== false && (
+            <button
+              className="error-dismiss"
+              onClick={() => onDismiss(synthesizedError.id)}
+              aria-label={`Supprimer le message d’erreur: ${synthesizedError.message}`}
+            >
+              &times;
+            </button>
+          )}
+        </div>
       )}
 
-      {showHistory && errorHistory.length > 0 && (
-        <div id="error-history-list" className="error-history" aria-live="polite">
-          <strong>Historique des erreurs :</strong>
-          <ul>
-            {errorHistory.map((err) => (
-              <li key={err.id} className={`error-item error-${err.severity ?? "error"}`} tabIndex={0}>
-                {err.title && <strong>{err.title}: </strong>}
-                {err.message}
-              </li>
-            ))}
-          </ul>
+      {synthesizedWarning && (
+        <div
+          className="error-item error-warning"
+          tabIndex={0}
+          aria-label="Bloc d'avertissement"
+        >
+          <strong>Avertissement : </strong>
+          {synthesizedWarning.message}
+          {onDismiss && synthesizedWarning.dismissible !== false && (
+            <button
+              className="error-dismiss"
+              onClick={() => onDismiss(synthesizedWarning.id)}
+              aria-label={`Supprimer le message d’avertissement: ${synthesizedWarning.message}`}
+            >
+              &times;
+            </button>
+          )}
         </div>
       )}
     </div>

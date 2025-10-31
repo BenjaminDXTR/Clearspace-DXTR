@@ -1,7 +1,8 @@
+/* ErrorPanel.css */
 .error-panel {
-  max-width: 600px;
-  width: 90%;
-  margin: 1rem auto;
+  max-width: 560px;
+  width: 100%;
+  margin: 18px auto 6px auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,36 +11,29 @@
 }
 
 .error-item {
-  margin-bottom: 1rem;
-  padding: 1rem 1.5rem;
+  width: 100%;
+  padding: 1rem 1.1rem;
   border-radius: 0.35rem;
   position: relative;
   font-size: 1.1rem;
-  line-height: 1.5;
-  text-align: center; /* Texte centré */
+  line-height: 1.45;
+  text-align: center;
   user-select: none;
-  width: 100%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  transition: background-color 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: background-color 0.2s ease;
+  word-break: break-word;
 }
 
 .error-error {
   background-color: #f8d7da;
   color: #842029;
   border: 1px solid #f5c2c7;
-  /* Erreurs importantes sans bouton close */
 }
 
 .error-warning {
   background-color: #fff3cd;
   color: #664d03;
   border: 1px solid #ffeeba;
-}
-
-.error-info {
-  background-color: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
 }
 
 .error-dismiss {
@@ -63,56 +57,20 @@
   outline: none;
 }
 
-/* Section pour erreurs critiques */
-.error-critical-section {
-  width: 100%;
-  margin-bottom: 1rem;
+.error-item:focus {
+  outline: 3px solid #0056b3;
+  outline-offset: 2px;
 }
 
-.error-critical-section ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-  margin-top: 0.5rem;
-}
-
-/* Section pour erreurs générales */
-.error-general-section {
-  width: 100%;
-}
-
-/* Bouton bascule historique */
-.error-history-toggle {
-  background-color: transparent;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
-  font-size: 1rem;
-  margin-top: 1rem;
-  align-self: flex-start;
-  padding: 0;
-  text-decoration: underline;
-  user-select: none;
-}
-
-.error-history-toggle:hover,
-.error-history-toggle:focus {
-  color: #0056b3;
-  outline: none;
-}
-
-/* Liste historique erreurs */
-.error-history {
-  background-color: #f6f8fa;
-  border: 1px solid #ccc;
-  padding: 0.75rem 1rem;
-  margin-top: 0.5rem;
-  border-radius: 0.3rem;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.error-history ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-  margin-top: 0.5rem;
+@media (max-width: 400px) {
+  .error-panel {
+    max-width: 100%;
+  }
+  .error-item {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  .error-dismiss {
+    font-size: 1.25rem;
+  }
 }
