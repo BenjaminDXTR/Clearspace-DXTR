@@ -80,6 +80,7 @@ const config = {
     // Configuration API blockchain from .env only
     blockchainApiUrl: process.env.BLOCKCHAIN_API_URL || null,
     blockchainApiKey: process.env.BLOCKCHAIN_API_KEY || null,
+    retryIntervalMin: parseIntOrNull(process.env.RETRY_INTERVAL_MIN) || 10,
 
     // Optional manual API composition
     apiProtocol: process.env.API_PROTOCOL || null,

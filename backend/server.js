@@ -110,7 +110,7 @@ function startIntervals() {
     }
   }, 60000);
 
-  const retryMs = (config.backend.retryIntervalMin || 5) * 60 * 1000;
+  const retryMs = config.backend.retryIntervalMin * 60 * 1000;
   retryIntervalId = setInterval(async () => {
     log.info('Début tentative de renvoi des preuves en attente...');
     try {
