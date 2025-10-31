@@ -19,16 +19,8 @@ function AppContent() {
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const memoAnchorModal = useMemo(() => logic.anchorModal, [logic.anchorModal?.flight?.id]);
+  const selectedKey = logic.selectedKey;
 
-  /*
-  if (logic.loadingAccess) {
-    return <div>Chargement...</div>;
-  }
-
-  if (logic.accessDenied && logic.errorHtml) {
-    return <div dangerouslySetInnerHTML={{ __html: logic.errorHtml }} />;
-  }
-*/
   return (
     <div>
       <Header />
@@ -70,6 +62,7 @@ function AppContent() {
             drones={logic.liveFlights}
             LIVE_FIELDS={LIVE_FIELDS}
             handleSelect={logic.handleSelect}
+            selectedKey={selectedKey}  
             debug={logic.debug}
           />
 
@@ -81,12 +74,13 @@ function AppContent() {
             LOCAL_FIELDS={LOCAL_FIELDS}
             isAnchored={logic.getAnchorState}
             getTraceForFlight={logic.getTraceForFlight}
+            selectedKey={selectedKey} 
             openModal={logic.openModal}
             handleSelect={logic.handleSelect}
             debug={logic.debug}
-            historyFiles={logic.historyFiles}                // AJOUTÉ
-            currentFile={logic.currentHistoryFile}           // AJOUTÉ
-            onSelectFile={logic.setCurrentHistoryFile}       // AJOUTÉ
+            historyFiles={logic.historyFiles}               
+            currentFile={logic.currentHistoryFile}         
+            onSelectFile={logic.setCurrentHistoryFile}      
           />
 
         </div>

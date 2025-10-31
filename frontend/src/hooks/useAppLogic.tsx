@@ -264,6 +264,12 @@ useEffect(() => {
 }, []);
 
 
+const selectedKey = useMemo(() => {
+  if (!selected) return null;
+  return { id: selected.id, created_time: selected.created_time };
+}, [selected]);
+
+
   return {
     debug,
     dlog,
@@ -284,6 +290,7 @@ useEffect(() => {
     liveFlights,
     localFlights,
     liveTraces,
+    selectedKey,
     selected,
     setSelected,
     flyTrigger,

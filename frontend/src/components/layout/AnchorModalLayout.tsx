@@ -27,7 +27,7 @@ interface AnchorModalLayoutProps {
   message?: string | null; // Nouveau champ message
   debug?: boolean;
   children?: ReactNode;
-  mapDivRef: React.RefObject<HTMLDivElement>;
+  mapDivRef: React.RefObject<HTMLDivElement | null>;
   mapReady: boolean;
   setMapReady: (ready: boolean) => void;
   setMapContainer?: (container: HTMLElement | null) => void;
